@@ -6,6 +6,7 @@ import (
 	"fmt"
 	langpb "google.golang.org/genproto/googleapis/cloud/language/v1"
 	"log"
+	"strings"
 )
 
 const text = "bet you that tevin coleman scores more ppr points than matt breida this week"
@@ -30,6 +31,17 @@ type Word struct {
 	Index          int
 	PartOfSpeech   *PartOfSpeech
 	DependencyEdge *DependencyEdge
+	Dependents     *[]*Word
+}
+
+func (w *Word) AllLemmas() (lemmas []string) {
+	if w.Dependents == nil {
+		return lemmas
+	}
+	for _, w := range *w.Dependents {
+		lemmas = append(lemmas, w.Lemma)
+	}
+	return lemmas
 }
 
 func main() {
@@ -45,16 +57,23 @@ func main() {
 
 	nouns, verbs, adjs := buildWords(resp)
 	fmt.Println("Nouns:")
-	for _, noun := range *nouns {
-		fmt.Println(noun)
+	for _, noun := range nouns {
+		fmt.Println(noun, noun.DependencyEdge, noun.PartOfSpeech)
 	}
 	fmt.Println("Verbs:")
-	for _, verb := range *verbs {
-		fmt.Println(verb)
+	for _, verb := range verbs {
+		fmt.Println(verb, verb.DependencyEdge, verb.PartOfSpeech)
 	}
 	fmt.Println("Adjs:")
-	for _, adj := range *adjs {
-		fmt.Println(adj)
+	for _, adj := range adjs {
+		fmt.Println(adj, adj.DependencyEdge, adj.PartOfSpeech)
+	}
+
+	fmt.Println("groupedNouns:")
+	groupedNouns := groupNouns(nouns)
+
+	for _, noun := range groupedNouns {
+		fmt.Println(noun, *noun.Dependents, noun.AllLemmas())
 	}
 }
 
@@ -70,11 +89,30 @@ func buildSyntaxRequest(text string) *langpb.AnalyzeSyntaxRequest {
 	}
 }
 
-// func rollupNouns(nouns []*Word) nouns []*Word {
+func findWord(words []*Word, index int) *Word {
+	for _, w := range words {
+		if w.Index == index {
+			return w
+		}
+	}
+	return nil
+}
 
-// }
+func groupNouns(nouns []*Word) (groupedNouns []*Word) {
+	for _, noun := range nouns {
+		parent := findWord(nouns, noun.DependencyEdge.HeadTokenIndex)
+		if parent != nil {
+			*parent.Dependents = append(*parent.Dependents, noun)
+			if findWord(groupedNouns, parent.Index) == nil {
+				groupedNouns = append(groupedNouns, parent)
+			}
+		}
+	}
 
-func buildWords(resp *langpb.AnalyzeSyntaxResponse) (nouns *[]*Word, verbs *[]*Word, adjs *[]*Word) {
+	return groupedNouns
+}
+
+func buildWords(resp *langpb.AnalyzeSyntaxResponse) (nouns []*Word, verbs []*Word, adjs []*Word) {
 	for i, t := range resp.Tokens {
 		fmt.Println(t)
 		pos := t.PartOfSpeech.Tag.String()
@@ -85,7 +123,7 @@ func buildWords(resp *langpb.AnalyzeSyntaxResponse) (nouns *[]*Word, verbs *[]*W
 				Index: i,
 				PartOfSpeech: &PartOfSpeech{
 					Tag:    pos,
-					Proper: t.PartOfSpeech.Proper.String(),
+					Proper: strings.TrimSpace(t.PartOfSpeech.Proper.String()),
 					Case:   t.PartOfSpeech.Case.String(),
 					Person: t.PartOfSpeech.Person.String(),
 					Mood:   t.PartOfSpeech.Mood.String(),
@@ -95,16 +133,17 @@ func buildWords(resp *langpb.AnalyzeSyntaxResponse) (nouns *[]*Word, verbs *[]*W
 					Label:          t.DependencyEdge.Label.String(),
 					HeadTokenIndex: int(t.DependencyEdge.HeadTokenIndex),
 				},
+				Dependents: &[]*Word{},
 			}
 
 			if pos == "VERB" {
-				*verbs = append(*verbs, &word)
+				verbs = append(verbs, &word)
 			}
 			if pos == "NOUN" {
-				*nouns = append(*nouns, &word)
+				nouns = append(nouns, &word)
 			}
 			if pos == "ADJ" {
-				*adjs = append(*adjs, &word)
+				adjs = append(adjs, &word)
 			}
 		}
 	}
