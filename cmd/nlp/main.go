@@ -45,15 +45,15 @@ func main() {
 
 	nouns, verbs, adjs := buildWords(resp)
 	fmt.Println("Nouns:")
-	for _, noun := range nouns {
+	for _, noun := range *nouns {
 		fmt.Println(noun)
 	}
 	fmt.Println("Verbs:")
-	for _, verb := range verbs {
+	for _, verb := range *verbs {
 		fmt.Println(verb)
 	}
 	fmt.Println("Adjs:")
-	for _, adj := range adjs {
+	for _, adj := range *adjs {
 		fmt.Println(adj)
 	}
 }
@@ -70,7 +70,11 @@ func buildSyntaxRequest(text string) *langpb.AnalyzeSyntaxRequest {
 	}
 }
 
-func buildWords(resp *langpb.AnalyzeSyntaxResponse) (nouns []*Word, verbs []*Word, adjs []*Word) {
+// func rollupNouns(nouns []*Word) nouns []*Word {
+
+// }
+
+func buildWords(resp *langpb.AnalyzeSyntaxResponse) (nouns *[]*Word, verbs *[]*Word, adjs *[]*Word) {
 	for i, t := range resp.Tokens {
 		fmt.Println(t)
 		pos := t.PartOfSpeech.Tag.String()
@@ -94,13 +98,13 @@ func buildWords(resp *langpb.AnalyzeSyntaxResponse) (nouns []*Word, verbs []*Wor
 			}
 
 			if pos == "VERB" {
-				verbs = append(verbs, &word)
+				*verbs = append(*verbs, &word)
 			}
 			if pos == "NOUN" {
-				nouns = append(nouns, &word)
+				*nouns = append(*nouns, &word)
 			}
 			if pos == "ADJ" {
-				adjs = append(adjs, &word)
+				*adjs = append(*adjs, &word)
 			}
 		}
 	}
