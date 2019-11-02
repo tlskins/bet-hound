@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "bet-hound-1572653196739",
+  "private_key_id": "5ca1eda596fd27f49cae8e6edeb50ef4904ddc4c",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCTYtQzZYyy8AyY\ndHIxOwPr8e0KsBaf8sG3uosVMUrC+nAlut6EnETaOriOV/VM5QkvwZEqQmXWrxh4\n9q2oZSFpswkUDTxKE5uFwYuPLdwfOqjkQkgmIttwbpbat7Xxyceua/38znAAXrqk\nck59fHsy6E91d1PKOvHP09WwSPVL3Wm2ahtJ6BcM0TkfVtfSJNFKYrFCWUtNFAQd\nPWgEd0Ctku+3GMU54ZEzWs+mUsUc3C9I4PobBNthtLyAulkYEm+j7AfyXwoX4ulk\n69ISznEjZPj6mAM8nXNWVvEYV3u2AHfd0Ihain71Z+HgcMFRgEMVOYlqyKWPaqYd\n8tqalhRvAgMBAAECggEAHi3Y7LNJBaTgt2D0tv7yFSCjHJKk91iCcSgZ7Zt7xwP3\n7cnfYYEMGjF28/Kv0HB/mo9EtcYFy1lsJezA71/R4S5fWANDyplMOa3BcW5/Ccf9\nqEuoMWLm0xVZ/2wprdpW8HC9f8QXrAO5rQ2Y49oW8fwetRtbhWffduJV+bRewgtD\nPnxT/U8mX678f3iXGlVeUdcJ9U8vJyT5gzPTi6bvDvKoA6xFIqlgZ1a7ZA0s4pEg\nYOLqHmphgpheSHL48fLagF6UIct5nc6AaUwolcINbR++zij+IK7/h/fFv0u0XBTm\nX4gekgn/gpIUW8wIMswJu13bfF/g8lvxD3/gmvdy6QKBgQDM044I4tdKEN8p51vx\nuACljaFQHBHcqphFiZZm1G7P5kf5kz/dslaQUmqE+vZreYnGAsP9UIjMyhlzgZp4\nzSdb1hUshcL57nCSrrMcccKAnzNaKiZQv5cTmQI4XnlzUfHgcXS4c3NzSEYruyHk\n3MtGVXPxE++bKnNuJMilD/lqNwKBgQC4NXXg3gZ+7Of+Nmxzmujgo0ppUTfPHlO1\nfizQRAt6sOvYf4FnNhNc0JZZoTEMFiT7Jz3T83E7fV5uyBBx8eQdhPb2lRafiYFU\nMB7TGq1aiCiUUHZYsN991XAoynl599lSFKnB9GAqbTkU8yhOpJDiUfR9C6tHapEc\nr2frmmMriQKBgQCnDagbMT+bpdUNLSf9JjBI1hGJ78rVqcFVfZjQN1RFdbCgKet9\n2jTlsoI0ASc3ksG+YIUOtj9Mn0xQu5SMD+6Y5SsRy+qwwzrHN3rXqSSUmMNeN2BW\nnVwPXMzFwq/VUTEv9/jVczvm+zxX8GD9cuLLc2iDZ9oVOHM6kv+eOEAY0wKBgCe6\n6BS67l27zQGoTVXVyHqC3Y6/hLD4UoenkhTNSEiLFiMYxRk0sZJoLrVgLcr0j79X\npF8td3OkQ5TTM7DPwiqXvghK+ZkpOCqnQk63x0Hqcg4jGJNieqGSQmGZ4f9rdITe\njgqWIZOlARXCqCPmHJWjpX6+4I9Drc6pClnnb5I5AoGAL3JKhjXWfOHJctXlnhl6\nMZCLMDa3SdBf/XMrygxQjoCohnf/u6P8fJXp7i3VY6QK8DRiUxIBdFOvuYTjr1eC\nwX8x30MubddmjJBgOfG071rQV9KwsTv4MogVw4FQry/YHSvjPNB4kf0gbduVF6dk\nJguZxBBWtCkKk994ItobwQo=\n-----END PRIVATE KEY-----\n",
+  "client_email": "starting-account-i4pqpidvssln@bet-hound-1572653196739.iam.gserviceaccount.com",
+  "client_id": "114895268967996121456",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/starting-account-i4pqpidvssln%40bet-hound-1572653196739.iam.gserviceaccount.com"
+}
