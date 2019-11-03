@@ -1,47 +1,39 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"net/http"
+	"os"
 
-	"github.com/PuerkitoBio/goquery"
+	b "bet-hound/cmd/scraper/behavior"
+	"bet-hound/cmd/scraper/env"
+	m "bet-hound/pkg/mongo"
 )
 
-func ExampleScrape() {
-	// Request the HTML page.
-	res, err := http.Get("https://www.pro-football-reference.com/years/2019/fantasy.htm")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer res.Body.Close()
-	if res.StatusCode != 200 {
-		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
-	}
+const appConfigPath = "./env"
+const appConfigName = "config"
 
-	// Load the HTML document
-	doc, err := goquery.NewDocumentFromReader(res.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	doc.Find("#fantasy tr").Each(func(i int, s *goquery.Selection) {
-		headTd := s.Find("td[data-stat=player]")
-		name := headTd.Text()
-		id, _ := headTd.Attr("data-append-csv")
-
-		teamA := s.Find("td[data-stat=team] a")
-		teamId := teamA.Text()
-		teamName, _ := teamA.Attr("title")
-
-		position := s.Find("td[data-stat=position]").Text()
-
-		if len(id) > 0 {
-			fmt.Printf("Player %d: %s %s %s %s %s\n", i, name, id, teamId, teamName, position)
-		}
-	})
-}
+var logger *log.Logger
 
 func main() {
-	ExampleScrape()
+	logger = setUpLogger(env.LogPath(), "logs.log")
+	err := env.Init(appConfigName, appConfigPath)
+	if err != nil {
+		logger.Fatalf("Error loading application config: %s \n", err)
+	}
+	defer env.Cleanup()
+
+	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
+
+	b.ScrapeSources()
+}
+
+func setUpLogger(logPath, defaultPath string) *log.Logger {
+	if logPath == "" {
+		logPath = defaultPath
+	}
+	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return log.New(f, "", 0)
 }
