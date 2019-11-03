@@ -4,10 +4,6 @@
   "mongo_pw": "",
   "mongo_user": "",
   "sources_collection": "sources",
-  "sql_db": "hungry_development",
-  "sql_host": "localhost",
-  "sql_user": "hungry",
-  "sql_pw": "",
   "port": "3000",
   "log_path": ""
 }
