@@ -1,7 +1,7 @@
 package nlp
 
 import (
-	t "bet-hound/cmd/nlp/types"
+	t "bet-hound/cmd/types"
 	language "cloud.google.com/go/language/apiv1"
 	"context"
 	"fmt"

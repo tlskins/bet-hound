@@ -163,3 +163,7 @@ func Remove(c *mgo.Collection, query interface{}) error {
 func CreateIndexKey(c *mgo.Collection, key ...string) error {
 	return c.EnsureIndexKey(key...)
 }
+
+func CreateIndex(c *mgo.Collection, index mgo.Index) error {
+	return c.EnsureIndex(index)
+}

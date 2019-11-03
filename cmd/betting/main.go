@@ -1,12 +1,14 @@
 package main
 
 import (
-	// "fmt"
+	"fmt"
 	"log"
 	"os"
 
+	"bet-hound/cmd/db"
 	"bet-hound/cmd/db/env"
-	"bet-hound/cmd/nlp"
+	// "bet-hound/cmd/nlp"
+	// t "bet-hound/cmd/types"
 	// "bet-hound/cmd/scraper"
 	m "bet-hound/pkg/mongo"
 )
@@ -28,12 +30,22 @@ func main() {
 
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
 
+	// conn := env.MGOSession().Copy()
+	// defer conn.Close()
+	// c := conn.DB(env.MongoDb()).C(env.SourcesCollection())
+	// m.CreateIndexKey(c, "name")
+
 	// scraper.ScrapeSources()
 	// games := scraper.ScrapeThisWeeksGames()
 	// for _, game := range games {
 	// 	fmt.Println(*game.Name)
 	// }
-	nlp.ParseText(text)
+	// groupedNouns, groupedVerbs := nlp.ParseText(text)
+	sources, err := db.SearchSourceByName("tevin colman", 1)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println("found ", *sources[0].Name)
 }
 
 func setUpLogger(logPath, defaultPath string) *log.Logger {

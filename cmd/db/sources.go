@@ -4,6 +4,7 @@ import (
 	"bet-hound/cmd/db/env"
 	t "bet-hound/cmd/types"
 	m "bet-hound/pkg/mongo"
+	"github.com/globalsign/mgo"
 )
 
 func UpsertSources(sources *[]*t.Source) (err error) {
@@ -18,4 +19,19 @@ func UpsertSources(sources *[]*t.Source) (err error) {
 		}
 	}
 	return err
+}
+
+func SearchSourceByName(search string, numResults int) (result []t.Source, err error) {
+	conn := env.MGOSession().Copy()
+	defer conn.Close()
+	c := conn.DB(env.MongoDb()).C(env.SourcesCollection())
+
+	index := mgo.Index{Key: []string{"$text:name"}}
+	m.CreateIndex(c, index)
+
+	// func Find(c *mgo.Collection, result, query interface{}, args ...interface{}) error {
+	// db.articles.find( { $text: { $search: "coffee" } } )
+	result = make([]t.Source, 0, numResults)
+	err = m.Find(c, &result, m.M{"$text": m.M{"$search": search}})
+	return result, err
 }
