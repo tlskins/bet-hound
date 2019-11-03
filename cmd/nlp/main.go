@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-const text = "bet you that tevin coleman scores more ppr points than matt breida this week"
+const text = "I'll bet you that tevin coleman scores more ppr points than matt breida this week"
 
 type PartOfSpeech struct {
 	Tag    string
@@ -35,11 +35,12 @@ type Word struct {
 }
 
 func (w *Word) AllLemmas() (lemmas []string) {
+	lemmas = append(lemmas, w.Lemma)
 	if w.Dependents == nil {
 		return lemmas
 	}
-	for _, w := range *w.Dependents {
-		lemmas = append(lemmas, w.Lemma)
+	for _, d := range *w.Dependents {
+		lemmas = append(lemmas, d.AllLemmas()...)
 	}
 	return lemmas
 }
@@ -55,7 +56,7 @@ func main() {
 		log.Fatalf("failed to analyze syntax: %s", err)
 	}
 
-	nouns, verbs, adjs := buildWords(resp)
+	nouns, verbs, adjs, dets := buildWords(resp)
 	fmt.Println("Nouns:")
 	for _, noun := range nouns {
 		fmt.Println(noun, noun.DependencyEdge, noun.PartOfSpeech)
@@ -68,12 +69,20 @@ func main() {
 	for _, adj := range adjs {
 		fmt.Println(adj, adj.DependencyEdge, adj.PartOfSpeech)
 	}
+	fmt.Println("Dets:")
+	for _, det := range dets {
+		fmt.Println(det, det.DependencyEdge, det.PartOfSpeech)
+	}
 
 	fmt.Println("groupedNouns:")
-	groupedNouns := groupNouns(nouns)
-
+	groupedNouns := groupWords(nouns, nouns, dets)
 	for _, noun := range groupedNouns {
-		fmt.Println(noun, *noun.Dependents, noun.AllLemmas())
+		fmt.Println(noun, noun.AllLemmas())
+	}
+	fmt.Println("groupedVerbs:")
+	groupedVerbs := groupWords(verbs, nouns, adjs)
+	for _, verb := range groupedVerbs {
+		fmt.Println(verb, verb.AllLemmas())
 	}
 }
 
@@ -98,25 +107,28 @@ func findWord(words []*Word, index int) *Word {
 	return nil
 }
 
-func groupNouns(nouns []*Word) (groupedNouns []*Word) {
-	for _, noun := range nouns {
-		parent := findWord(nouns, noun.DependencyEdge.HeadTokenIndex)
-		if parent != nil {
-			*parent.Dependents = append(*parent.Dependents, noun)
-			if findWord(groupedNouns, parent.Index) == nil {
-				groupedNouns = append(groupedNouns, parent)
+func groupWords(parents []*Word, children ...[]*Word) (grouped []*Word) {
+	for _, parent := range parents {
+		for _, child := range children {
+			for _, word := range child {
+				if word.DependencyEdge.HeadTokenIndex == parent.Index {
+					*parent.Dependents = append(*parent.Dependents, word)
+					if findWord(grouped, parent.Index) == nil {
+						grouped = append(grouped, parent)
+					}
+				}
 			}
 		}
 	}
 
-	return groupedNouns
+	return grouped
 }
 
-func buildWords(resp *langpb.AnalyzeSyntaxResponse) (nouns []*Word, verbs []*Word, adjs []*Word) {
+func buildWords(resp *langpb.AnalyzeSyntaxResponse) (nouns []*Word, verbs []*Word, adjs []*Word, dets []*Word) {
 	for i, t := range resp.Tokens {
 		fmt.Println(t)
 		pos := t.PartOfSpeech.Tag.String()
-		if pos == "VERB" || pos == "NOUN" || pos == "ADJ" {
+		if pos == "VERB" || pos == "NOUN" || pos == "ADJ" || pos == "DET" {
 			word := Word{
 				Text:  t.Text.Content,
 				Lemma: t.Lemma,
@@ -145,8 +157,11 @@ func buildWords(resp *langpb.AnalyzeSyntaxResponse) (nouns []*Word, verbs []*Wor
 			if pos == "ADJ" {
 				adjs = append(adjs, &word)
 			}
+			if pos == "DET" {
+				dets = append(dets, &word)
+			}
 		}
 	}
 
-	return nouns, verbs, adjs
+	return nouns, verbs, adjs, dets
 }
