@@ -1,15 +1,16 @@
 package main
 
 import (
+	// "fmt"
 	"log"
 	"os"
 
+	"bet-hound/cmd/db/env"
 	b "bet-hound/cmd/scraper/behavior"
-	"bet-hound/cmd/scraper/env"
 	m "bet-hound/pkg/mongo"
 )
 
-const appConfigPath = "./env"
+const appConfigPath = "../db/env"
 const appConfigName = "config"
 
 var logger *log.Logger
@@ -24,8 +25,11 @@ func main() {
 
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
 
-	// b.ScrapeSources()
-	b.ScrapeGames()
+	b.ScrapeSources()
+	// games := b.ScrapeThisWeeksGames()
+	// for _, game := range games {
+	// 	fmt.Println(*game.Name)
+	// }
 }
 
 func setUpLogger(logPath, defaultPath string) *log.Logger {

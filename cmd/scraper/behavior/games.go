@@ -1,18 +1,17 @@
 package behavior
 
 import (
-	"fmt"
 	gq "github.com/PuerkitoBio/goquery"
 	"log"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
-	// db "bet-hound/cmd/scraper/db"
+	// "bet-hound/cmd/db"
 	t "bet-hound/cmd/types"
 )
 
-func ScrapeGames() {
+func ScrapeThisWeeksGames() (games []*t.Game) {
 	// Request the HTML page.
 	res, err := http.Get("https://www.pro-football-reference.com/boxscores/")
 	if err != nil {
@@ -31,7 +30,6 @@ func ScrapeGames() {
 
 	pfrRoot := "https://www.pro-football-reference.com"
 	gameDayTxt := doc.Find(".game_summaries div:nth-child(1) table.teams tbody tr:nth-child(1) td").Text()
-	var games []*t.Game
 
 	doc.Find(".game_summaries table.teams tbody").Each(func(i int, s *gq.Selection) {
 		urlSuffix, _ := s.Find("tr td.gamelink a").Attr("href")
@@ -75,7 +73,5 @@ func ScrapeGames() {
 		}
 	})
 
-	for _, game := range games {
-		fmt.Println(*game.Name)
-	}
+	return games
 }

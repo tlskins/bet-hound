@@ -13,3 +13,21 @@ type Game struct {
 	HomeTeamName *string    `bson:"h_team_name,omitempty" json:"home_team_name"`
 	GameTime     *time.Time `bson:"gm_time,omitempty" json:"game_time"`
 }
+
+func findGameByAwayTeamFk(games []*Game, awayTeamFk string) *Game {
+	for _, g := range games {
+		if *g.AwayTeamFk == awayTeamFk {
+			return g
+		}
+	}
+	return nil
+}
+
+func findGameByHomeTeamFk(games []*Game, homeTeamFk string) *Game {
+	for _, g := range games {
+		if *g.HomeTeamFk == homeTeamFk {
+			return g
+		}
+	}
+	return nil
+}

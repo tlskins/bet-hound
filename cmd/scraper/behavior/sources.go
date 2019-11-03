@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	db "bet-hound/cmd/scraper/db"
+	"bet-hound/cmd/db"
 	t "bet-hound/cmd/types"
 )
 
