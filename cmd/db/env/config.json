@@ -4,6 +4,7 @@
   "mongo_pw": "",
   "mongo_user": "",
   "sources_collection": "sources",
+  "bets_collection": "bets",
   "port": "3000",
   "log_path": ""
 }

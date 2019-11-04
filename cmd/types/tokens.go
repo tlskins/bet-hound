@@ -1,10 +1,16 @@
 package types
 
 type Phrase struct {
-	Word     *Word
-	Source   *Source
-	HomeGame *Game
-	AwayGame *Game
+	Word     *Word   `bson:"word,omitempty" json:"word"`
+	Source   *Source `bson:"src,omitempty" json:"source"`
+	HomeGame *Game   `bson:"h_gm,omitempty" json:"home_game"`
+	AwayGame *Game   `bson:"a_gm,omitempty" json:"away_game"`
+}
+
+type MetricPhrase struct {
+	Word          *Word   `bson:"word,omitempty" json:"word"`
+	OperatorWord  *Word   `bson:"op_word,omitempty" json:"operator_word"`
+	ModifierWords []*Word `bson:"mod_words,omitempty" json:"modifier_words"`
 }
 
 func (p *Phrase) Game() *Game {
@@ -17,13 +23,13 @@ func (p *Phrase) Game() *Game {
 }
 
 type Word struct {
-	Text           string
-	Lemma          string
-	Index          int
-	PartOfSpeech   *PartOfSpeech
-	DependencyEdge *DependencyEdge
-	Parent         *Word
-	Children       *[]*Word
+	Text           string          `bson:"txt,omitempty" json:"text"`
+	Lemma          string          `bson:"lemma,omitempty" json:"lemma"`
+	Index          int             `bson:"idx,omitempty" json:"index"`
+	PartOfSpeech   *PartOfSpeech   `bson:"pos,omitempty" json:"part_of_speech"`
+	DependencyEdge *DependencyEdge `bson:"dep_edge,omitempty" json:"dependency_edge"`
+	Parent         *Word           `bson:"-" json:"parent"`
+	Children       *[]*Word        `bson:"-" json:"children"`
 }
 
 func descendentLemmas(word *Word) (lemmas []string) {
@@ -40,6 +46,10 @@ func (p *Phrase) AllLemmas() []string {
 	return descendentLemmas(p.Word)
 }
 
+func (m *MetricPhrase) AllLemmas() []string {
+	return descendentLemmas(m.Word)
+}
+
 func descendentText(word *Word) (text []string) {
 	text = append(text, word.Text)
 	if word.Children != nil {
@@ -54,18 +64,22 @@ func (p *Phrase) AllText() []string {
 	return descendentText(p.Word)
 }
 
+func (m *MetricPhrase) AllText() []string {
+	return descendentText(m.Word)
+}
+
 type PartOfSpeech struct {
-	Tag    string
-	Proper string
-	Case   string
-	Person string
-	Mood   string
-	Tense  string
+	Tag    string `bson:"tag,omitempty" json:"tag"`
+	Proper string `bson:"proper,omitempty" json:"proper"`
+	Case   string `bson:"case,omitempty" json:"case"`
+	Person string `bson:"person,omitempty" json:"person"`
+	Mood   string `bson:"mood,omitempty" json:"mood"`
+	Tense  string `bson:"tense,omitempty" json:"tense"`
 }
 
 type DependencyEdge struct {
-	Label          string
-	HeadTokenIndex int
+	Label          string `bson:"label,omitempty" json:"label"`
+	HeadTokenIndex int    `bson:"hd_tkn_idx,omitempty" json:"head_token_index"`
 }
 
 func FindWordByTxt(words []*Word, txt string) *Word {

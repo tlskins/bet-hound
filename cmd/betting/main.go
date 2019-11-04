@@ -69,14 +69,29 @@ func main() {
 		panic("Not enough sources found!")
 	}
 
-	var metricPhrase, proposerSourcePhrase, recipientSourcePhrase *t.Phrase
+	var metricPhrase *t.MetricPhrase
+	var proposerSourcePhrase, recipientSourcePhrase *t.Phrase
 	// Find Metric
 	for _, n := range nounPhrases {
 		nString := n.Word.Lemma
 		isMetricStr := nString == "point" || nString == "pt" || nString == "yard" || nString == "yd" || nString == "touchdown" || nString == "td"
 		if isMetricStr && n.Word.Children != nil && len(*n.Word.Children) > 1 {
-			metricPhrase = n
-			break
+			newMetricPhrase := t.MetricPhrase{Word: n.Word}
+			for _, child := range *n.Word.Children {
+				if child.Lemma == "more" || child.Lemma == "greater" || child.Lemma == "less" || child.Lemma == "fewer" {
+					newMetricPhrase.OperatorWord = child
+				}
+				if child.Text == "ppr" || child.Text == "0.5ppr" || child.Text == ".5ppr" {
+					if newMetricPhrase.ModifierWords == nil {
+						newMetricPhrase.ModifierWords = []*t.Word{}
+					}
+					newMetricPhrase.ModifierWords = append(newMetricPhrase.ModifierWords, child)
+				}
+			}
+			if newMetricPhrase.OperatorWord != nil {
+				metricPhrase = &newMetricPhrase
+				break
+			}
 		}
 	}
 	if metricPhrase == nil {
@@ -157,11 +172,14 @@ func main() {
 	fmt.Println("recipient source game", *recipientSourcePhrase.Game().Name)
 
 	// Build Bet
-	// sources, err := db.SearchSourceByName("tevin colman", 1)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
-	// fmt.Println("found ", *sources[0].Name)
+	id := "1"
+	db.UpsertBet(&t.Bet{
+		Fk:                    &id,
+		ActionPhrase:          actionPhrase,
+		MetricPhrase:          metricPhrase,
+		ProposerSourcePhrase:  proposerSourcePhrase,
+		RecipientSourcePhrase: recipientSourcePhrase,
+	})
 }
 
 func setUpLogger(logPath, defaultPath string) *log.Logger {

@@ -17,6 +17,7 @@ type environment struct {
 	mongoUser         string
 	mongoPwd          string
 	mongoDb           string
+	betsCollection    string
 	sourcesCollection string
 	logPath           string
 }
@@ -43,6 +44,9 @@ func MongoPwd() string {
 }
 func MongoDb() string {
 	return e.mongoDb
+}
+func BetsCollection() string {
+	return e.betsCollection
 }
 func SourcesCollection() string {
 	return e.sourcesCollection
@@ -73,6 +77,7 @@ func Init(configFile, configPath string) error {
 	e.mongoUser = viper.GetString("mongo_user")
 	e.mongoPwd = viper.GetString("mongo_pwd")
 	e.mongoDb = viper.GetString("mongo_db")
+	e.betsCollection = viper.GetString("bets_collection")
 	e.sourcesCollection = viper.GetString("sources_collection")
 
 	return nil
