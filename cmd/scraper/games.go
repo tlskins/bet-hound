@@ -1,6 +1,7 @@
 package scraper
 
 import (
+	// "fmt"
 	gq "github.com/PuerkitoBio/goquery"
 	"log"
 	"net/http"
@@ -37,11 +38,6 @@ func ScrapeThisWeeksGames() (games []*t.Game) {
 		var fkRgx = regexp.MustCompile(`\/boxscores\/(.*)\.htm`)
 		fk := fkRgx.FindStringSubmatch(url)[1]
 
-		gameTimeTxt := s.Find("tr:nth-child(3) td:nth-child(3)").Text()
-		gameTimeTxt = strings.TrimSpace(gameTimeTxt)
-		gameDateTxt := strings.Join([]string{gameDayTxt, gameTimeTxt}, " ")
-		gameTime, _ := time.Parse("Jan 2, 2006 3:04pm", gameDateTxt)
-
 		var teamFkRgx = regexp.MustCompile(`\/teams\/(.*)\/\d{4}\.htm`)
 		// Away team fields
 		awayTeam := s.Find("tr:nth-child(2) td:nth-child(1) a").Text()
@@ -56,7 +52,17 @@ func ScrapeThisWeeksGames() (games []*t.Game) {
 		homeTeamFk := strings.ToUpper(homeTeamMatch[1])
 
 		name := strings.Join([]string{awayTeam, homeTeam}, " at ")
-		name = strings.Join([]string{name, gameTime.Format("Jan 2, 2006 3:04pm")}, " ")
+		gameTimeTxt := s.Find("tr:nth-child(3) td:nth-child(3)").Text()
+		gameTimeTxt = strings.TrimSpace(gameTimeTxt)
+		var gameTime time.Time
+		if len(gameTimeTxt) > 0 {
+			gameDateTxt := strings.Join([]string{gameDayTxt, gameTimeTxt}, " ")
+			name = strings.Join([]string{name, gameDateTxt}, " ")
+			gameTime, _ = time.Parse("Jan 2, 2006 3:04pm", gameDateTxt)
+		} else {
+			name = strings.Join([]string{name, gameDayTxt}, " ")
+			gameTime, _ = time.Parse("Jan 2, 2006", gameDayTxt)
+		}
 
 		// game already happened
 		// if len(gameTimeTxt) > 0 {

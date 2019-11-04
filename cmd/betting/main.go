@@ -9,8 +9,8 @@ import (
 	"bet-hound/cmd/db"
 	"bet-hound/cmd/db/env"
 	"bet-hound/cmd/nlp"
+	"bet-hound/cmd/scraper"
 	t "bet-hound/cmd/types"
-	// "bet-hound/cmd/scraper"
 	m "bet-hound/pkg/mongo"
 )
 
@@ -122,9 +122,30 @@ func main() {
 	fmt.Println("recipient source ", recipientSourcePhrase.Word.Text)
 
 	// Scrape Data
-
 	// scraper.ScrapeSources()
-	// allGames := scraper.ScrapeThisWeeksGames()
+	allGames := scraper.ScrapeThisWeeksGames()
+	for _, game := range allGames {
+		if *proposerSourcePhrase.Source.TeamFk == *game.HomeTeamFk {
+			proposerSourcePhrase.HomeGame = game
+		} else if *proposerSourcePhrase.Source.TeamFk == *game.AwayTeamFk {
+			proposerSourcePhrase.AwayGame = game
+		}
+
+		if *recipientSourcePhrase.Source.TeamFk == *game.HomeTeamFk {
+			recipientSourcePhrase.HomeGame = game
+		} else if *recipientSourcePhrase.Source.TeamFk == *game.AwayTeamFk {
+			recipientSourcePhrase.AwayGame = game
+		}
+	}
+	if proposerSourcePhrase.Game() == nil {
+		panic("Proposer source game not found!")
+	}
+	if recipientSourcePhrase.Game() == nil {
+		panic("Recipient source game not found!")
+	}
+
+	fmt.Println("proposer source game", *proposerSourcePhrase.Game().Name)
+	fmt.Println("recipient source game", *recipientSourcePhrase.Game().Name)
 
 	// Build Bet
 	// sources, err := db.SearchSourceByName("tevin colman", 1)

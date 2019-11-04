@@ -29,8 +29,6 @@ func SearchSourceByName(search string, numResults int) (result []t.Source, err e
 	index := mgo.Index{Key: []string{"$text:name"}}
 	m.CreateIndex(c, index)
 
-	// func Find(c *mgo.Collection, result, query interface{}, args ...interface{}) error {
-	// db.articles.find( { $text: { $search: "coffee" } } )
 	result = make([]t.Source, 0, numResults)
 	err = m.Find(c, &result, m.M{"$text": m.M{"$search": search}})
 	return result, err

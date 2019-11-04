@@ -1,8 +1,19 @@
 package types
 
 type Phrase struct {
-	Word   *Word
-	Source *Source
+	Word     *Word
+	Source   *Source
+	HomeGame *Game
+	AwayGame *Game
+}
+
+func (p *Phrase) Game() *Game {
+	if p.HomeGame != nil {
+		return p.HomeGame
+	} else if p.AwayGame != nil {
+		return p.AwayGame
+	}
+	return nil
 }
 
 type Word struct {
@@ -19,8 +30,6 @@ func descendentLemmas(word *Word) (lemmas []string) {
 	lemmas = append(lemmas, word.Lemma)
 	if word.Children != nil {
 		for _, child := range *word.Children {
-			// children := descendentLemmas(child)
-			// lemmas = append(lemmas, children...)
 			lemmas = append(lemmas, child.Lemma)
 		}
 	}
@@ -35,8 +44,6 @@ func descendentText(word *Word) (text []string) {
 	text = append(text, word.Text)
 	if word.Children != nil {
 		for _, child := range *word.Children {
-			// children := descendentText(child)
-			// text = append(text, children...)
 			text = append(text, child.Lemma)
 		}
 	}
