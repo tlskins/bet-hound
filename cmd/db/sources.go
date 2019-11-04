@@ -4,7 +4,10 @@ import (
 	"bet-hound/cmd/db/env"
 	t "bet-hound/cmd/types"
 	m "bet-hound/pkg/mongo"
-	"github.com/globalsign/mgo"
+	"fmt"
+	"regexp"
+	// "github.com/globalsign/mgo"
+	// "github.com/globalsign/mgo/bson"
 )
 
 func UpsertSources(sources *[]*t.Source) (err error) {
@@ -26,10 +29,13 @@ func SearchSourceByName(search string, numResults int) (result []t.Source, err e
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.SourcesCollection())
 
-	index := mgo.Index{Key: []string{"$text:name"}}
-	m.CreateIndex(c, index)
+	// index := mgo.Index{Key: []string{"$text:name"}}
+	// m.CreateIndex(c, index)
 
 	result = make([]t.Source, 0, numResults)
-	err = m.Find(c, &result, m.M{"$text": m.M{"$search": search}})
+	// err = m.Find(c, &result, m.M{"$text": m.M{"$search": search}})
+	var r = regexp.MustCompile("(?i)" + search)
+	fmt.Println("regex", r.String())
+	err = m.Find(c, &result, m.M{"name": m.M{"$regex": r.String()}})
 	return result, err
 }

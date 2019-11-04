@@ -19,7 +19,7 @@ const appConfigName = "config"
 
 var logger *log.Logger
 
-const text = "I'll bet you that tevin coleman scores more ppr points than matt breida this week"
+const text = "I'll bet you that tevin coleman scores more ppr points than matt Breida this week"
 
 func main() {
 	// Initialization
@@ -45,8 +45,17 @@ func main() {
 
 	// Find sources for noun phrases
 	for _, nounPhrase := range nounPhrases {
-		nounTxt := nounPhrase.AllText()
-		foundSrcs, err := db.SearchSourceByName(strings.Join(nounTxt, " "), 1)
+		// reverse text to get first name -> last name
+		nounTxt := []string{}
+		texts := nounPhrase.AllText()
+		for i := len(texts) - 1; i >= 0; i-- {
+			nounTxt = append(nounTxt, texts[i])
+		}
+
+		foundSrcs, err := db.SearchSourceByName(strings.Join(nounTxt, " "), 5)
+		for _, src := range foundSrcs {
+			fmt.Println("Found src", *src.Name)
+		}
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -118,8 +127,8 @@ func main() {
 
 	fmt.Println("action word ", actionPhrase.AllLemmas())
 	fmt.Println("metric word ", metricPhrase.AllLemmas())
-	fmt.Println("proposer source ", proposerSourcePhrase.Word.Text)
-	fmt.Println("recipient source ", recipientSourcePhrase.Word.Text)
+	fmt.Println("proposer source ", *proposerSourcePhrase.Source.Name)
+	fmt.Println("recipient source ", *recipientSourcePhrase.Source.Name)
 
 	// Scrape Data
 	// scraper.ScrapeSources()
