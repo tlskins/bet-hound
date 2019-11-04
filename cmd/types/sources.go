@@ -8,5 +8,4 @@ type Source struct {
 	TeamName *string `bson:"team_name,omitempty" json:"team_name"`
 	Position *string `bson:"pos,omitempty" json:"position"`
 	Url      *string `bson:"url,omitempty" json:"url"`
-	// TextSearchIndex *string `bson:"txt_srch,omitempty" json:"text_search_index"`
 }
