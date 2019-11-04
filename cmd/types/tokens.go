@@ -1,9 +1,8 @@
 package types
 
 type Phrase struct {
-	Word       *Word
-	Dependents *[]*Word
-	Source     *Source
+	Word   *Word
+	Source *Source
 }
 
 type Word struct {

@@ -72,12 +72,7 @@ func groupPhrases(parents []*t.Word, children ...[]*t.Word) (phrases []*t.Phrase
 				if word.DependencyEdge.HeadTokenIndex == parent.Index {
 					phrase := t.FindPhraseByIdx(phrases, parent.Index)
 					if phrase == nil {
-						phrases = append(phrases, &t.Phrase{
-							Word:       parent,
-							Dependents: &[]*t.Word{word},
-						})
-					} else {
-						*phrase.Dependents = append(*phrase.Dependents, word)
+						phrases = append(phrases, &t.Phrase{Word: parent})
 					}
 				}
 			}

@@ -62,9 +62,9 @@ func main() {
 
 	var proposerSourcePhrase, recipientSourcePhrase *t.Phrase
 	for _, verb := range verbPhrases {
-		if (verb.Word.Lemma == "score" || verb.Word.Lemma == "have") && verb.Dependents != nil {
+		if (verb.Word.Lemma == "score" || verb.Word.Lemma == "have") && verb.Word.Children != nil {
 			for _, phrase := range sourcePhrases {
-				w := t.FindWordByTxt(*verb.Dependents, phrase.Word.Text)
+				w := t.FindWordByTxt(*verb.Word.Children, phrase.Word.Text)
 				if w != nil {
 					proposerSourcePhrase = phrase
 					break
