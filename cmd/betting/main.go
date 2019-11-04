@@ -43,6 +43,7 @@ func main() {
 		panic("Not enough verb phrases found!")
 	}
 
+	// Find sources for noun phrases
 	for _, nounPhrase := range nounPhrases {
 		nounTxt := nounPhrase.AllText()
 		foundSrcs, err := db.SearchSourceByName(strings.Join(nounTxt, " "), 1)
@@ -55,35 +56,70 @@ func main() {
 			sources = append(sources, &foundSrcs[0])
 		}
 	}
-
 	if len(sourcePhrases) < 2 {
 		panic("Not enough sources found!")
 	}
 
-	var proposerSourcePhrase, recipientSourcePhrase *t.Phrase
-	for _, verb := range verbPhrases {
-		if (verb.Word.Lemma == "score" || verb.Word.Lemma == "have") && verb.Word.Children != nil {
-			for _, phrase := range sourcePhrases {
-				w := t.FindWordByTxt(*verb.Word.Children, phrase.Word.Text)
-				if w != nil {
-					proposerSourcePhrase = phrase
+	var metricPhrase, proposerSourcePhrase, recipientSourcePhrase *t.Phrase
+	// Find Metric
+	for _, n := range nounPhrases {
+		nString := n.Word.Lemma
+		isMetricStr := nString == "point" || nString == "pt" || nString == "yard" || nString == "yd" || nString == "touchdown" || nString == "td"
+		if isMetricStr && n.Word.Children != nil && len(*n.Word.Children) > 1 {
+			metricPhrase = n
+			break
+		}
+	}
+	if metricPhrase == nil {
+		panic("Metric phrase not found!")
+	}
+
+	// Find Action
+	var actionPhrase *t.Phrase
+	for _, v := range verbPhrases {
+		vString := v.Word.Lemma
+		if vString == "score" || vString == "have" || vString == "gain" {
+			for _, lemma := range v.AllLemmas() {
+				if metricPhrase.Word.Lemma == lemma {
+					actionPhrase = v
 					break
 				}
 			}
+		}
+	}
+	if actionPhrase == nil {
+		panic("Action phrase not found!")
+	}
 
-			if proposerSourcePhrase != nil {
+	// Find Proposer Source
+	for _, child := range *actionPhrase.Word.Children {
+		for _, src := range sourcePhrases {
+			if child.Text == src.Word.Text {
+				proposerSourcePhrase = src
 				break
 			}
 		}
 	}
+	if proposerSourcePhrase == nil {
+		panic("Proposer source phrase not found!")
+	}
 
+	// Find Recipient Source
 	for _, p := range nounPhrases {
 		if p.Source != nil && p.Source != proposerSourcePhrase.Source {
 			recipientSourcePhrase = p
 			break
 		}
 	}
-	fmt.Println("proposer source ", *proposerSourcePhrase.Source.Name, " recipient source ", *recipientSourcePhrase.Source.Name)
+	// TODO : Calculate this through "breida" -> "than" -> "points"
+	if proposerSourcePhrase == nil {
+		panic("Recipient source phrase not found!")
+	}
+
+	fmt.Println("action word ", actionPhrase.AllLemmas())
+	fmt.Println("metric word ", metricPhrase.AllLemmas())
+	fmt.Println("proposer source ", proposerSourcePhrase.Word.Text)
+	fmt.Println("recipient source ", recipientSourcePhrase.Word.Text)
 
 	// Scrape Data
 
