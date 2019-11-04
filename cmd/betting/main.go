@@ -19,7 +19,7 @@ const appConfigName = "config"
 
 var logger *log.Logger
 
-const text = "I'll bet you that tevin coleman scores more ppr points than matt Breida this week"
+const text = "I'll bet you that tevin coleman scores more ppr points than cooper kupp this week"
 
 func main() {
 	// Initialization
@@ -30,6 +30,8 @@ func main() {
 	}
 	defer env.Cleanup()
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
+
+	// scraper.ScrapeSources()
 
 	// Parse Text
 	var sources []*t.Source

@@ -167,3 +167,7 @@ func CreateIndexKey(c *mgo.Collection, key ...string) error {
 func CreateIndex(c *mgo.Collection, index mgo.Index) error {
 	return c.EnsureIndex(index)
 }
+
+func DropIndex(c *mgo.Collection, key ...string) error {
+	return c.DropIndex(key...)
+}

@@ -5,6 +5,7 @@ import (
 	gq "github.com/PuerkitoBio/goquery"
 	"log"
 	"net/http"
+	"strings"
 
 	"bet-hound/cmd/db"
 	t "bet-hound/cmd/types"
@@ -32,6 +33,12 @@ func ScrapeSources() {
 	doc.Find("#fantasy tr").Each(func(i int, s *gq.Selection) {
 		headTd := s.Find("td[data-stat=player]")
 		name := headTd.Text()
+		names := strings.SplitN(name, " ", 2)
+		var lastName string
+		firstName := names[0]
+		if len(names) > 1 {
+			lastName = names[1]
+		}
 		id, _ := headTd.Attr("data-append-csv")
 		url, _ := headTd.Find("a").Attr("href")
 
@@ -44,12 +51,14 @@ func ScrapeSources() {
 		if len(id) > 0 {
 			fmt.Printf("Player %d: %s %s %s %s %s %s\n", i, name, id, teamId, teamName, position, url)
 			sources = append(sources, &t.Source{
-				Name:     &name,
-				Fk:       &id,
-				TeamFk:   &teamId,
-				TeamName: &teamName,
-				Position: &position,
-				Url:      &url,
+				Name:      &name,
+				FirstName: &firstName,
+				LastName:  &lastName,
+				Fk:        &id,
+				TeamFk:    &teamId,
+				TeamName:  &teamName,
+				Position:  &position,
+				Url:       &url,
 			})
 		}
 	})
