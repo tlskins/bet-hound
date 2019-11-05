@@ -5,8 +5,30 @@
 *.so
 *.dylib
 
-# Test binary, build with `go test -c`
+# Test binary, built with `go test -c`
 *.test
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+
+# ignore binaries
+*main
+*config
+
+# Ignore envs
+*.env
+config*.json
+
+### Go Patch ###
+**/vendor/
+/Godeps/
+
+*.key
+*.key.pub
+
+id_rsa
+id_rsa.pub
+
+# **/node_modules
+
+*.log
