@@ -192,7 +192,13 @@ func ParsePhrases(text string) (nounPhrases []*t.Phrase, verbPhrases []*t.Phrase
 	}
 
 	fmt.Println("nounPhrases:")
-	nounPhrases = groupPhrases(nouns, nouns, dets)
+	// nounPhrases = groupPhrases(nouns, nouns, dets)
+	nounPhrases = []*t.Phrase{}
+	for _, noun := range nouns {
+		if t.FindWordByIdx(nouns, noun.DependencyEdge.HeadTokenIndex) == nil {
+			nounPhrases = append(nounPhrases, &t.Phrase{Word: noun})
+		}
+	}
 	for _, noun := range nounPhrases {
 		fmt.Println(noun, noun.AllLemmas())
 	}

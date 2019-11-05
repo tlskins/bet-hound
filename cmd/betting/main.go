@@ -16,7 +16,7 @@ const appConfigName = "config"
 
 var logger *log.Logger
 
-const text = "i'll bet you that larry fitzgerald scores more ppr points than tevin coleman this week"
+const text = "i'll bet you that Frank Gore scores more points than hunter henry this week"
 
 func main() {
 	// Initialization
