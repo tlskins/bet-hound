@@ -9,10 +9,12 @@ import (
 	"fmt"
 	langpb "google.golang.org/genproto/googleapis/cloud/language/v1"
 	"log"
+	"regexp"
 	"strings"
 )
 
 func ParseNewText(text, fk string) (bet *t.Bet, err error) {
+	fmt.Println("Parsing new text", text)
 	// Find noun and verb phrases
 	nounPhrases, verbPhrases, _ := ParsePhrases(text)
 	if len(nounPhrases) < 2 {
@@ -201,6 +203,14 @@ func ParsePhrases(text string) (nounPhrases []*t.Phrase, verbPhrases []*t.Phrase
 	}
 
 	return nounPhrases, verbPhrases, allWords
+}
+
+func RemoveReservedTwitterWords(text string) (result string) {
+	var handleRgx = regexp.MustCompile(`\@[^\s]*`)
+	var hashRgx = regexp.MustCompile(`\#[^\s]*`)
+	result = handleRgx.ReplaceAllString(text, " ")
+	result = hashRgx.ReplaceAllString(result, " ")
+	return result
 }
 
 func buildSyntaxRequest(text string) *langpb.AnalyzeSyntaxRequest {

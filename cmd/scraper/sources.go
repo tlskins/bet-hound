@@ -5,6 +5,7 @@ import (
 	gq "github.com/PuerkitoBio/goquery"
 	"log"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"bet-hound/cmd/db"
@@ -43,12 +44,19 @@ func ScrapeSources() {
 		url, _ := headTd.Find("a").Attr("href")
 
 		teamA := s.Find("td[data-stat=team] a")
-		teamId := teamA.Text()
 		teamName, _ := teamA.Attr("title")
+		teamShort := teamA.Text()
 
 		position := s.Find("td[data-stat=fantasy_pos]").Text()
 
 		if len(id) > 0 {
+			idRgx := regexp.MustCompile(`\/teams\/(.*)\/\d{4}\.htm`)
+			teamUri, _ := teamA.Attr("href")
+			var teamId string
+			if len(idRgx.FindStringSubmatch(teamUri)) > 1 {
+				teamId = idRgx.FindStringSubmatch(teamUri)[1]
+			}
+
 			fmt.Printf("Player %d: %s %s %s %s %s %s\n", i, name, id, teamId, teamName, position, url)
 			sources = append(sources, &t.Source{
 				Name:      &name,
@@ -57,6 +65,7 @@ func ScrapeSources() {
 				Fk:        &id,
 				TeamFk:    &teamId,
 				TeamName:  &teamName,
+				TeamShort: &teamShort,
 				Position:  &position,
 				Url:       &url,
 			})

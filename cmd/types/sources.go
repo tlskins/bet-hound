@@ -8,6 +8,7 @@ type Source struct {
 	Fk        *string `bson:"fk,omitempty" json:"fk"`
 	TeamFk    *string `bson:"team_fk,omitempty" json:"team_fk"`
 	TeamName  *string `bson:"team_name,omitempty" json:"team_name"`
+	TeamShort *string `bson:"team_short,omitempty" json:"team_short"`
 	Position  *string `bson:"pos,omitempty" json:"position"`
 	Url       *string `bson:"url,omitempty" json:"url"`
 }

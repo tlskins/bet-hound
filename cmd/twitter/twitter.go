@@ -79,7 +79,7 @@ func WebhookHandler(writer http.ResponseWriter, request *http.Request) {
 
 	// Aggregate tweet data
 	betFk := load.TweetCreateEvent[0].IdStr
-	msg := load.TweetCreateEvent[0].Text
+	msg := nlp.RemoveReservedTwitterWords(load.TweetCreateEvent[0].Text)
 	pHandle := "@" + load.TweetCreateEvent[0].User.Handle
 	var response string
 
