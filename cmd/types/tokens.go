@@ -29,6 +29,7 @@ func (p *Phrase) SourceDesc() (desc *string) {
 	fName := (*p.Source.FirstName)[:1]
 	lName := *p.Source.LastName
 	pos := *p.Source.Position
+	tm := *p.Source.TeamShort
 	srcTeam := *p.Source.TeamFk
 	gm := *p.Game()
 	var vsTeam string
@@ -37,7 +38,7 @@ func (p *Phrase) SourceDesc() (desc *string) {
 	} else {
 		vsTeam = *gm.HomeTeamName
 	}
-	result := fName + "." + lName + " (" + pos + ")" + " vs " + vsTeam
+	result := fName + "." + lName + " (" + tm + "-" + pos + ")" + " vs " + vsTeam
 	return &result
 }
 

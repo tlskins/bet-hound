@@ -23,7 +23,8 @@ func (b *Bet) Text() (txt string) {
 	}
 	subjMods := strings.Join(modsArr, " ")
 	subject := strings.ToLower(b.MetricPhrase.Word.Text)
+	subject = strings.TrimSpace(subjMods + subject)
 	rSrc := *b.RecipientSourcePhrase.SourceDesc()
 
-	return strings.Join([]string{pSrc, action, comp, subjMods, subject, rSrc}, " ")
+	return strings.Join([]string{pSrc, action, comp, subject, rSrc}, " ")
 }
