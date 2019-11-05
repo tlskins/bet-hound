@@ -55,6 +55,7 @@ func ScrapeSources() {
 			var teamId string
 			if len(idRgx.FindStringSubmatch(teamUri)) > 1 {
 				teamId = idRgx.FindStringSubmatch(teamUri)[1]
+				teamId = strings.ToUpper(teamId)
 			}
 
 			fmt.Printf("Player %d: %s %s %s %s %s %s\n", i, name, id, teamId, teamName, position, url)
