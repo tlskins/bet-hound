@@ -1,9 +1,10 @@
 package db
 
 import (
-	"bet-hound/cmd/db/env"
+	"bet-hound/cmd/env"
 	t "bet-hound/cmd/types"
 	m "bet-hound/pkg/mongo"
+	"fmt"
 	"github.com/globalsign/mgo"
 )
 
@@ -22,10 +23,12 @@ func UpsertSources(sources *[]*t.Source) (err error) {
 }
 
 func SearchSourceByName(search string, numResults int) (result []t.Source, err error) {
+	fmt.Println("SearchSourceByName", env.MongoDb(), env.SourcesCollection(), env.MGOSession())
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.SourcesCollection())
 
+	// TODO : set indexes somewhere else
 	index := mgo.Index{Key: []string{"$text:f_name", "$text:l_name"}}
 	m.CreateIndex(c, index)
 

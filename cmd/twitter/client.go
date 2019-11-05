@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bet-hound/cmd/twitter/env"
+	"bet-hound/cmd/env"
 	"encoding/json"
 	"fmt"
 	// "github.com/dghubble/go-twitter/twitter"
@@ -36,53 +36,21 @@ type User struct {
 
 func CreateClient() *http.Client {
 	//Create oauth client with consumer keys and access token
-	fmt.Println("creating client", env.E.ConsumerKey, env.E.ConsumerSecret, env.E.AccessTokenKey, env.E.AccessTokenSecret)
-	config := oauth1.NewConfig(env.E.ConsumerKey, env.E.ConsumerSecret)
-	token := oauth1.NewToken(env.E.AccessTokenKey, env.E.AccessTokenSecret)
-	fmt.Println("token", *token)
+	config := oauth1.NewConfig(env.ConsumerKey(), env.ConsumerSecret())
+	token := oauth1.NewToken(env.AccessTokenKey(), env.AccessTokenSecret())
 	httpClient := config.Client(oauth1.NoContext, token)
 
 	return httpClient
 }
 
 func registerWebhook(logger *log.Logger) {
-	logger.Println("Registering webhook...", env.E.WebhookEnv)
+	logger.Println("Registering webhook...", env.WebhookEnv())
 	fmt.Println("Registering webhook...")
 	httpClient := CreateClient()
 
-	// Twitter client
-	// client := twitter.NewClient(httpClient)
-	// // Home Timeline
-	// tweets, resp, err := client.Timelines.HomeTimeline(&twitter.HomeTimelineParams{
-	// 	Count: 20,
-	// })
-	// fmt.Println("tweets", tweets, resp, err)
-
-	// Get webhooks
-	// resp, err := httpClient.Get("https://api.twitter.com/1.1/account_activity/all/webhooks.json")
-	// fmt.Println("get webhooks", resp, err)
-	// body, _ := ioutil.ReadAll(resp.Body)
-	// var data map[string]interface{}
-	// if err := json.Unmarshal([]byte(body), &data); err != nil {
-	// 	fmt.Println("err", err)
-	// 	panic(err)
-	// }
-	// fmt.Println("data", data)
-
-	// Delete webhooks
-	// resp, err := httpClient.
-	// 	fmt.Println("get webhooks", resp, err)
-	// body, _ := ioutil.ReadAll(resp.Body)
-	// var data map[string]interface{}
-	// if err := json.Unmarshal([]byte(body), &data); err != nil {
-	// 	fmt.Println("err", err)
-	// 	panic(err)
-	// }
-	// fmt.Println("data", data)
-
 	//Set parameters
-	path := "https://api.twitter.com/1.1/account_activity/all/" + env.E.WebhookEnv + "/webhooks.json"
-	hook_url := env.E.AppUrl + "/webhook/twitter"
+	path := "https://api.twitter.com/1.1/account_activity/all/" + env.WebhookEnv() + "/webhooks.json"
+	hook_url := env.AppUrl() + "/webhook/twitter"
 	logger.Println("path,hook_url", path, hook_url)
 	values := url.Values{}
 	values.Set("url", hook_url)
@@ -112,7 +80,7 @@ func registerWebhook(logger *log.Logger) {
 func subscribeWebhook() {
 	fmt.Println("Subscribing webapp...")
 	client := CreateClient()
-	path := "https://api.twitter.com/1.1/account_activity/all/" + env.E.WebhookEnv + "/subscriptions.json"
+	path := "https://api.twitter.com/1.1/account_activity/all/" + env.WebhookEnv() + "/subscriptions.json"
 	resp, _ := client.PostForm(path, nil)
 	body, _ := ioutil.ReadAll(resp.Body)
 	defer resp.Body.Close()
@@ -133,6 +101,7 @@ func SendTweet(tweet string, reply_id string) (*Tweet, error) {
 	params := url.Values{}
 	params.Set("status", tweet)
 	params.Set("in_reply_to_status_id", reply_id)
+
 	//Grab client and post
 	client := CreateClient()
 	resp, err := client.PostForm("https://api.twitter.com/1.1/statuses/update.json", params)

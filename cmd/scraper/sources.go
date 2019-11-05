@@ -46,7 +46,7 @@ func ScrapeSources() {
 		teamId := teamA.Text()
 		teamName, _ := teamA.Attr("title")
 
-		position := s.Find("td[data-stat=position]").Text()
+		position := s.Find("td[data-stat=fantasy_pos]").Text()
 
 		if len(id) > 0 {
 			fmt.Printf("Player %d: %s %s %s %s %s %s\n", i, name, id, teamId, teamName, position, url)

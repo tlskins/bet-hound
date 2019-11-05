@@ -22,6 +22,25 @@ func (p *Phrase) Game() *Game {
 	return nil
 }
 
+func (p *Phrase) SourceDesc() (desc *string) {
+	if p.Source == nil || p.Game() == nil {
+		return nil
+	}
+	fName := (*p.Source.FirstName)[:1]
+	lName := *p.Source.LastName
+	pos := *p.Source.Position
+	srcTeam := *p.Source.TeamFk
+	gm := *p.Game()
+	var vsTeam string
+	if *gm.HomeTeamFk == srcTeam {
+		vsTeam = *gm.AwayTeamName
+	} else {
+		vsTeam = *gm.HomeTeamName
+	}
+	result := fName + "." + lName + " (" + pos + ")" + " vs " + vsTeam
+	return &result
+}
+
 type Word struct {
 	Text           string          `bson:"txt,omitempty" json:"text"`
 	Lemma          string          `bson:"lemma,omitempty" json:"lemma"`

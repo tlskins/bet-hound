@@ -1,7 +1,7 @@
 package db
 
 import (
-	"bet-hound/cmd/db/env"
+	"bet-hound/cmd/env"
 	t "bet-hound/cmd/types"
 	m "bet-hound/pkg/mongo"
 )
