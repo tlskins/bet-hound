@@ -15,7 +15,7 @@ import (
 
 func ParseTweet(tweet *t.Tweet) (bet *t.Bet, err error) {
 	tweetIdStr := tweet.IdStr
-	msg := tweet.FullText
+	msg := tweet.GetText()
 	proposer := tweet.User
 	recipients := tweet.Recipients()
 	if len(recipients) == 0 {
@@ -25,11 +25,13 @@ func ParseTweet(tweet *t.Tweet) (bet *t.Bet, err error) {
 	bet, err = ParseNewText(msg, tweetIdStr, &proposer, &recipient)
 	if err != nil {
 		return bet, err
-	} else {
-		bet, err = db.UpsertBet(bet)
-		_, err = db.UpsertTweet(tweet)
+	}
+	bet, err = db.UpsertBet(bet)
+	if err != nil {
 		return bet, err
 	}
+	// _, err = db.UpsertTweet(tweet)
+	return bet, err
 }
 
 func ParseNewText(text, fk string, proposer, recipient *t.User) (bet *t.Bet, err error) {
@@ -177,7 +179,7 @@ func ParseNewText(text, fk string, proposer, recipient *t.User) (bet *t.Bet, err
 		MetricPhrase:          metricPhrase,
 		ProposerSourcePhrase:  proposerSourcePhrase,
 		RecipientSourcePhrase: recipientSourcePhrase,
-		BetStatus:             &betStatus,
+		BetStatus:             betStatus,
 		Proposer:              proposer,
 		Recipient:             recipient,
 	}

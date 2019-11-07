@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bet-hound/cmd/db"
 	"bet-hound/cmd/env"
 	"bet-hound/cmd/nlp"
 	t "bet-hound/cmd/types"
@@ -14,7 +15,9 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
+	"regexp"
 )
 
 const appConfigPath = "../env"
@@ -72,7 +75,6 @@ func LoadTweet(tweetId string) (tweet *t.Tweet, err error) {
 }
 
 func WebhookHandler(writer http.ResponseWriter, request *http.Request) {
-	fmt.Println("Handler called")
 	logger.Println("Handler called")
 
 	// Read and decode tweet
@@ -80,7 +82,6 @@ func WebhookHandler(writer http.ResponseWriter, request *http.Request) {
 	var load WebhookLoad
 	err := json.Unmarshal(body, &load)
 	if err != nil {
-		fmt.Println("An error occured: " + err.Error())
 		logger.Println("An error occured unmarshaling: " + err.Error())
 	}
 
@@ -89,14 +90,64 @@ func WebhookHandler(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	fmt.Println("incoming created tweet", load.TweetCreateEvent[0])
-	logger.Println("incoming created tweet", load.TweetCreateEvent[0])
+	newTweet := load.TweetCreateEvent[0]
+	logger.Println("incoming created tweet", newTweet)
 
-	// Get tweet
-	tweetId := load.TweetCreateEvent[0].IdStr
+	// Check if response to a check tweet
+	replyTweetId := newTweet.InReplyToStatusIdStr
+	bet, _ := db.FindBetByProposerCheckTweet(replyTweetId)
+	// if err != nil {
+	// 	logger.Println("err finding proposer check tweet", err)
+	// 	panic(err)
+	// }
+
+	// Reply to proposer check
+	if bet != nil && bet.Id != nil {
+		err = ProcessReplyTweet(&newTweet, bet)
+		if err != nil {
+			logger.Println("err processing reply tweet", err)
+			panic(err)
+		}
+	} else {
+		// Process a new bet
+		err = ProcessNewTweet(&newTweet)
+		if err != nil {
+			logger.Println("err processing new tweet", err)
+			panic(err)
+		}
+	}
+
+	if err != nil {
+		fmt.Println("An error occured:")
+		fmt.Println(err.Error())
+	} else {
+		fmt.Println("Tweet handled successfully")
+	}
+}
+
+func ProcessReplyTweet(tweet *t.Tweet, bet *t.Bet) (err error) {
+	var yesRgx = regexp.MustCompile(`(?i)yes`)
+	text := tweet.GetText()
+	if yesRgx.Match([]byte(text)) {
+		bet.BetStatus = t.BetStatusFromString("Pending Recipient")
+		responseTweet, err := SendTweet(bet.Response(), tweet.IdStr)
+		if err != nil {
+			return err
+		}
+		bet.RecipientCheckTweetId = &responseTweet.IdStr
+		_, err = db.UpsertBet(bet)
+		logger.Println("Sent check to recipient")
+	} else {
+		logger.Println("Did not reply yes")
+	}
+	return err
+}
+
+func ProcessNewTweet(tweet *t.Tweet) error {
+	// Get full tweet
+	tweetId := tweet.IdStr
 	tweet, err := LoadTweet(tweetId)
 	if err != nil {
-		fmt.Println("err loading tweet", err)
 		logger.Println("err loading tweet", err)
 		panic(err)
 	}
@@ -106,18 +157,14 @@ func WebhookHandler(writer http.ResponseWriter, request *http.Request) {
 	// Build Bet
 	bet, err := nlp.ParseTweet(tweet)
 	if err != nil {
-		fmt.Println("err parsing tweet", err)
 		logger.Println("err parsing tweet", err)
 		panic(err)
 	}
 
-	_, err = SendTweet(bet.Response(), tweetId)
-	if err != nil {
-		fmt.Println("An error occured:")
-		fmt.Println(err.Error())
-	} else {
-		fmt.Println("Tweet sent successfully")
-	}
+	responseTweet, err := SendTweet(bet.Response(), tweetId)
+	bet.ProposerCheckTweetId = &responseTweet.IdStr
+	_, err = db.UpsertBet(bet)
+	return err
 }
 
 func CrcCheck(writer http.ResponseWriter, request *http.Request) {
@@ -140,6 +187,32 @@ func CrcCheck(writer http.ResponseWriter, request *http.Request) {
 	//Turn response map to json and send it to the writer
 	responseJson, _ := json.Marshal(response)
 	fmt.Fprintf(writer, string(responseJson))
+}
+
+func SendTweet(text string, replyId string) (responseTweet *t.Tweet, err error) {
+	fmt.Println("Sending tweet as reply to " + replyId)
+	logger.Println("Sending tweet as reply to " + replyId)
+	params := url.Values{}
+	params.Set("status", text)
+	params.Set("in_reply_to_status_id", replyId)
+
+	//Grab client and post
+	client := CreateClient()
+	resp, err := client.PostForm("https://api.twitter.com/1.1/statuses/update.json", params)
+	if err != nil {
+		logger.Println("err sending tweet", err)
+		return nil, err
+	}
+
+	body, _ := ioutil.ReadAll(resp.Body)
+	responseTweet = &t.Tweet{}
+	err = json.Unmarshal([]byte(body), responseTweet)
+	if err != nil {
+		logger.Println("err unmarshalling responseTweet", err)
+		return nil, err
+	}
+	logger.Println("Sent tweet "+responseTweet.IdStr, responseTweet.GetText())
+	return responseTweet, nil
 }
 
 func setUpLogger(logPath, defaultPath string) *log.Logger {

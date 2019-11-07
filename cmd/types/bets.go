@@ -38,16 +38,18 @@ type Bet struct {
 	MetricPhrase          *MetricPhrase `bson:"met_phrs,omitempty" json:"metric_phrase"`
 	ProposerSourcePhrase  *Phrase       `bson:"p_src_phrs,omitempty" json:"proposer_source_phrase"`
 	RecipientSourcePhrase *Phrase       `bson:"r_src_phrs,omitempty" json:"recipient_source_phrase"`
-	BetStatus             *BetStatus    `bson:"status,omitempty" json:"bet_status"`
+	BetStatus             BetStatus     `bson:"status" json:"bet_status"`
 	Proposer              *User         `bson:"proposer,omitempty" json:"proposer"`
 	Recipient             *User         `bson:"recipient,omitempty" json:"recipient"`
+	ProposerCheckTweetId  *string       `bson:"pchk_tweet_id,omitempty" json:"proposer_check_tweet_id"`
+	RecipientCheckTweetId *string       `bson:"rchk_tweet_id,omitempty" json:"recipient_check_tweet_id"`
 }
 
 func (b *Bet) Response() (txt string) {
 	if b.BetStatus.String() == "Pending Proposer" {
-		return fmt.Sprintf("%s%s Is this correct: \"%s\"", "@", b.Proposer.ScreenName, b.Text())
+		return fmt.Sprintf("%s%s Is this correct: \"%s\" ? Reply \"Yes\"", "@", b.Proposer.ScreenName, b.Text())
 	} else if b.BetStatus.String() == "Pending Recipient" {
-		return fmt.Sprintf("%s%s Do you accept this bet? : \"%s\"", "@", b.Recipient.ScreenName, b.Text())
+		return fmt.Sprintf("%s%s Do you accept this bet? : \"%s\" Reply \"Yes\"", "@", b.Recipient.ScreenName, b.Text())
 	}
 	return "Pending game results..."
 }

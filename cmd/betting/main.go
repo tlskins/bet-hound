@@ -58,7 +58,8 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println("created bet", *bet.Id, bet.Response())
+	fmt.Println("created bet fk", *bet.Fk)
+	fmt.Println("created bet", bet.Response())
 }
 
 func setUpLogger(logPath, defaultPath string) *log.Logger {
