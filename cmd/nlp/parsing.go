@@ -57,7 +57,7 @@ func ParseNewText(text, fk string) (bet *t.Bet, err error) {
 		if isMetricStr && n.Word.Children != nil && len(*n.Word.Children) > 1 {
 			newMetricPhrase := t.MetricPhrase{Word: n.Word}
 			for _, child := range *n.Word.Children {
-				if child.Lemma == "more" || child.Lemma == "greater" || child.Lemma == "less" || child.Lemma == "fewer" {
+				if child.Lemma == "more" || child.Lemma == "great" || child.Lemma == "less" || child.Lemma == "few" {
 					newMetricPhrase.OperatorWord = child
 				}
 				if child.Text == "ppr" || child.Text == "0.5ppr" || child.Text == ".5ppr" {

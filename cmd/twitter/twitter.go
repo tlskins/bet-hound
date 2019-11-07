@@ -4,6 +4,7 @@ import (
 	"bet-hound/cmd/db"
 	"bet-hound/cmd/env"
 	"bet-hound/cmd/nlp"
+	t "bet-hound/cmd/types"
 	m "bet-hound/pkg/mongo"
 	"crypto/hmac"
 	"crypto/sha256"
@@ -77,16 +78,41 @@ func WebhookHandler(writer http.ResponseWriter, request *http.Request) {
 	fmt.Println("incoming created tweet", load.TweetCreateEvent[0])
 	logger.Println("incoming created tweet", load.TweetCreateEvent[0])
 
-	// Aggregate tweet data
-	betFk := load.TweetCreateEvent[0].IdStr
-	msg := nlp.RemoveReservedTwitterWords(load.TweetCreateEvent[0].Text)
-	pHandle := "@" + load.TweetCreateEvent[0].User.Handle
-	var response string
+	// Get tweet
+	tweetId := load.TweetCreateEvent[0].IdStr
+	url := fmt.Sprintf("https://api.twitter.com/1.1/statuses/show.json?tweet_mode=extended&id=%s", tweetId)
+	client := CreateClient()
+	resp, err := client.Get(url)
+	if err != nil {
+		fmt.Println("err", err)
+	}
+	defer resp.Body.Close()
 
-	bet, err := nlp.ParseNewText(msg, betFk)
+	body, _ = ioutil.ReadAll(resp.Body)
+	var tweet t.Tweet
+	if err := json.Unmarshal([]byte(body), &tweet); err != nil {
+		fmt.Println("err", err)
+		panic(err)
+	}
+	fmt.Println("tweet data", tweet)
+	logger.Println("tweet data", tweet)
+
+	msg := tweet.FullText
+	pHandle := "@" + tweet.User.ScreenName
+	// inReplyToTweetId := tweet.InReplyToStatusIdStr
+	// msg := data.(map[string]interface{})["full_text"]
+	// msg := data["full_text"]
+	// pHandle := data["user"]["screen_name"]
+	// inReplyToTweetId := data["in_reply_to_status_id_str"]
+
+	// msg := nlp.RemoveReservedTwitterWords(load.TweetCreateEvent[0].Text)
+	// pHandle := "@" + load.TweetCreateEvent[0].User.Handle
+
+	var response string
+	bet, err := nlp.ParseNewText(msg, tweetId)
 	if err != nil {
 		fmt.Println("err parse new text", err)
-		logger.Println("incoming tweet", err)
+		logger.Println("err parse new text", err)
 		response = err.Error()
 	} else {
 		response = bet.Text()
@@ -94,7 +120,7 @@ func WebhookHandler(writer http.ResponseWriter, request *http.Request) {
 		db.UpsertBet(bet)
 	}
 
-	_, err = SendTweet(pHandle+" "+response, betFk)
+	_, err = SendTweet(pHandle+" "+response, tweetId)
 	if err != nil {
 		fmt.Println("An error occured:")
 		fmt.Println(err.Error())
