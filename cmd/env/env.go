@@ -25,7 +25,9 @@ type environment struct {
 	mongoDb           string
 	betsCollection    string
 	sourcesCollection string
+	tweetsCollection  string
 	logPath           string
+	botHandle         string
 }
 
 var e = &environment{}
@@ -75,8 +77,14 @@ func BetsCollection() string {
 func SourcesCollection() string {
 	return e.sourcesCollection
 }
+func TweetsCollection() string {
+	return e.tweetsCollection
+}
 func LogPath() string {
 	return e.logPath
+}
+func BotHandle() string {
+	return e.botHandle
 }
 
 func Init(configFile, configPath string) error {
@@ -109,6 +117,8 @@ func Init(configFile, configPath string) error {
 	e.mongoDb = viper.GetString("mongo_db")
 	e.betsCollection = viper.GetString("bets_collection")
 	e.sourcesCollection = viper.GetString("sources_collection")
+	e.tweetsCollection = viper.GetString("tweets_collection")
+	e.botHandle = viper.GetString("bot_handle")
 
 	return nil
 }

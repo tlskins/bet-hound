@@ -50,14 +50,15 @@ func main() {
 	// fmt.Println("data", data)
 
 	// scraper.ScrapeSources()
-	bet, err := nlp.ParseNewText(text, "1")
-	fmt.Println("new bet", bet)
+	tweet, err := db.FindTweet(1192258647562149888)
+	if err != nil {
+		fmt.Println("cant find tweet", err)
+	}
+	bet, err := nlp.ParseTweet(tweet)
 	if err != nil {
 		fmt.Println(err)
-	} else {
-		fmt.Println("created bet", bet.Text())
-		db.UpsertBet(bet)
 	}
+	fmt.Println("created bet", *bet.Id, bet.Response())
 }
 
 func setUpLogger(logPath, defaultPath string) *log.Logger {

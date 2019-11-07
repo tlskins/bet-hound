@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bet-hound/cmd/db"
 	"bet-hound/cmd/env"
 	"bet-hound/cmd/nlp"
 	t "bet-hound/cmd/types"
@@ -57,6 +56,21 @@ func main() {
 	server.ListenAndServe()
 }
 
+func LoadTweet(tweetId string) (tweet *t.Tweet, err error) {
+	url := fmt.Sprintf("https://api.twitter.com/1.1/statuses/show.json?tweet_mode=extended&id=%s", tweetId)
+	client := CreateClient()
+	resp, err := client.Get(url)
+	if err != nil {
+		return tweet, err
+	}
+	defer resp.Body.Close()
+
+	body, _ := ioutil.ReadAll(resp.Body)
+	tweet = &t.Tweet{}
+	err = json.Unmarshal([]byte(body), tweet)
+	return tweet, err
+}
+
 func WebhookHandler(writer http.ResponseWriter, request *http.Request) {
 	fmt.Println("Handler called")
 	logger.Println("Handler called")
@@ -80,47 +94,24 @@ func WebhookHandler(writer http.ResponseWriter, request *http.Request) {
 
 	// Get tweet
 	tweetId := load.TweetCreateEvent[0].IdStr
-	url := fmt.Sprintf("https://api.twitter.com/1.1/statuses/show.json?tweet_mode=extended&id=%s", tweetId)
-	client := CreateClient()
-	resp, err := client.Get(url)
+	tweet, err := LoadTweet(tweetId)
 	if err != nil {
-		fmt.Println("err", err)
-	}
-	defer resp.Body.Close()
-
-	body, _ = ioutil.ReadAll(resp.Body)
-	var tweet t.Tweet
-	if err := json.Unmarshal([]byte(body), &tweet); err != nil {
-		fmt.Println("err", err)
+		fmt.Println("err loading tweet", err)
+		logger.Println("err loading tweet", err)
 		panic(err)
 	}
 	fmt.Println("tweet data", tweet)
 	logger.Println("tweet data", tweet)
 
-	msg := tweet.FullText
-	pHandle := "@" + tweet.User.ScreenName
-	// inReplyToTweetId := tweet.InReplyToStatusIdStr
-	// msg := data.(map[string]interface{})["full_text"]
-	// msg := data["full_text"]
-	// pHandle := data["user"]["screen_name"]
-	// inReplyToTweetId := data["in_reply_to_status_id_str"]
-
-	// msg := nlp.RemoveReservedTwitterWords(load.TweetCreateEvent[0].Text)
-	// pHandle := "@" + load.TweetCreateEvent[0].User.Handle
-
-	var response string
-	bet, err := nlp.ParseNewText(msg, tweetId)
+	// Build Bet
+	bet, err := nlp.ParseTweet(tweet)
 	if err != nil {
-		fmt.Println("err parse new text", err)
-		logger.Println("err parse new text", err)
-		response = err.Error()
-	} else {
-		response = bet.Text()
-		fmt.Println("created bet", response)
-		db.UpsertBet(bet)
+		fmt.Println("err parsing tweet", err)
+		logger.Println("err parsing tweet", err)
+		panic(err)
 	}
 
-	_, err = SendTweet(pHandle+" "+response, tweetId)
+	_, err = SendTweet(bet.Response(), tweetId)
 	if err != nil {
 		fmt.Println("An error occured:")
 		fmt.Println(err.Error())

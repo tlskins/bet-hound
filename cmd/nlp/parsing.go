@@ -13,7 +13,26 @@ import (
 	"strings"
 )
 
-func ParseNewText(text, fk string) (bet *t.Bet, err error) {
+func ParseTweet(tweet *t.Tweet) (bet *t.Bet, err error) {
+	tweetIdStr := tweet.IdStr
+	msg := tweet.FullText
+	proposer := tweet.User
+	recipients := tweet.Recipients()
+	if len(recipients) == 0 {
+		return bet, fmt.Errorf("No bet recipient found!")
+	}
+	recipient := recipients[0]
+	bet, err = ParseNewText(msg, tweetIdStr, &proposer, &recipient)
+	if err != nil {
+		return bet, err
+	} else {
+		bet, err = db.UpsertBet(bet)
+		_, err = db.UpsertTweet(tweet)
+		return bet, err
+	}
+}
+
+func ParseNewText(text, fk string, proposer, recipient *t.User) (bet *t.Bet, err error) {
 	fmt.Println("Parsing new text", text)
 	// Find noun and verb phrases
 	nounPhrases, verbPhrases, _ := ParsePhrases(text)
@@ -151,12 +170,16 @@ func ParseNewText(text, fk string) (bet *t.Bet, err error) {
 	fmt.Println("proposer source game", *proposerSourcePhrase.Game().Name)
 	fmt.Println("recipient source game", *recipientSourcePhrase.Game().Name)
 
+	betStatus := t.BetStatusFromString("Pending Proposer")
 	bet = &t.Bet{
 		Fk:                    &fk,
 		ActionPhrase:          actionPhrase,
 		MetricPhrase:          metricPhrase,
 		ProposerSourcePhrase:  proposerSourcePhrase,
 		RecipientSourcePhrase: recipientSourcePhrase,
+		BetStatus:             &betStatus,
+		Proposer:              proposer,
+		Recipient:             recipient,
 	}
 	fmt.Println("new bet", bet)
 	return bet, err

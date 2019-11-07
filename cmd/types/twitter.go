@@ -1,33 +1,48 @@
 package types
 
+import (
+	"bet-hound/cmd/env"
+)
+
 type Tweet struct {
-	Id                   int64  `bson:"_id" json:"id"`
-	IdStr                string `bson:"id_str" json:"id_str"`
-	FullText             string `bson:"full_txt" json:"full_text"`
-	InReplyToStatusId    int64  `bson:"rply_to_id" json:"in_reply_to_status_id"`
-	InReplyToStatusIdStr string `bson:"rply_to_id_str" json:"in_reply_to_status_id_str"`
-	InReplyToScreenName  string `bson:"rply_to_sn" json:"in_reply_to_screen_name"`
-	User                 User   `bson:"usr" json:"user"`
+	Id                   int64    `bson:"_id" json:"id"`
+	IdStr                string   `bson:"id_str" json:"id_str"`
+	FullText             string   `bson:"full_txt" json:"full_text"`
+	InReplyToStatusId    int64    `bson:"rply_to_id" json:"in_reply_to_status_id"`
+	InReplyToStatusIdStr string   `bson:"rply_to_id_str" json:"in_reply_to_status_id_str"`
+	InReplyToUserIdStr   string   `bson:"rply_to_usr_id_str" json:"in_reply_to_user_id_str"`
+	InReplyToScreenName  string   `bson:"rply_to_sn" json:"in_reply_to_screen_name"`
+	User                 User     `bson:"usr" json:"user"`
+	Entities             Entities `bson:"entities" json:"entities"`
+}
+
+func (t *Tweet) Recipients() (handles []User) {
+	for _, user := range t.Entities.UserMentions {
+		if user.ScreenName != env.BotHandle() {
+			handles = append(handles, user)
+		}
+	}
+	return handles
 }
 
 type Entities struct {
-	Hashtags     []string      `bson:"hashtgs" json:"hashtags"`
-	Symbols      []string      `bson:"symb" json:"symbols"`
-	UserMentions []UserMention `bson:"usr_mtns" json:"user_mentions"`
-	Urls         []string      `bson:"urls" json:"urls"`
+	Hashtags     []string `bson:"hashtgs" json:"hashtags"`
+	Symbols      []string `bson:"symb" json:"symbols"`
+	UserMentions []User   `bson:"usr_mtns" json:"user_mentions"`
+	Urls         []string `bson:"urls" json:"urls"`
 }
 
-type UserMention struct {
+type User struct {
 	ScreenName string  `bson:"scrn_nm" json:"screen_name"`
 	Name       string  `bson:"nm" json:"name"`
 	Id         int64   `bson:"_id" json:"id"`
 	IdStr      string  `bson:"id_str" json:"id_str"`
-	Indices    []int64 `bson:"indices" json:"indices"`
+	Indices    []int64 `bson:"indices,omitempty" json:"indices"`
 }
 
-type User struct {
-	Id         int64  `bson:"_id" json:"id"`
-	IdStr      string `bson:"id_str" json:"id_str"`
-	Name       string `bson:"nm" json:"name"`
-	ScreenName string `json:"screen_name"`
-}
+// type User struct {
+// 	Id         int64  `bson:"_id" json:"id"`
+// 	IdStr      string `bson:"id_str" json:"id_str"`
+// 	Name       string `bson:"nm" json:"name"`
+// 	ScreenName string `json:"screen_name"`
+// }
