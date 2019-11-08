@@ -91,18 +91,23 @@ func WebhookHandler(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	newTweet := load.TweetCreateEvent[0]
-	logger.Println("incoming created tweet", newTweet)
+	logger.Println("incoming created tweet", newTweet.GetText())
 
 	// Check if response to a check tweet
 	replyTweetId := newTweet.InReplyToStatusIdStr
-	bet, _ := db.FindBetByProposerCheckTweet(replyTweetId)
-	// if err != nil {
-	// 	logger.Println("err finding proposer check tweet", err)
-	// 	panic(err)
-	// }
+	logger.Println("replyTweetId", replyTweetId)
+	var bet *t.Bet
+	if len(replyTweetId) > 0 {
+		bet, _ = db.FindBetByProposerCheckTweet(replyTweetId)
+		// if err != nil {
+		// 	logger.Println("err finding by proposer check tweet", err)
+		// 	panic(err)
+		// }
+	}
 
 	// Reply to proposer check
-	if bet != nil && bet.Id != nil {
+	if bet != nil {
+		logger.Println("reply to bet", *bet.Id, bet.Text())
 		err = ProcessReplyTweet(&newTweet, bet)
 		if err != nil {
 			logger.Println("err processing reply tweet", err)
@@ -110,6 +115,7 @@ func WebhookHandler(writer http.ResponseWriter, request *http.Request) {
 		}
 	} else {
 		// Process a new bet
+		logger.Println("processing new tweet...")
 		err = ProcessNewTweet(&newTweet)
 		if err != nil {
 			logger.Println("err processing new tweet", err)

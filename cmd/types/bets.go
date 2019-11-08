@@ -32,7 +32,7 @@ func (s BetStatus) String() string {
 }
 
 type Bet struct {
-	Id                    *string       `bson:"_id,omitempty" json:"id"`
+	Id                    *string       `bson:"_id" json:"id"`
 	Fk                    *string       `bson:"fk,omitempty" json:"fk"`
 	ActionPhrase          *Phrase       `bson:"act_phrs,omitempty" json:"action_phrase"`
 	MetricPhrase          *MetricPhrase `bson:"met_phrs,omitempty" json:"metric_phrase"`
