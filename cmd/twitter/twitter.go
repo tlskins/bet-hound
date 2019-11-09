@@ -87,27 +87,27 @@ func WebhookHandler(writer http.ResponseWriter, request *http.Request) {
 
 	//Check if it was a tweet_create_event and tweet was in the payload and it was not tweeted by the bot
 	if len(load.TweetCreateEvent) < 1 || load.UserId == load.TweetCreateEvent[0].User.IdStr {
+		logger.Println("filtered out tweet: ", len(load.TweetCreateEvent), load.UserId, load.TweetCreateEvent[0].User.IdStr, load.TweetCreateEvent[0])
 		return
 	}
 
 	newTweet := load.TweetCreateEvent[0]
-	logger.Println("incoming created tweet", newTweet.GetText())
+	logger.Println("incoming created tweet", newTweet.GetText(), newTweet.User.IdStr)
 
 	// Check if response to a check tweet
 	replyTweetId := newTweet.InReplyToStatusIdStr
 	logger.Println("replyTweetId", replyTweetId)
 	var bet *t.Bet
 	if len(replyTweetId) > 0 {
-		bet, _ = db.FindBetByProposerCheckTweet(replyTweetId)
-		// if err != nil {
-		// 	logger.Println("err finding by proposer check tweet", err)
-		// 	panic(err)
-		// }
+		bet, err = db.FindBetByReply(&newTweet)
+		if err != nil {
+			fmt.Println("FindBetByReply err ", err.Error())
+		}
 	}
 
 	// Reply to proposer check
-	if bet != nil {
-		logger.Println("reply to bet", *bet.Id, bet.Text())
+	if bet != nil && err == nil {
+		logger.Println("reply to bet", bet.Id, bet.Text())
 		err = ProcessReplyTweet(&newTweet, bet)
 		if err != nil {
 			logger.Println("err processing reply tweet", err)
@@ -134,15 +134,27 @@ func WebhookHandler(writer http.ResponseWriter, request *http.Request) {
 func ProcessReplyTweet(tweet *t.Tweet, bet *t.Bet) (err error) {
 	var yesRgx = regexp.MustCompile(`(?i)yes`)
 	text := tweet.GetText()
+	logger.Println("process reply text: ", text)
 	if yesRgx.Match([]byte(text)) {
-		bet.BetStatus = t.BetStatusFromString("Pending Recipient")
-		responseTweet, err := SendTweet(bet.Response(), tweet.IdStr)
-		if err != nil {
-			return err
+		if bet.BetStatus.String() == "Pending Proposer" {
+			bet.BetStatus = t.BetStatusFromString("Pending Recipient")
+			responseTweet, err := SendTweet(bet.Response(), *bet.Fk)
+			if err != nil {
+				return err
+			}
+			bet.RecipientCheckTweetId = &responseTweet.IdStr
+			_, err = db.UpsertBet(bet)
+			logger.Println("Sent check to recipient")
+		} else if bet.BetStatus.String() == "Pending Recipient" {
+			bet.BetStatus = t.BetStatusFromString("Accepted")
+			responseTweet, err := SendTweet(bet.Response(), *bet.Fk)
+			if err != nil {
+				return err
+			}
+			bet.RecipientCheckTweetId = &responseTweet.IdStr
+			_, err = db.UpsertBet(bet)
+			logger.Println("Bet accepted")
 		}
-		bet.RecipientCheckTweetId = &responseTweet.IdStr
-		_, err = db.UpsertBet(bet)
-		logger.Println("Sent check to recipient")
 	} else {
 		logger.Println("Did not reply yes")
 	}
@@ -166,6 +178,7 @@ func ProcessNewTweet(tweet *t.Tweet) error {
 		logger.Println("err parsing tweet", err)
 		panic(err)
 	}
+	logger.Println("process new tweet created bet id", bet.Id)
 
 	responseTweet, err := SendTweet(bet.Response(), tweetId)
 	bet.ProposerCheckTweetId = &responseTweet.IdStr
@@ -212,8 +225,7 @@ func SendTweet(text string, replyId string) (responseTweet *t.Tweet, err error) 
 
 	body, _ := ioutil.ReadAll(resp.Body)
 	responseTweet = &t.Tweet{}
-	err = json.Unmarshal([]byte(body), responseTweet)
-	if err != nil {
+	if err = json.Unmarshal([]byte(body), responseTweet); err != nil {
 		logger.Println("err unmarshalling responseTweet", err)
 		return nil, err
 	}

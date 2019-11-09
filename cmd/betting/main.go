@@ -10,7 +10,7 @@ import (
 
 	"bet-hound/cmd/db"
 	"bet-hound/cmd/env"
-	"bet-hound/cmd/nlp"
+	// "bet-hound/cmd/nlp"
 	// "bet-hound/cmd/twitter"
 	m "bet-hound/pkg/mongo"
 )
@@ -50,16 +50,31 @@ func main() {
 	// fmt.Println("data", data)
 
 	// scraper.ScrapeSources()
-	tweet, err := db.FindTweet(1192258647562149888)
-	if err != nil {
-		fmt.Println("cant find tweet", err)
-	}
-	bet, err := nlp.ParseTweet(tweet)
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println("created bet fk", *bet.Fk)
-	fmt.Println("created bet", bet.Response())
+	// tweet, err := db.FindTweet(1192258647562149888)
+	// if err != nil {
+	// 	fmt.Println("cant find tweet", err)
+	// }
+	// bet, err := nlp.ParseTweet(tweet)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+	// fmt.Println("created bet fk", *bet.Fk)
+	// fmt.Println("created bet", bet.Response())
+
+	// bet, _ := db.FindBetByProposerCheckTweet("1192715899028922369")
+	bet, _ := db.FindBetById("c00716a6-4ad4-4f37-8708-db112c43fff2")
+	fmt.Println("text", bet.Text(), bet.BetStatus)
+
+	// Reply to proposer check
+	// logger.Println("reply to bet", *bet.Id, bet.Text())
+
+	// replyTweetId := "1192702597905256448"
+	// logger.Println("replyTweetId", replyTweetId)
+	// bet, _ := db.FindBetByProposerCheckTweet(replyTweetId)
+	// if err != nil {
+	// 	logger.Println("err finding by proposer check tweet", err)
+	// 	panic(err)
+	// }
 }
 
 func setUpLogger(logPath, defaultPath string) *log.Logger {

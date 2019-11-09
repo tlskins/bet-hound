@@ -13,7 +13,7 @@ type MetricPhrase struct {
 	ModifierWords []*Word `bson:"mod_words,omitempty" json:"modifier_words"`
 }
 
-func (p *Phrase) Game() *Game {
+func (p Phrase) Game() *Game {
 	if p.HomeGame != nil {
 		return p.HomeGame
 	} else if p.AwayGame != nil {
@@ -22,7 +22,7 @@ func (p *Phrase) Game() *Game {
 	return nil
 }
 
-func (p *Phrase) SourceDesc() (desc *string) {
+func (p Phrase) SourceDesc() (desc *string) {
 	if p.Source == nil || p.Game() == nil {
 		return nil
 	}
@@ -30,10 +30,10 @@ func (p *Phrase) SourceDesc() (desc *string) {
 	lName := *p.Source.LastName
 	pos := *p.Source.Position
 	tm := *p.Source.TeamShort
-	srcTeam := *p.Source.TeamFk
-	gm := *p.Game()
+	srcTeamFk := p.Source.TeamFk
+	gm := p.Game()
 	var vsTeam string
-	if *gm.HomeTeamFk == srcTeam {
+	if gm.HomeTeamFk == srcTeamFk {
 		vsTeam = *gm.AwayTeamName
 	} else {
 		vsTeam = *gm.HomeTeamName

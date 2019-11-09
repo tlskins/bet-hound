@@ -11,6 +11,7 @@ require (
 	github.com/golang/protobuf v1.3.2
 	github.com/gorilla/mux v1.7.3
 	github.com/joho/godotenv v1.3.0
+	github.com/satori/go.uuid v1.2.0
 	github.com/shopspring/decimal v0.0.0-20191009025716-f1972eb1d1f5
 	github.com/spf13/viper v1.5.0
 	github.com/stretchr/testify v1.3.0

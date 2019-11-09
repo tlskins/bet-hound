@@ -32,7 +32,7 @@ func (s BetStatus) String() string {
 }
 
 type Bet struct {
-	Id                    *string       `bson:"_id" json:"id"`
+	Id                    string        `bson:"_id" json:"id"`
 	Fk                    *string       `bson:"fk,omitempty" json:"fk"`
 	ActionPhrase          *Phrase       `bson:"act_phrs,omitempty" json:"action_phrase"`
 	MetricPhrase          *MetricPhrase `bson:"met_phrs,omitempty" json:"metric_phrase"`
@@ -51,7 +51,7 @@ func (b *Bet) Response() (txt string) {
 	} else if b.BetStatus.String() == "Pending Recipient" {
 		return fmt.Sprintf("%s%s Do you accept this bet? : \"%s\" Reply \"Yes\"", "@", b.Recipient.ScreenName, b.Text())
 	}
-	return "Pending game results..."
+	return fmt.Sprintf("%s%s Bet recorded! When the bet has been finalized I will tweet the final results", b.Proposer.ScreenName, b.Recipient.ScreenName)
 }
 
 func (b *Bet) Text() (txt string) {
