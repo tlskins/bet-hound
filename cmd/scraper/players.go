@@ -12,7 +12,7 @@ import (
 	t "bet-hound/cmd/types"
 )
 
-func ScrapeSources() {
+func ScrapePlayers() {
 	// Request the HTML page.
 	res, err := http.Get("https://www.pro-football-reference.com/years/2019/fantasy.htm")
 	if err != nil {
@@ -29,7 +29,7 @@ func ScrapeSources() {
 		log.Fatal(err)
 	}
 
-	var sources []*t.Source
+	var players []*t.Player
 
 	doc.Find("#fantasy tr").Each(func(i int, s *gq.Selection) {
 		headTd := s.Find("td[data-stat=player]")
@@ -59,25 +59,24 @@ func ScrapeSources() {
 			}
 
 			fmt.Printf("Player %d: %s %s %s %s %s %s\n", i, name, id, teamId, teamName, position, url)
-			sources = append(sources, &t.Source{
-				Name:      &name,
-				FirstName: &firstName,
-				LastName:  &lastName,
-				Fk:        &id,
-				TeamFk:    &teamId,
-				TeamName:  &teamName,
-				TeamShort: &teamShort,
-				Position:  &position,
-				Url:       &url,
+			players = append(players, &t.Player{
+				Name:      name,
+				FirstName: firstName,
+				LastName:  lastName,
+				Fk:        id,
+				TeamFk:    teamId,
+				TeamName:  teamName,
+				TeamShort: teamShort,
+				Position:  position,
+				Url:       url,
 			})
 		}
 	})
 
-	for _, source := range sources {
-		fmt.Println("source: ", *source)
+	for _, player := range players {
+		fmt.Println("player: ", *player)
 	}
-	err = db.UpsertSources(&sources)
-	if err != nil {
+	if err = db.UpsertPlayers(&players); err != nil {
 		log.Fatal(err)
 	}
 }

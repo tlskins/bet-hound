@@ -5,15 +5,19 @@ import (
 	t "bet-hound/cmd/types"
 	m "bet-hound/pkg/mongo"
 	"github.com/globalsign/mgo"
+	"github.com/satori/go.uuid"
 )
 
-func UpsertSources(sources *[]*t.Source) (err error) {
+func UpsertPlayers(players *[]*t.Player) (err error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
-	c := conn.DB(env.MongoDb()).C(env.SourcesCollection())
+	c := conn.DB(env.MongoDb()).C(env.PlayersCollection())
 
-	for _, source := range *sources {
-		err = m.Upsert(c, nil, m.M{"fk": source.Fk}, m.M{"$set": source})
+	for _, player := range *players {
+		if player.Id == "" {
+			player.Id = uuid.NewV4().String()
+		}
+		err = m.Upsert(c, nil, m.M{"fk": player.Fk}, m.M{"$set": player})
 		if err != nil {
 			return err
 		}
@@ -21,17 +25,17 @@ func UpsertSources(sources *[]*t.Source) (err error) {
 	return err
 }
 
-func SearchSourceByName(search string, numResults int) (result []t.Source, err error) {
+func SearchPlayerByName(search string, numResults int) (result []t.Player, err error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
-	c := conn.DB(env.MongoDb()).C(env.SourcesCollection())
+	c := conn.DB(env.MongoDb()).C(env.PlayersCollection())
 
 	// TODO : set indexes somewhere else
 	index := mgo.Index{Key: []string{"$text:f_name", "$text:l_name"}}
 	m.CreateIndex(c, index)
 
 	// TODO : rewrite with pkg functions
-	result = make([]t.Source, 0, numResults)
+	result = make([]t.Player, 0, numResults)
 	query := m.M{"$text": m.M{"$search": search}}
 	sel := m.M{"score": m.M{"$meta": "textScore"}}
 	q := c.Find(query).Select(sel).Sort("$textScore:score")

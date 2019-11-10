@@ -67,14 +67,14 @@ func ScrapeThisWeeksGames() (games []*t.Game) {
 		// game already happened
 		// if len(gameTimeTxt) > 0 {
 		games = append(games, &t.Game{
-			Name:         &name,
-			Fk:           &fk,
-			Url:          &url,
-			AwayTeamFk:   &awayTeamFk,
-			AwayTeamName: &awayTeam,
-			HomeTeamFk:   &homeTeamFk,
-			HomeTeamName: &homeTeam,
-			GameTime:     &gameTime,
+			Name:         name,
+			Fk:           fk,
+			Url:          url,
+			AwayTeamFk:   awayTeamFk,
+			AwayTeamName: awayTeam,
+			HomeTeamFk:   homeTeamFk,
+			HomeTeamName: homeTeam,
+			GameTime:     gameTime,
 		})
 		// }
 	})

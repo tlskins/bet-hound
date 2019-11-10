@@ -10,7 +10,9 @@ import (
 
 	"bet-hound/cmd/db"
 	"bet-hound/cmd/env"
-	// "bet-hound/cmd/nlp"
+	"bet-hound/cmd/nlp"
+	t "bet-hound/cmd/types"
+	// "bet-hound/cmd/scraper"
 	// "bet-hound/cmd/twitter"
 	m "bet-hound/pkg/mongo"
 )
@@ -49,11 +51,24 @@ func main() {
 	// }
 	// fmt.Println("data", data)
 
-	// scraper.ScrapeSources()
-	// tweet, err := db.FindTweet(1192258647562149888)
-	// if err != nil {
-	// 	fmt.Println("cant find tweet", err)
-	// }
+	// scraper.ScrapePlayers()
+
+	tweet, err := db.FindTweet(1192258647562149888)
+	if err != nil {
+		fmt.Println("cant find tweet", err)
+	}
+	words := nlp.ParseText(*tweet.FullText)
+	fmt.Println("words", words)
+	nounTags := []string{"NOUN"}
+	nouns := t.FindWords(&words, nil, &nounTags, nil)
+	for _, n := range *nouns {
+		fmt.Println("noun ", n.Text)
+		nounMods := t.FindWords(&words, &n.Index, &nounTags, nil)
+		for _, m := range *nounMods {
+			fmt.Println("noun mod ", m.Text)
+		}
+	}
+
 	// bet, err := nlp.ParseTweet(tweet)
 	// if err != nil {
 	// 	fmt.Println(err)
@@ -62,8 +77,8 @@ func main() {
 	// fmt.Println("created bet", bet.Response())
 
 	// bet, _ := db.FindBetByProposerCheckTweet("1192715899028922369")
-	bet, _ := db.FindBetById("c00716a6-4ad4-4f37-8708-db112c43fff2")
-	fmt.Println("text", bet.Text(), bet.BetStatus)
+	// bet, _ := db.FindBetById("c00716a6-4ad4-4f37-8708-db112c43fff2")
+	// fmt.Println("text", bet.Text(), bet.BetStatus)
 
 	// Reply to proposer check
 	// logger.Println("reply to bet", *bet.Id, bet.Text())
