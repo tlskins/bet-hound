@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strings"
 	// "net/http"
 	// "encoding/json"
 	// "io/ioutil"
@@ -58,14 +59,23 @@ func main() {
 		fmt.Println("cant find tweet", err)
 	}
 	words := nlp.ParseText(*tweet.FullText)
-	fmt.Println("words", words)
-	nounTags := []string{"NOUN"}
-	nouns := t.FindWords(&words, nil, &nounTags, nil)
+
+	// Find players
+	nouns := t.FindWords(&words, nil, &[]string{"NOUN"}, nil)
+	players := []t.Player{}
 	for _, n := range *nouns {
-		fmt.Println("noun ", n.Text)
-		nounMods := t.FindWords(&words, &n.Index, &nounTags, nil)
-		for _, m := range *nounMods {
-			fmt.Println("noun mod ", m.Text)
+		children := t.FindWords(&words, &n.Index, &[]string{"NOUN"}, nil)
+		if len(*children) > 0 {
+			grouped := []t.Word{n}
+			grouped = append(grouped, *children...)
+			texts := t.WordsText(&grouped)
+			t.ReverseStrings(texts)
+
+			results := db.SearchPlayerByName(strings.Join(texts, " "), 1)
+			if len(results) > 0 {
+				fmt.Println("player:", results[0].Name)
+				players = append(players, results[0])
+			}
 		}
 	}
 

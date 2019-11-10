@@ -25,7 +25,7 @@ func UpsertPlayers(players *[]*t.Player) (err error) {
 	return err
 }
 
-func SearchPlayerByName(search string, numResults int) (result []t.Player, err error) {
+func SearchPlayerByName(search string, numResults int) (result []t.Player) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.PlayersCollection())
@@ -39,6 +39,6 @@ func SearchPlayerByName(search string, numResults int) (result []t.Player, err e
 	query := m.M{"$text": m.M{"$search": search}}
 	sel := m.M{"score": m.M{"$meta": "textScore"}}
 	q := c.Find(query).Select(sel).Sort("$textScore:score")
-	err = q.All(&result)
-	return result, err
+	_ = q.All(&result)
+	return result
 }

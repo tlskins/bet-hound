@@ -98,8 +98,29 @@ func (p OperatorPhrase) Text() (desc string) {
 // 	return descendentText(m.Word)
 // }
 
-func FindWords(words *[]*Word, hdIdx *int, tags *[]string, labels *[]string) *[]*Word {
-	results := &[]*Word{}
+func ReverseStrings(ss []string) {
+	last := len(ss) - 1
+	for i := 0; i < len(ss)/2; i++ {
+		ss[i], ss[last-i] = ss[last-i], ss[i]
+	}
+}
+
+func WordsText(words *[]Word) (results []string) {
+	for _, w := range *words {
+		results = append(results, w.Text)
+	}
+	return results
+}
+
+func WordsLemmas(words *[]Word) (results []string) {
+	for _, w := range *words {
+		results = append(results, w.Lemma)
+	}
+	return results
+}
+
+func FindWords(words *[]*Word, hdIdx *int, tags *[]string, labels *[]string) *[]Word {
+	results := &[]Word{}
 	for _, w := range *words {
 		idxMatch := hdIdx == nil || w.DependencyEdge.HeadTokenIndex == *hdIdx
 		tagMatch := tags == nil
@@ -129,12 +150,12 @@ func FindWords(words *[]*Word, hdIdx *int, tags *[]string, labels *[]string) *[]
 			hdIdxMatch = (wHdIdx == *hdIdx) && (w.Index != wHdIdx)
 		}
 		if idxMatch && tagMatch && lblMatch && hdIdxMatch {
-			*results = append(*results, w)
+			*results = append(*results, *w)
 		}
 	}
 	// Search down hiearchy recursively only if given a head token index
 	if hdIdx != nil {
-		recurseResults := []*Word{}
+		recurseResults := []Word{}
 		for _, w := range *results {
 			children := FindWords(words, &w.Index, tags, labels)
 			recurseResults = append(recurseResults, *children...)
