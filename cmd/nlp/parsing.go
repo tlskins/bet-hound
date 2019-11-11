@@ -259,6 +259,104 @@ func ParseText(text string) (allWords []*t.Word) {
 	return buildWords(resp)
 }
 
+func FindActions(words []*t.Word) (actionWords []t.Word) {
+	verbs := t.FindWords(&words, nil, &[]string{"VERB"}, nil)
+	for _, v := range *verbs {
+		if isActionLemma(v.Lemma) {
+			vChildren := t.FindWords(&words, &v.Index, &[]string{"NOUN"}, nil)
+			if len(*vChildren) > 0 {
+				actionWords = append(actionWords, v)
+			}
+		}
+	}
+	return actionWords
+}
+
+func FindOperatorPhrases(words []*t.Word, actions []t.Word) (phrases []t.OperatorPhrase) {
+	for _, action := range actions {
+		nouns := t.FindWords(&words, &action.Index, &[]string{"NOUN"}, nil)
+		for _, noun := range *nouns {
+			if isMetricLemma(noun.Lemma) {
+				adjs := t.FindWords(&words, &noun.Index, &[]string{"ADJ"}, nil)
+				for _, adj := range *adjs {
+					phrases = append(phrases, t.OperatorPhrase{
+						OperatorWord: adj,
+						ActionWord:   action,
+					})
+				}
+			}
+		}
+	}
+	return phrases
+}
+
+func isActionLemma(str string) bool {
+	if str == "score" || str == "have" || str == "gain" {
+		return true
+	} else {
+		return false
+	}
+}
+
+func isMetricLemma(str string) bool {
+	if str == "point" || str == "pt" || str == "yard" || str == "yd" || str == "touchdown" || str == "td" {
+		return true
+	} else {
+		return false
+	}
+}
+
+// func FindActionMetricOperator(words []*t.Word) (*t.Word, *t.Word, metric *t.Metric) {
+// 	var actionWord, operatorWord t.Word
+// 	verbs := t.FindWords(&words, nil, &[]string{"VERB"}, nil)
+// 	for _, v := range *verbs {
+// 		str := v.Lemma
+// 		if str == "score" || str == "have" || str == "gain" {
+// 			vChildren := t.FindWords(&words, &v.Index, &[]string{"NOUN"}, nil)
+// 			if len(*vChildren) == 0 {
+// 				continue
+// 			}
+// 			// found action
+// 			fmt.Println("action: ", v.Lemma, t.WordsLemmas(vChildren))
+// 			actionWord = &v
+// 			for _, n := range *vChildren {
+// 				str = n.Lemma
+// 				if str == "point" || str == "pt" || str == "yard" || str == "yd" || str == "touchdown" || str == "td" {
+// 					aChildren := t.FindWords(&words, &n.Index, &[]string{"NOUN", "ADJ"}, nil)
+// 					if len(*aChildren) > 0 {
+// 						// found metric
+// 						metric = &t.Metric{
+// 							Text:      n.Text,
+// 							Lemma:     n.Lemma,
+// 							Modifiers: []string{},
+// 						}
+// 						for _, a := range *aChildren {
+// 							str = a.Lemma
+// 							if str == "more" || str == "great" || str == "few" || str == "less" {
+// 								// found operator
+// 								operatorWord = &a
+// 								fmt.Println("opword:", operatorWord.Lemma)
+// 							} else if a.PartOfSpeech.Tag == "NOUN" || a.PartOfSpeech.Tag == "ADJ" {
+// 								// found metric modifier
+// 								metric.Modifiers = append(metric.Modifiers, a.Text)
+// 							}
+// 							fmt.Println("opword loop:", operatorWord)
+// 						}
+
+// 						if metric != nil && actionWord != nil && operatorWord != nil {
+// 							fmt.Println("opword2:", operatorWord.Lemma)
+// 							return actionWord, operatorWord, metric
+// 						}
+// 					}
+// 				}
+
+// 			}
+// 		}
+// 	}
+
+// 	return nil, nil, nil
+// }
+
 func buildSyntaxRequest(text string) *langpb.AnalyzeSyntaxRequest {
 	return &langpb.AnalyzeSyntaxRequest{
 		Document: &langpb.Document{

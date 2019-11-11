@@ -23,7 +23,7 @@ const appConfigName = "config"
 
 var logger *log.Logger
 
-const text = "yo fart face, do wanna bet that Emmanuel Sanders scores more points than Allen Robinson this week???"
+const text = "yo fart face, do wanna bet that Mike Evans scores more ppr points than Allen Robinson this week???"
 
 func main() {
 	// Initialization
@@ -54,15 +54,15 @@ func main() {
 
 	// scraper.ScrapePlayers()
 
-	tweet, err := db.FindTweet(1192258647562149888)
-	if err != nil {
-		fmt.Println("cant find tweet", err)
-	}
-	words := nlp.ParseText(*tweet.FullText)
+	// tweet, err := db.FindTweet(1192258647562149888)
+	// if err != nil {
+	// 	fmt.Println("cant find tweet", err)
+	// }
+	words := nlp.ParseText(text)
 
 	// Find players
 	nouns := t.FindWords(&words, nil, &[]string{"NOUN"}, nil)
-	players := []t.Player{}
+	playerExprs := []t.PlayerExpression{}
 	for _, n := range *nouns {
 		children := t.FindWords(&words, &n.Index, &[]string{"NOUN"}, nil)
 		if len(*children) > 0 {
@@ -74,10 +74,101 @@ func main() {
 			results := db.SearchPlayerByName(strings.Join(texts, " "), 1)
 			if len(results) > 0 {
 				fmt.Println("player:", results[0].Name)
-				players = append(players, results[0])
+				expr := t.PlayerExpression{
+					Player: results[0],
+					Word:   n,
+				}
+				playerExprs = append(playerExprs, expr)
 			}
 		}
 	}
+	if len(playerExprs) < 2 {
+		panic("Not enough players found!")
+		// return bet, fmt.Errorf("Not enough sources found!")
+	}
+
+	actionWords := nlp.FindActions(words)
+	fmt.Println("action words: ", t.WordsText(&actionWords))
+
+	operatorPhrases := nlp.FindOperatorPhrases(words, actionWords)
+	for _, p := range operatorPhrases {
+		fmt.Println("operator phrase: ", p.ActionWord.Lemma, p.OperatorWord.Lemma)
+	}
+	// fmt.Println("operator word: ", operatorWord.Text)
+	// fmt.Println("metric: ", metric.Text, metric.Modifiers)
+
+	// Find Metric
+	// var metric *t.Metric
+	// for _, n := range *nouns {
+	// 	str := n.Lemma
+	// 	isMetricStr := str == "point" || str == "pt" || str == "yard" || str == "yd" || str == "touchdown" || str == "td"
+	// 	if !isMetricStr {
+	// 		continue
+	// 	}
+	// 	children := t.FindWords(&words, &n.Index, &[]string{"NOUN", "ADJ"}, nil)
+	// 	if len(*children) > 0 {
+	// 		metric = &t.Metric{
+	// 			Text:      n.Text,
+	// 			Lemma:     n.Lemma,
+	// 			Modifiers: t.WordsLemmas(children),
+	// 		}
+	// 	}
+	// }
+	// if metric == nil {
+	// 	panic("betting metric not found!")
+	// 	// return bet, fmt.Errorf("Metric phrase not found!")
+	// } else {
+	// 	fmt.Println("Metric: ", metric.Lemma, metric.Modifiers)
+	// 	for _, p := range playerExprs {
+	// 		p.Metric = metric
+	// 	}
+	// }
+
+	// Find action word
+	// var actionWord, operatorWord *string
+	// var metric *t.Metric
+
+	// var opPhrase *t.OperatorPhrase
+	// verbs := t.FindWords(&words, nil, &[]string{"VERB"}, nil)
+	// for _, v := range *verbs {
+	// 	str := v.Lemma
+	// 	if str == "score" || str == "have" || str == "gain" {
+	// 		vChildren := t.FindWords(&words, &v.Index, &[]string{"NOUN"}, nil)
+	// 		if len(*vChildren) == 0 {
+	// 			continue
+	// 		}
+	// 		// found action
+	// 		fmt.Println("action: ", v.Lemma, t.WordsLemmas(nChildren))
+	// 		actionWord = &v
+	// 		for _, n := range *vChildren {
+	// 			str = n.Lemma
+	// 			if str == "point" || str == "pt" || str == "yard" || str == "yd" || str == "touchdown" || str == "td" {
+	// 				aChildren := t.FindWords(&words, &n.Index, &[]string{"NOUN", "ADJ"}, nil)
+	// 				if len(*aChildren) > 0 {
+	// 					// found metric
+	// 					metric = &t.Metric{
+	// 						Text:      n.Text,
+	// 						Lemma:     n.Lemma,
+	// 						Modifiers: []string{},
+	// 					}
+	// 					for _, a := range aChildren {
+	// 						str = m.Lemma
+	// 						if str == "more" || str == "great" || str == "few" || str == "less" {
+	// 							// found operator
+	// 							operatorWord = &m
+	// 						} else if m.PartOfSpeech.Tag == "NOUN" || m.PartOfSpeech.Tag == "ADJ" {
+	// 							// found metric modifier
+	// 							metric.Modifiers = append(metric.Modifiers, m.Text)
+	// 						}
+	// 					}
+	// 				}
+	// 			}
+	// 			if metric != nil && actionWord != nil && operatorWord != nil {
+	// 				break
+	// 			}
+	// 		}
+	// 	}
+	// }
 
 	// bet, err := nlp.ParseTweet(tweet)
 	// if err != nil {
