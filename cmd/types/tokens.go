@@ -12,7 +12,7 @@ func ReverseStrings(ss []string) {
 	}
 }
 
-func WordsText(words *[]Word) (results []string) {
+func WordsText(words *[]*Word) (results []string) {
 	for _, w := range *words {
 		results = append(results, w.Text)
 	}
@@ -29,7 +29,7 @@ func WordsLemmas(words *[]Word) (results []string) {
 // TODO : chagne signature to - func FindWords(words *[]*Word, hdIdx int, tags []string, labels []string) []*Word {
 func FindWords(words *[]*Word, hdIdx int, tags []string, labels []string) []*Word {
 	// func FindWords(words *[]*Word, hdIdx *int, tags *[]string, labels *[]string) *[]Word {
-	results := []Word{}
+	results := []*Word{}
 	for _, w := range *words {
 		idxMatch := hdIdx == -1 || w.DependencyEdge.HeadTokenIndex == hdIdx
 		tagMatch := len(tags) == 0
@@ -59,12 +59,12 @@ func FindWords(words *[]*Word, hdIdx int, tags []string, labels []string) []*Wor
 			hdIdxMatch = (wHdIdx == hdIdx) && (w.Index != wHdIdx)
 		}
 		if idxMatch && tagMatch && lblMatch && hdIdxMatch {
-			results = append(results, *w)
+			results = append(results, w)
 		}
 	}
 	// Search down hiearchy recursively only if given a head token index
 	if hdIdx != -1 {
-		recurseResults := []Word{}
+		recurseResults := []*Word{}
 		for _, w := range results {
 			children := FindWords(words, w.Index, tags, labels)
 			recurseResults = append(recurseResults, children...)

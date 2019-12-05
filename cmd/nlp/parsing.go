@@ -259,12 +259,12 @@ func ParseText(text string) (allWords []*t.Word) {
 	return buildWords(resp)
 }
 
-func FindActions(words []*t.Word) (actionWords []t.Word) {
-	verbs := t.FindWords(&words, nil, &[]string{"VERB"}, nil)
-	for _, v := range *verbs {
+func FindActions(words *[]*t.Word) (actionWords []*t.Word) {
+	verbs := t.FindWords(words, -1, []string{"VERB"}, []string{})
+	for _, v := range verbs {
 		if isActionLemma(v.Lemma) {
-			vChildren := t.FindWords(&words, &v.Index, &[]string{"NOUN"}, nil)
-			if len(*vChildren) > 0 {
+			vChildren := t.FindWords(words, v.Index, []string{"NOUN"}, []string{})
+			if len(vChildren) > 0 {
 				actionWords = append(actionWords, v)
 			}
 		}
@@ -272,20 +272,16 @@ func FindActions(words []*t.Word) (actionWords []t.Word) {
 	return actionWords
 }
 
-func FindEquations(words []*t.Word, opPhrases []t.OperatorPhrase, playerExprs []t.PlayerExpression) (equations []t.Equation) {
-
-}
-
-func FindOperatorPhrases(words []*t.Word, actions []t.Word) (phrases []t.OperatorPhrase) {
-	for _, action := range actions {
-		nouns := t.FindWords(&words, &action.Index, &[]string{"NOUN"}, nil)
-		for _, noun := range *nouns {
+func FindOperatorPhrases(words *[]*t.Word, actions *[]*t.Word) (phrases []*t.OperatorPhrase) {
+	for _, action := range *actions {
+		nouns := t.FindWords(words, action.Index, []string{"NOUN"}, []string{})
+		for _, noun := range nouns {
 			if isMetricLemma(noun.Lemma) {
-				adjs := t.FindWords(&words, &noun.Index, &[]string{"ADJ"}, nil)
-				for _, adj := range *adjs {
-					phrases = append(phrases, t.OperatorPhrase{
-						OperatorWord: adj,
-						ActionWord:   action,
+				adjs := t.FindWords(words, noun.Index, []string{"ADJ"}, []string{})
+				for _, adj := range adjs {
+					phrases = append(phrases, &t.OperatorPhrase{
+						OperatorWord: *adj,
+						ActionWord:   *action,
 					})
 				}
 			}
