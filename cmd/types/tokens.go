@@ -26,48 +26,50 @@ func WordsLemmas(words *[]Word) (results []string) {
 	return results
 }
 
-func FindWords(words *[]*Word, hdIdx *int, tags *[]string, labels *[]string) *[]Word {
-	results := &[]Word{}
+// TODO : chagne signature to - func FindWords(words *[]*Word, hdIdx int, tags []string, labels []string) []*Word {
+func FindWords(words *[]*Word, hdIdx int, tags []string, labels []string) []*Word {
+	// func FindWords(words *[]*Word, hdIdx *int, tags *[]string, labels *[]string) *[]Word {
+	results := []Word{}
 	for _, w := range *words {
-		idxMatch := hdIdx == nil || w.DependencyEdge.HeadTokenIndex == *hdIdx
-		tagMatch := tags == nil
-		if tags != nil {
+		idxMatch := hdIdx == -1 || w.DependencyEdge.HeadTokenIndex == hdIdx
+		tagMatch := len(tags) == 0
+		if !tagMatch {
 			tagMatch = false
-			for _, t := range *tags {
+			for _, t := range tags {
 				if t == w.PartOfSpeech.Tag {
 					tagMatch = true
 					break
 				}
 			}
 		}
-		lblMatch := labels == nil
-		if labels != nil {
+		lblMatch := len(labels) == 0
+		if !lblMatch {
 			lblMatch = false
-			for _, l := range *labels {
+			for _, l := range labels {
 				if l == w.DependencyEdge.Label {
 					lblMatch = true
 					break
 				}
 			}
 		}
-		hdIdxMatch := hdIdx == nil
-		if hdIdx != nil {
+		hdIdxMatch := hdIdx == -1
+		if hdIdx != -1 {
 			wHdIdx := w.DependencyEdge.HeadTokenIndex
 			// Words can be their own children
-			hdIdxMatch = (wHdIdx == *hdIdx) && (w.Index != wHdIdx)
+			hdIdxMatch = (wHdIdx == hdIdx) && (w.Index != wHdIdx)
 		}
 		if idxMatch && tagMatch && lblMatch && hdIdxMatch {
-			*results = append(*results, *w)
+			results = append(results, *w)
 		}
 	}
 	// Search down hiearchy recursively only if given a head token index
-	if hdIdx != nil {
+	if hdIdx != -1 {
 		recurseResults := []Word{}
-		for _, w := range *results {
-			children := FindWords(words, &w.Index, tags, labels)
-			recurseResults = append(recurseResults, *children...)
+		for _, w := range results {
+			children := FindWords(words, w.Index, tags, labels)
+			recurseResults = append(recurseResults, children...)
 		}
-		*results = append(*results, recurseResults...)
+		results = append(results, recurseResults...)
 	}
 	return results
 }

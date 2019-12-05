@@ -76,7 +76,6 @@ func main() {
 				fmt.Println("player:", results[0].Name)
 				expr := t.PlayerExpression{
 					Player: results[0],
-					Word:   n,
 				}
 				playerExprs = append(playerExprs, expr)
 			}
@@ -93,6 +92,12 @@ func main() {
 	operatorPhrases := nlp.FindOperatorPhrases(words, actionWords)
 	for _, p := range operatorPhrases {
 		fmt.Println("operator phrase: ", p.ActionWord.Lemma, p.OperatorWord.Lemma)
+	}
+
+	for _, op := range operatorPhrases {
+		for _, player := range playerExprs {
+			FindWords(&words, &player.Word.Index, nil, nil)
+		}
 	}
 	// fmt.Println("operator word: ", operatorWord.Text)
 	// fmt.Println("metric: ", metric.Text, metric.Modifiers)

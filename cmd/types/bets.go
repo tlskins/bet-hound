@@ -6,6 +6,8 @@ import (
 	// "time"
 )
 
+// Bet status
+
 type BetStatus int
 
 const (
@@ -23,6 +25,7 @@ func BetStatusFromString(s string) BetStatus {
 		"Final":             BetStatusFinal,
 	}[s]
 }
+
 func (s BetStatus) String() string {
 	return map[BetStatus]string{
 		BetStatusPendingProposer:  "Pending Proposer",
@@ -31,6 +34,8 @@ func (s BetStatus) String() string {
 		BetStatusFinal:            "Final",
 	}[s]
 }
+
+// Bet
 
 type Bet struct {
 	Id               string     `bson:"_id" json:"id"`
@@ -43,10 +48,23 @@ type Bet struct {
 	Equations        []Equation `bson:"eqs" "json:"equations"`
 }
 
+func (b Bet) Response() (txt string) {
+	return "test"
+	// if b.BetStatus.String() == "Pending Proposer" {
+	// 	return fmt.Sprintf("%s%s Is this correct: \"%s\" ? Reply \"Yes\"", "@", b.Proposer.ScreenName, b.Text())
+	// } else if b.BetStatus.String() == "Pending Recipient" {
+	// 	return fmt.Sprintf("%s%s Do you accept this bet? : \"%s\" Reply \"Yes\"", "@", b.Recipient.ScreenName, b.Text())
+	// }
+	// return fmt.Sprintf("%s%s Bet recorded! When the bet has been finalized I will tweet the final results", b.Proposer.ScreenName, b.Recipient.ScreenName)
+}
+
+// Equation
+
 type Equation struct {
 	LeftExpression  Expression     `bson:"l_exp" json:"left_expression"`
 	RightExpression Expression     `bson:"r_exp" json:"right_expression"`
 	Operator        OperatorPhrase `bson:"m_phrase" json:"metric_phrase"`
+	// TODO : Add complete function to check event time / metric exists
 }
 
 func (e Equation) Text() (txt string) {
@@ -57,14 +75,20 @@ func (e Equation) Text() (txt string) {
 	)
 }
 
+// Operator Phrase
+
 type OperatorPhrase struct {
-	OperatorWord Word `bson:"op_word" json:"operator_word"`
-	ActionWord   Word `bson:"a_word" json:"action_word"`
+	ActionWord   Word       `bson:"a_word" json:"action_word"`
+	OperatorWord Word       `bson:"op_word" json:"operator_word"`
+	Metric       *Metric    `bson:"metric" json:"metric"`
+	EventTime    *EventTime `bson:"event_time" json:"event_time"`
 }
 
 func (p OperatorPhrase) Text() string {
 	return p.ActionWord.Text + " " + p.OperatorWord.Text
 }
+
+// Metric / Event Time
 
 type Metric struct {
 	Text      string   `bson:"txt" json:"text"`
@@ -72,17 +96,26 @@ type Metric struct {
 	Modifiers []string `bson:"mods" json:"modifiers"`
 }
 
+type EventTime struct {
+	Text      string   `bson:"txt" json:"text"`
+	Lemma     string   `bson:"lemma" json:"lemma'`
+	Modifiers []string `bson:"mods" json:"modifiers"`
+}
+
+// Expression
+
 type Expression interface {
 	Description() string
 	ShortDescription() string
 	Value() *float64
+	// Add complete? function to check if game / metric exist
 }
 
 type PlayerExpression struct {
-	Word   Word    `bson:"word" json:"word"`
-	Player Player  `bson:"player" json:"player"`
-	Game   *Game   `bson:"gm" json:"game"`
-	Metric *Metric `bson:"metric" json:"metric"`
+	Player    Player     `bson:"player" json:"player"`
+	Game      *Game      `bson:"gm" json:"game"`
+	Metric    *Metric    `bson:"metric" json:"metric"`         // TODO : if metric not exists point to operatoer phrase metric
+	EventTime *EventTime `bson:"event_time" json:"event_time"` // TODO : if event time not exists point to operatoer event time
 }
 
 func (e PlayerExpression) Description() (desc string) {
@@ -110,6 +143,8 @@ func (e PlayerExpression) Value() (value float64) {
 	return 1.0
 }
 
+// Player
+
 type Player struct {
 	Id        string `bson:"_id" json:"id"`
 	Name      string `bson:"name,omitempty" json:"name"`
@@ -121,28 +156,4 @@ type Player struct {
 	TeamShort string `bson:"team_short,omitempty" json:"team_short"`
 	Position  string `bson:"pos,omitempty" json:"position"`
 	Url       string `bson:"url,omitempty" json:"url"`
-}
-
-// type Bet struct {
-// 	Id                    string        `bson:"_id" json:"id"`
-// 	Fk                    *string       `bson:"fk,omitempty" json:"fk"`
-// 	ActionPhrase          *Phrase       `bson:"act_phrs,omitempty" json:"action_phrase"`
-// 	MetricPhrase          *MetricPhrase `bson:"met_phrs,omitempty" json:"metric_phrase"`
-// 	ProposerSourcePhrase  *Phrase       `bson:"p_src_phrs,omitempty" json:"proposer_source_phrase"`
-// 	RecipientSourcePhrase *Phrase       `bson:"r_src_phrs,omitempty" json:"recipient_source_phrase"`
-// 	BetStatus             BetStatus     `bson:"status" json:"bet_status"`
-// 	Proposer              *User         `bson:"proposer,omitempty" json:"proposer"`
-// 	Recipient             *User         `bson:"recipient,omitempty" json:"recipient"`
-// 	ProposerCheckTweetId  *string       `bson:"pchk_tweet_id,omitempty" json:"proposer_check_tweet_id"`
-// 	RecipientCheckTweetId *string       `bson:"rchk_tweet_id,omitempty" json:"recipient_check_tweet_id"`
-// }
-
-func (b Bet) Response() (txt string) {
-	return "test"
-	// if b.BetStatus.String() == "Pending Proposer" {
-	// 	return fmt.Sprintf("%s%s Is this correct: \"%s\" ? Reply \"Yes\"", "@", b.Proposer.ScreenName, b.Text())
-	// } else if b.BetStatus.String() == "Pending Recipient" {
-	// 	return fmt.Sprintf("%s%s Do you accept this bet? : \"%s\" Reply \"Yes\"", "@", b.Recipient.ScreenName, b.Text())
-	// }
-	// return fmt.Sprintf("%s%s Bet recorded! When the bet has been finalized I will tweet the final results", b.Proposer.ScreenName, b.Recipient.ScreenName)
 }

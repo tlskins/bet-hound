@@ -272,6 +272,10 @@ func FindActions(words []*t.Word) (actionWords []t.Word) {
 	return actionWords
 }
 
+func FindEquations(words []*t.Word, opPhrases []t.OperatorPhrase, playerExprs []t.PlayerExpression) (equations []t.Equation) {
+
+}
+
 func FindOperatorPhrases(words []*t.Word, actions []t.Word) (phrases []t.OperatorPhrase) {
 	for _, action := range actions {
 		nouns := t.FindWords(&words, &action.Index, &[]string{"NOUN"}, nil)
