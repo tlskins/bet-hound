@@ -19,7 +19,7 @@ func WordsText(words *[]*Word) (results []string) {
 	return results
 }
 
-func WordsLemmas(words *[]Word) (results []string) {
+func WordsLemmas(words *[]*Word) (results []string) {
 	for _, w := range *words {
 		results = append(results, w.Lemma)
 	}

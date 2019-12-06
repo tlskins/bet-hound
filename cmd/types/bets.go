@@ -98,8 +98,7 @@ type Metric struct {
 }
 
 type EventTime struct {
-	Text      string   `bson:"txt" json:"text"`
-	Lemma     string   `bson:"lemma" json:"lemma'`
+	Word      Word     `bson:"word" json:"word"`
 	Modifiers []string `bson:"mods" json:"modifiers"`
 }
 

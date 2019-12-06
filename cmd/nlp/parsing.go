@@ -60,13 +60,12 @@ func FindOperatorPhrase(words *[]*t.Word) (opPhrase *t.OperatorPhrase, leftMetri
 	if opPhrase == nil || leftMetric == nil {
 		panic("No operator phrase and metric found!")
 	} else {
-		fmt.Println("operator phrase: ", opPhrase.ActionWord.Lemma, opPhrase.OperatorWord.Lemma)
-		fmt.Println("left metric: ", leftMetric.Word.Text, leftMetric.Modifiers)
 		return opPhrase, leftMetric
 	}
 }
 
 func FindLeftPlayerExpr(words *[]*t.Word, opPhrase *t.OperatorPhrase, leftMetric *t.Metric) (leftPlayerExpr *t.PlayerExpression) {
+	// Find Player
 	groupedNouns := t.FindGroupedWords(words, opPhrase.ActionWord.Index, []string{"NOUN"}, []string{leftMetric.Word.Text})
 	for _, groupedNoun := range groupedNouns {
 		player := db.SearchPlayerByName(t.JoinedWordGroup(groupedNoun, true))
@@ -76,6 +75,17 @@ func FindLeftPlayerExpr(words *[]*t.Word, opPhrase *t.OperatorPhrase, leftMetric
 				Metric: leftMetric,
 			}
 			break
+		}
+	}
+	// Find Event Time
+	actionChildren := t.FindGroupedWords(words, opPhrase.ActionWord.Index, []string{}, []string{leftMetric.Word.Text})
+	for _, a := range actionChildren {
+		if isEventTimeLemma(a[0].Lemma) {
+			remaining := a[1:len(a)]
+			leftPlayerExpr.EventTime = &t.EventTime{
+				Word:      *a[0],
+				Modifiers: t.WordsLemmas(&remaining),
+			}
 		}
 	}
 
@@ -170,6 +180,22 @@ func isMetricLemma(str string) bool {
 
 func isMetricModText(str string) bool {
 	if str == "ppr" || str == "0.5ppr" || str == ".5ppr" {
+		return true
+	} else {
+		return false
+	}
+}
+
+func isEventTimeLemma(str string) bool {
+	if str == "week" {
+		return true
+	} else {
+		return false
+	}
+}
+
+func isEventTimeModText(str string) bool {
+	if str == "this" {
 		return true
 	} else {
 		return false

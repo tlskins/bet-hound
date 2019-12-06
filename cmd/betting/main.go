@@ -58,6 +58,8 @@ func main() {
 		eq.Operator.OperatorWord.Text,
 		leftPlayerExpr.Metric.Word.Text,
 		leftPlayerExpr.Metric.Modifiers,
+		leftPlayerExpr.EventTime.Word.Text,
+		leftPlayerExpr.EventTime.Modifiers,
 		rightPlayerExpr.Player.Name,
 	)
 
