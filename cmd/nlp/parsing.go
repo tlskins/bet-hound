@@ -237,14 +237,6 @@ import (
 // 	return nounPhrases, verbPhrases, allWords
 // }
 
-func RemoveReservedTwitterWords(text string) (result string) {
-	var handleRgx = regexp.MustCompile(`\@[^\s]*`)
-	var hashRgx = regexp.MustCompile(`\#[^\s]*`)
-	result = handleRgx.ReplaceAllString(text, " ")
-	result = hashRgx.ReplaceAllString(result, " ")
-	return result
-}
-
 func ParseText(text string) (allWords []*t.Word) {
 	ctx := context.Background()
 	lc, err := language.NewClient(ctx)
@@ -288,6 +280,38 @@ func FindOperatorPhrases(words *[]*t.Word, actions *[]*t.Word) (phrases []*t.Ope
 		}
 	}
 	return phrases
+}
+
+func FindOperatorPhrase(words *[]*t.Word, action *t.Word) (opPhrase *t.OperatorPhrase, metric *t.Word) {
+	nouns := t.FindWords(words, action.Index, []string{"NOUN"}, []string{})
+	for _, noun := range nouns {
+		if isMetricLemma(noun.Lemma) {
+			adjs := t.FindWords(words, noun.Index, []string{"ADJ"}, []string{})
+			for _, adj := range adjs {
+				opPhrase = &t.OperatorPhrase{
+					OperatorWord: *adj,
+					ActionWord:   *action,
+				}
+				return opPhrase, noun
+			}
+		}
+	}
+	return nil, nil
+}
+
+// Find left player expression given the an operator and metric
+// func FindLeftExpression(opPhrase *t.OperatorPhrase, metric *t.Word) *t.PlayerExpression {
+
+// }
+
+// helpers
+
+func RemoveReservedTwitterWords(text string) (result string) {
+	var handleRgx = regexp.MustCompile(`\@[^\s]*`)
+	var hashRgx = regexp.MustCompile(`\#[^\s]*`)
+	result = handleRgx.ReplaceAllString(text, " ")
+	result = hashRgx.ReplaceAllString(result, " ")
+	return result
 }
 
 func isActionLemma(str string) bool {

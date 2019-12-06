@@ -40,15 +40,25 @@ func main() {
 	actionWords := nlp.FindActions(&words)
 	fmt.Println("action words: ", t.WordsText(&actionWords))
 
-	operatorPhrases := nlp.FindOperatorPhrases(&words, &actionWords)
-	for _, p := range operatorPhrases {
-		fmt.Println("operator phrase: ", p.ActionWord.Lemma, p.OperatorWord.Lemma)
+	opPhrase := &t.OperatorPhrase{}
+	leftMetricWord := &t.Word{}
+	for _, action := range actionWords {
+		opPhrase, leftMetricWord = nlp.FindOperatorPhrase(&words, action)
+		if opPhrase != nil {
+			fmt.Println("operator phrase: ", opPhrase.ActionWord.Lemma, opPhrase.OperatorWord.Lemma)
+			break
+		}
 	}
-	// for _, op := range operatorPhrases {
-	// 	for _, player := range playerExprs {
-	// 		FindWords(&words, &player.Word.Index, nil, nil)
-	// 	}
-	// }
+	if opPhrase == nil || leftMetricWord == nil {
+		fmt.Println("no op phrase or left metric!")
+		return
+	}
+	fmt.Println("left metric word: ", leftMetricWord.Text)
+
+	nouns := t.FindWords(&words, opPhrase.ActionWord.Index, []string{"NOUN"}, []string{leftMetricWord.Text})
+	for _, noun := range nouns {
+		fmt.Println("noun: ", noun.Text, leftMetricWord)
+	}
 
 	// Find players
 	// nouns := t.FindWords(&words, nil, &[]string{"NOUN"}, nil)

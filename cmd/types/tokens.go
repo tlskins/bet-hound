@@ -26,9 +26,8 @@ func WordsLemmas(words *[]Word) (results []string) {
 	return results
 }
 
-// TODO : chagne signature to - func FindWords(words *[]*Word, hdIdx int, tags []string, labels []string) []*Word {
-func FindWords(words *[]*Word, hdIdx int, tags []string, labels []string) []*Word {
-	// func FindWords(words *[]*Word, hdIdx *int, tags *[]string, labels *[]string) *[]Word {
+// TODO : change labels param to excludeWords
+func FindWords(words *[]*Word, hdIdx int, tags []string, exclTxt []string) []*Word {
 	results := []*Word{}
 	for _, w := range *words {
 		idxMatch := hdIdx == -1 || w.DependencyEdge.HeadTokenIndex == hdIdx
@@ -42,12 +41,22 @@ func FindWords(words *[]*Word, hdIdx int, tags []string, labels []string) []*Wor
 				}
 			}
 		}
-		lblMatch := len(labels) == 0
-		if !lblMatch {
-			lblMatch = false
-			for _, l := range labels {
-				if l == w.DependencyEdge.Label {
-					lblMatch = true
+		// lblMatch := len(labels) == 0
+		// if !lblMatch {
+		// 	lblMatch = false
+		// 	for _, l := range labels {
+		// 		if l == w.DependencyEdge.Label {
+		// 			lblMatch = true
+		// 			break
+		// 		}
+		// 	}
+		// }
+		exclTxtMatch := len(exclTxt) == 0
+		if !exclTxtMatch {
+			exclTxtMatch = false
+			for _, x := range exclTxt {
+				if x != w.Text {
+					exclTxtMatch = true
 					break
 				}
 			}
@@ -58,7 +67,8 @@ func FindWords(words *[]*Word, hdIdx int, tags []string, labels []string) []*Wor
 			// Words can be their own children
 			hdIdxMatch = (wHdIdx == hdIdx) && (w.Index != wHdIdx)
 		}
-		if idxMatch && tagMatch && lblMatch && hdIdxMatch {
+		// if idxMatch && tagMatch && lblMatch && hdIdxMatch {
+		if idxMatch && tagMatch && exclTxtMatch && hdIdxMatch {
 			results = append(results, w)
 		}
 	}
@@ -66,7 +76,7 @@ func FindWords(words *[]*Word, hdIdx int, tags []string, labels []string) []*Wor
 	if hdIdx != -1 {
 		recurseResults := []*Word{}
 		for _, w := range results {
-			children := FindWords(words, w.Index, tags, labels)
+			children := FindWords(words, w.Index, tags, exclTxt)
 			recurseResults = append(recurseResults, children...)
 		}
 		results = append(results, recurseResults...)
