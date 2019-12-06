@@ -17,7 +17,8 @@ func UpsertPlayers(players *[]*t.Player) (err error) {
 		if player.Id == "" {
 			player.Id = uuid.NewV4().String()
 		}
-		err = m.Upsert(c, nil, m.M{"fk": player.Fk}, m.M{"$set": player})
+		err = m.Upsert(c, player, m.M{"_id": player.Id}, m.M{"$set": player})
+		// err = m.Upsert(c, nil, nil, m.M{"$set": player})
 		if err != nil {
 			return err
 		}
@@ -25,7 +26,7 @@ func UpsertPlayers(players *[]*t.Player) (err error) {
 	return err
 }
 
-func SearchPlayerByName(search string, numResults int) (result []t.Player) {
+func SearchPlayerByName(search string) (player *t.Player) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.PlayersCollection())
@@ -35,10 +36,15 @@ func SearchPlayerByName(search string, numResults int) (result []t.Player) {
 	m.CreateIndex(c, index)
 
 	// TODO : rewrite with pkg functions
-	result = make([]t.Player, 0, numResults)
+	result := make([]t.Player, 0, 1)
 	query := m.M{"$text": m.M{"$search": search}}
 	sel := m.M{"score": m.M{"$meta": "textScore"}}
 	q := c.Find(query).Select(sel).Sort("$textScore:score")
-	_ = q.All(&result)
-	return result
+	q.All(&result)
+
+	if len(result) > 0 {
+		return &result[0]
+	} else {
+		return nil
+	}
 }

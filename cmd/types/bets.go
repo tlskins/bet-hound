@@ -61,9 +61,11 @@ func (b Bet) Response() (txt string) {
 // Equation
 
 type Equation struct {
-	LeftExpression  Expression     `bson:"l_exp" json:"left_expression"`
-	RightExpression Expression     `bson:"r_exp" json:"right_expression"`
-	Operator        OperatorPhrase `bson:"m_phrase" json:"metric_phrase"`
+	// LeftExpression  Expression     `bson:"l_exp" json:"left_expression"`
+	// RightExpression Expression     `bson:"r_exp" json:"right_expression"`
+	LeftExpression  PlayerExpression `bson:"l_exp" json:"left_expression"`
+	RightExpression PlayerExpression `bson:"r_exp" json:"right_expression"`
+	Operator        OperatorPhrase   `bson:"m_phrase" json:"metric_phrase"`
 	// TODO : Add complete function to check event time / metric exists
 }
 
@@ -91,8 +93,7 @@ func (p OperatorPhrase) Text() string {
 // Metric / Event Time
 
 type Metric struct {
-	Text      string   `bson:"txt" json:"text"`
-	Lemma     string   `bson:"lemma" json:"lemma'`
+	Word      Word     `bson:"word" json:"word"`
 	Modifiers []string `bson:"mods" json:"modifiers"`
 }
 

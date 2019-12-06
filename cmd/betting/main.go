@@ -9,7 +9,6 @@ import (
 	// "io/ioutil"
 	"os"
 
-	// "bet-hound/cmd/db"
 	"bet-hound/cmd/env"
 	"bet-hound/cmd/nlp"
 	t "bet-hound/cmd/types"
@@ -37,53 +36,30 @@ func main() {
 
 	words := nlp.ParseText(text)
 
-	actionWords := nlp.FindActions(&words)
-	fmt.Println("action words: ", t.WordsText(&actionWords))
+	opPhrase, leftMetric := nlp.FindOperatorPhrase(&words)
 
-	opPhrase := &t.OperatorPhrase{}
-	leftMetricWord := &t.Word{}
-	for _, action := range actionWords {
-		opPhrase, leftMetricWord = nlp.FindOperatorPhrase(&words, action)
-		if opPhrase != nil {
-			fmt.Println("operator phrase: ", opPhrase.ActionWord.Lemma, opPhrase.OperatorWord.Lemma)
-			break
-		}
-	}
-	if opPhrase == nil || leftMetricWord == nil {
-		fmt.Println("no op phrase or left metric!")
-		return
-	}
-	fmt.Println("left metric word: ", leftMetricWord.Text)
+	leftPlayerExpr := nlp.FindLeftPlayerExpr(&words, opPhrase, leftMetric)
 
-	nouns := t.FindWords(&words, opPhrase.ActionWord.Index, []string{"NOUN"}, []string{leftMetricWord.Text})
-	for _, noun := range nouns {
-		fmt.Println("noun: ", noun.Text, leftMetricWord)
-	}
+	fmt.Println("left player expr: ", leftPlayerExpr.Player.Name, leftPlayerExpr.Metric.Word.Text)
 
-	// Find players
-	// nouns := t.FindWords(&words, nil, &[]string{"NOUN"}, nil)
-	// playerExprs := []t.PlayerExpression{}
-	// for _, n := range *nouns {
-	// 	children := t.FindWords(&words, &n.Index, &[]string{"NOUN"}, nil)
-	// 	if len(*children) > 0 {
-	// 		grouped := []t.Word{n}
-	// 		grouped = append(grouped, *children...)
-	// 		texts := t.WordsText(&grouped)
-	// 		t.ReverseStrings(texts)
-	// 		results := db.SearchPlayerByName(strings.Join(texts, " "), 1)
-	// 		if len(results) > 0 {
-	// 			fmt.Println("player:", results[0].Name)
-	// 			expr := t.PlayerExpression{
-	// 				Player: results[0],
-	// 			}
-	// 			playerExprs = append(playerExprs, expr)
-	// 		}
-	// 	}
-	// }
-	// if len(playerExprs) < 2 {
-	// 	panic("Not enough players found!")
-	// 	// return bet, fmt.Errorf("Not enough sources found!")
-	// }
+	rightPlayerExpr := nlp.FindRightPlayerExpr(&words, opPhrase, leftMetric)
+
+	fmt.Println("right player expr: ", rightPlayerExpr.Player.Name)
+
+	eq := t.Equation{
+		LeftExpression:  *leftPlayerExpr,
+		RightExpression: *rightPlayerExpr,
+		Operator:        *opPhrase,
+	}
+	fmt.Println(
+		"equation: ",
+		eq.LeftExpression.Player.Name,
+		eq.Operator.ActionWord.Text,
+		eq.Operator.OperatorWord.Text,
+		leftPlayerExpr.Metric.Word.Text,
+		leftPlayerExpr.Metric.Modifiers,
+		rightPlayerExpr.Player.Name,
+	)
 
 	// bet, _ := db.FindBetByProposerCheckTweet("1192715899028922369")
 	// bet, _ := db.FindBetById("c00716a6-4ad4-4f37-8708-db112c43fff2")

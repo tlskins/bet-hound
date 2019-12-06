@@ -1,8 +1,8 @@
 package types
 
 import (
-// "fmt"
-// "strings"
+	"fmt"
+	// "strings"
 )
 
 func ReverseStrings(ss []string) {
@@ -26,49 +26,59 @@ func WordsLemmas(words *[]Word) (results []string) {
 	return results
 }
 
-// TODO : change labels param to excludeWords
+func FilterWordsByTag(words *[]*Word, tag string) (results []*Word) {
+	for _, w := range *words {
+		if w.PartOfSpeech.Tag == tag {
+			results = append(results, w)
+		}
+	}
+	return results
+}
+
+func matchWord(w *Word, hdIdx int, tags []string, exclTxt []string) bool {
+	idxMatch := hdIdx == -1 || w.DependencyEdge.HeadTokenIndex == hdIdx
+	if !idxMatch {
+		return false
+	}
+
+	tagMatch := len(tags) == 0
+	if !tagMatch {
+		for _, t := range tags {
+			if t == w.PartOfSpeech.Tag {
+				tagMatch = true
+				break
+			}
+		}
+		if !tagMatch {
+			return false
+		}
+	}
+
+	exclTxtMatch := len(exclTxt) == 0
+	if !exclTxtMatch {
+		for _, x := range exclTxt {
+			if x == w.Text {
+				return false
+			}
+		}
+	}
+
+	hdIdxMatch := hdIdx == -1
+	if !hdIdxMatch {
+		wHdIdx := w.DependencyEdge.HeadTokenIndex
+		// Words can be their own children
+		if !((wHdIdx == hdIdx) && (w.Index != wHdIdx)) {
+			return false
+		}
+	}
+
+	return true
+}
+
 func FindWords(words *[]*Word, hdIdx int, tags []string, exclTxt []string) []*Word {
 	results := []*Word{}
 	for _, w := range *words {
-		idxMatch := hdIdx == -1 || w.DependencyEdge.HeadTokenIndex == hdIdx
-		tagMatch := len(tags) == 0
-		if !tagMatch {
-			tagMatch = false
-			for _, t := range tags {
-				if t == w.PartOfSpeech.Tag {
-					tagMatch = true
-					break
-				}
-			}
-		}
-		// lblMatch := len(labels) == 0
-		// if !lblMatch {
-		// 	lblMatch = false
-		// 	for _, l := range labels {
-		// 		if l == w.DependencyEdge.Label {
-		// 			lblMatch = true
-		// 			break
-		// 		}
-		// 	}
-		// }
-		exclTxtMatch := len(exclTxt) == 0
-		if !exclTxtMatch {
-			exclTxtMatch = false
-			for _, x := range exclTxt {
-				if x != w.Text {
-					exclTxtMatch = true
-					break
-				}
-			}
-		}
-		hdIdxMatch := hdIdx == -1
-		if hdIdx != -1 {
-			wHdIdx := w.DependencyEdge.HeadTokenIndex
-			// Words can be their own children
-			hdIdxMatch = (wHdIdx == hdIdx) && (w.Index != wHdIdx)
-		}
-		// if idxMatch && tagMatch && lblMatch && hdIdxMatch {
-		if idxMatch && tagMatch && exclTxtMatch && hdIdxMatch {
+		if matchWord(w, hdIdx, tags, exclTxt) {
 			results = append(results, w)
 		}
 	}
@@ -82,6 +92,35 @@ func FindWords(words *[]*Word, hdIdx int, tags []string, exclTxt []string) []*Wo
 		results = append(results, recurseResults...)
 	}
 	return results
+}
+
+func FindGroupedWords(words *[]*Word, hdIdx int, tags []string, exclTxt []string) [][]*Word {
+	fmt.Println("FindGroupedWords exclTxt: ", exclTxt)
+	results := [][]*Word{}
+	for _, w := range *words {
+		if matchWord(w, hdIdx, tags, exclTxt) {
+			results = append(results, []*Word{w})
+		}
+	}
+	// Search down hiearchy recursively only if given a head token index
+	if hdIdx != -1 {
+		for i, w := range results {
+			children := FindWords(words, w[0].Index, tags, exclTxt)
+			results[i] = append(w, children...)
+		}
+	}
+	return results
+}
+
+func JoinedWordGroup(grouped []*Word, reverse bool) (result string) {
+	for _, g := range grouped {
+		if reverse {
+			result = g.Text + " " + result
+		} else {
+			result = result + " " + g.Text
+		}
+	}
+	return result
 }
 
 type Word struct {

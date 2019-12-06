@@ -24,7 +24,7 @@ func main() {
 	defer env.Cleanup()
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
 
-	scraper.ScrapeSources()
+	scraper.ScrapePlayers()
 }
 
 func setUpLogger(logPath, defaultPath string) *log.Logger {
