@@ -38,24 +38,23 @@ func (s BetStatus) String() string {
 // Bet
 
 type Bet struct {
-	Id               string     `bson:"_id" json:"id"`
-	SourceFk         int64      `bson:"source_fk" json:"source_fk"`
-	Proposer         User       `bson:"proposer" json:"proposer"`
-	Recipient        User       `bson:"recipient" json:"recipient"`
-	BetStatus        BetStatus  `bson:"status" json:"bet_status"`
-	ProposerCheckFk  int64      `bson:"p_chk_fk" json:"proposer_check_fk"`
-	RecipientCheckFk int64      `bson:"r_chk_fk" json:"recipient_check_fk"`
-	Equations        []Equation `bson:"eqs" "json:"equations"`
+	Id               string    `bson:"_id" json:"id"`
+	SourceFk         string    `bson:"source_fk" json:"source_fk"`
+	Proposer         User      `bson:"proposer" json:"proposer"`
+	Recipient        User      `bson:"recipient" json:"recipient"`
+	BetStatus        BetStatus `bson:"status" json:"bet_status"`
+	ProposerCheckFk  string    `bson:"p_chk_fk" json:"proposer_check_fk"`
+	RecipientCheckFk string    `bson:"r_chk_fk" json:"recipient_check_fk"`
+	Equation         Equation  `bson:"eq" "json:"equation"`
 }
 
 func (b Bet) Response() (txt string) {
-	return "test"
-	// if b.BetStatus.String() == "Pending Proposer" {
-	// 	return fmt.Sprintf("%s%s Is this correct: \"%s\" ? Reply \"Yes\"", "@", b.Proposer.ScreenName, b.Text())
-	// } else if b.BetStatus.String() == "Pending Recipient" {
-	// 	return fmt.Sprintf("%s%s Do you accept this bet? : \"%s\" Reply \"Yes\"", "@", b.Recipient.ScreenName, b.Text())
-	// }
-	// return fmt.Sprintf("%s%s Bet recorded! When the bet has been finalized I will tweet the final results", b.Proposer.ScreenName, b.Recipient.ScreenName)
+	if b.BetStatus.String() == "Pending Proposer" {
+		return fmt.Sprintf("%s%s Is this correct: \"%s\" ? Reply \"Yes\"", "@", b.Proposer.ScreenName, b.Equation.Text())
+	} else if b.BetStatus.String() == "Pending Recipient" {
+		return fmt.Sprintf("%s%s Do you accept this bet? : \"%s\" Reply \"Yes\"", "@", b.Recipient.ScreenName, b.Equation.Text())
+	}
+	return fmt.Sprintf("%s%s Bet recorded! When the bet has been finalized I will tweet the final results", b.Proposer.ScreenName, b.Recipient.ScreenName)
 }
 
 // Equation
@@ -69,21 +68,36 @@ type Equation struct {
 	// TODO : Add complete function to check event time / metric exists
 }
 
+func (e Equation) Complete() bool {
+	return e.LeftExpression.Complete() &&
+		e.RightExpression.Complete() &&
+		e.Operator.Complete() &&
+		e.LeftExpression.Game != nil &&
+		e.RightExpression.Game != nil
+}
+
 func (e Equation) Text() (txt string) {
-	return fmt.Sprintf("%s %s %s",
-		e.LeftExpression.Description(),
-		e.Operator.Text(),
-		e.RightExpression.Description(),
-	)
+	// s := append([]string{
+	// 	e.LeftExpression.Player.Name,
+	// 	e.LeftExpression.Game.Name,
+	// 	e.Operator.ActionWord.Text,
+	// 	e.Operator.OperatorWord.Text,
+	// 	e.LeftExpression.Metric.Word.Text,
+	// }, e.LeftExpression.Metric.Modifiers...)
+	// s = append(s, []string{"than", e.RightExpression.Player.Name, e.RightExpression.Game.Name}...)
+	// return strings.Join(s, " ")
+	return e.LeftExpression.ShortDescription() + " " + e.Operator.Text() + " " + e.RightExpression.ShortDescription()
 }
 
 // Operator Phrase
 
 type OperatorPhrase struct {
-	ActionWord   Word       `bson:"a_word" json:"action_word"`
-	OperatorWord Word       `bson:"op_word" json:"operator_word"`
-	Metric       *Metric    `bson:"metric" json:"metric"`
-	EventTime    *EventTime `bson:"event_time" json:"event_time"`
+	ActionWord   Word `bson:"a_word" json:"action_word"`
+	OperatorWord Word `bson:"op_word" json:"operator_word"`
+}
+
+func (p OperatorPhrase) Complete() bool {
+	return p.ActionWord.Lemma != "" && p.OperatorWord.Lemma != ""
 }
 
 func (p OperatorPhrase) Text() string {
@@ -116,6 +130,10 @@ type PlayerExpression struct {
 	Game      *Game      `bson:"gm" json:"game"`
 	Metric    *Metric    `bson:"metric" json:"metric"`         // TODO : if metric not exists point to operatoer phrase metric
 	EventTime *EventTime `bson:"event_time" json:"event_time"` // TODO : if event time not exists point to operatoer event time
+}
+
+func (e PlayerExpression) Complete() bool {
+	return len(e.Player.Id) > 0 && e.Game != nil
 }
 
 func (e PlayerExpression) Description() (desc string) {

@@ -2,38 +2,16 @@ package nlp
 
 import (
 	"bet-hound/cmd/db"
-	"fmt"
-	// "bet-hound/cmd/scraper"
 	t "bet-hound/cmd/types"
 	language "cloud.google.com/go/language/apiv1"
 	"context"
+	"fmt"
 	// "fmt"
 	langpb "google.golang.org/genproto/googleapis/cloud/language/v1"
 	"log"
 	"regexp"
 	"strings"
 )
-
-// func ParseTweet(tweet *t.Tweet) (bet *t.Bet, err error) {
-// 	tweetIdStr := tweet.IdStr
-// 	msg := tweet.GetText()
-// 	proposer := tweet.User
-// 	recipients := tweet.Recipients()
-// 	if len(recipients) == 0 {
-// 		return bet, fmt.Errorf("No bet recipient found!")
-// 	}
-// 	recipient := recipients[0]
-// 	bet, err = ParseNewText(msg, tweetIdStr, &proposer, &recipient)
-// 	if err != nil {
-// 		return bet, err
-// 	}
-// 	bet, err = db.UpsertBet(bet)
-// 	if err != nil {
-// 		return bet, err
-// 	}
-// 	// _, err = db.UpsertTweet(tweet)
-// 	return bet, err
-// }
 
 func ParseText(text string) (allWords []*t.Word) {
 	ctx := context.Background()

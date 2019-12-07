@@ -6,14 +6,12 @@ import (
 	m "bet-hound/pkg/mongo"
 )
 
-func UpsertTweet(tweet *t.Tweet) (*t.Tweet, error) {
+func UpsertTweet(tweet *t.Tweet) error {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.TweetsCollection())
 
-	var result t.Tweet
-	err := m.Upsert(c, &result, m.M{"_id": tweet.Id}, m.M{"$set": tweet})
-	return &result, err
+	return m.Upsert(c, nil, m.M{"_id": tweet.Id}, m.M{"$set": tweet})
 }
 
 func FindTweet(id int64) (*t.Tweet, error) {

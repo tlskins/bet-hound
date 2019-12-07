@@ -18,7 +18,7 @@ import (
 // 	return bet, err
 // }
 
-func UpsertBet(bet *t.Bet) (*t.Bet, error) {
+func UpsertBet(bet *t.Bet) error {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
@@ -26,9 +26,7 @@ func UpsertBet(bet *t.Bet) (*t.Bet, error) {
 		bet.Id = uuid.NewV4().String()
 	}
 
-	var result t.Bet
-	err := m.Upsert(c, &result, m.M{"_id": bet.Id}, m.M{"$set": bet})
-	return &result, err
+	return m.Upsert(c, nil, m.M{"_id": bet.Id}, m.M{"$set": bet})
 }
 
 func FindBetById(id string) (*t.Bet, error) {

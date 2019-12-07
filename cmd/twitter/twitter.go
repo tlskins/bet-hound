@@ -1,9 +1,9 @@
 package main
 
 import (
+	b "bet-hound/cmd/betting"
 	"bet-hound/cmd/db"
 	"bet-hound/cmd/env"
-	"bet-hound/cmd/nlp"
 	t "bet-hound/cmd/types"
 	m "bet-hound/pkg/mongo"
 	"crypto/hmac"
@@ -59,21 +59,6 @@ func main() {
 	server.ListenAndServe()
 }
 
-func LoadTweet(tweetId string) (tweet *t.Tweet, err error) {
-	url := fmt.Sprintf("https://api.twitter.com/1.1/statuses/show.json?tweet_mode=extended&id=%s", tweetId)
-	client := CreateClient()
-	resp, err := client.Get(url)
-	if err != nil {
-		return tweet, err
-	}
-	defer resp.Body.Close()
-
-	body, _ := ioutil.ReadAll(resp.Body)
-	tweet = &t.Tweet{}
-	err = json.Unmarshal([]byte(body), tweet)
-	return tweet, err
-}
-
 func WebhookHandler(writer http.ResponseWriter, request *http.Request) {
 	logger.Println("Handler called")
 
@@ -107,7 +92,7 @@ func WebhookHandler(writer http.ResponseWriter, request *http.Request) {
 
 	// Reply to proposer check
 	if bet != nil && err == nil {
-		logger.Println("reply to bet", bet.Id, bet.Text())
+		logger.Println("reply to bet", bet.Id, bet.Equation.Text())
 		err = ProcessReplyTweet(&newTweet, bet)
 		if err != nil {
 			logger.Println("err processing reply tweet", err)
@@ -131,34 +116,23 @@ func WebhookHandler(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
-func ProcessReplyTweet(tweet *t.Tweet, bet *t.Bet) (err error) {
-	var yesRgx = regexp.MustCompile(`(?i)yes`)
-	text := tweet.GetText()
-	logger.Println("process reply text: ", text)
-	if yesRgx.Match([]byte(text)) {
-		if bet.BetStatus.String() == "Pending Proposer" {
-			bet.BetStatus = t.BetStatusFromString("Pending Recipient")
-			responseTweet, err := SendTweet(bet.Response(), *bet.Fk)
-			if err != nil {
-				return err
-			}
-			bet.RecipientCheckTweetId = &responseTweet.IdStr
-			_, err = db.UpsertBet(bet)
-			logger.Println("Sent check to recipient")
-		} else if bet.BetStatus.String() == "Pending Recipient" {
-			bet.BetStatus = t.BetStatusFromString("Accepted")
-			responseTweet, err := SendTweet(bet.Response(), *bet.Fk)
-			if err != nil {
-				return err
-			}
-			bet.RecipientCheckTweetId = &responseTweet.IdStr
-			_, err = db.UpsertBet(bet)
-			logger.Println("Bet accepted")
-		}
-	} else {
-		logger.Println("Did not reply yes")
+func LoadTweet(tweetId string) (tweet *t.Tweet, err error) {
+	url := fmt.Sprintf("https://api.twitter.com/1.1/statuses/show.json?tweet_mode=extended&id=%s", tweetId)
+	client := CreateClient()
+	resp, err := client.Get(url)
+	if err != nil {
+		return tweet, err
 	}
-	return err
+	defer resp.Body.Close()
+
+	body, _ := ioutil.ReadAll(resp.Body)
+	tweet = &t.Tweet{}
+	err = json.Unmarshal([]byte(body), tweet)
+	if err != nil {
+		return tweet, err
+	}
+	err = db.UpsertTweet(tweet)
+	return tweet, err
 }
 
 func ProcessNewTweet(tweet *t.Tweet) error {
@@ -173,16 +147,42 @@ func ProcessNewTweet(tweet *t.Tweet) error {
 	logger.Println("tweet data", tweet)
 
 	// Build Bet
-	bet, err := nlp.ParseTweet(tweet)
+	err, bet := b.BuildBetFromTweet(tweet)
 	if err != nil {
 		logger.Println("err parsing tweet", err)
 		panic(err)
 	}
 	logger.Println("process new tweet created bet id", bet.Id)
 
-	responseTweet, err := SendTweet(bet.Response(), tweetId)
-	bet.ProposerCheckTweetId = &responseTweet.IdStr
-	_, err = db.UpsertBet(bet)
+	_, err = SendTweet(bet.Response(), tweetId)
+	return err
+}
+
+func ProcessReplyTweet(tweet *t.Tweet, bet *t.Bet) (err error) {
+	var yesRgx = regexp.MustCompile(`(?i)yes`)
+	text := tweet.GetText()
+	logger.Println("process reply text: ", text)
+	if yesRgx.Match([]byte(text)) {
+		if bet.BetStatus.String() == "Pending Proposer" {
+			_, err := SendTweet(bet.Response(), bet.SourceFk)
+			if err != nil {
+				return err
+			}
+			bet.BetStatus = t.BetStatusFromString("Pending Recipient")
+			err = db.UpsertBet(bet)
+			logger.Println("Sent check to recipient")
+		} else if bet.BetStatus.String() == "Pending Recipient" {
+			_, err := SendTweet(bet.Response(), bet.SourceFk)
+			if err != nil {
+				return err
+			}
+			bet.BetStatus = t.BetStatusFromString("Accepted")
+			err = db.UpsertBet(bet)
+			logger.Println("Bet accepted")
+		}
+	} else {
+		logger.Println("Did not reply yes")
+	}
 	return err
 }
 

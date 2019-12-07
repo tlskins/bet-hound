@@ -1,23 +1,18 @@
 package main
 
 import (
-	"fmt"
+	// "fmt"
 	"log"
-	// "strings"
-	// "net/http"
-	// "encoding/json"
-	// "io/ioutil"
 	"os"
 
+	// b "bet-hound/cmd/betting"
 	"bet-hound/cmd/env"
-	"bet-hound/cmd/nlp"
-	t "bet-hound/cmd/types"
 	// "bet-hound/cmd/scraper"
 	// "bet-hound/cmd/twitter"
 	m "bet-hound/pkg/mongo"
 )
 
-const appConfigPath = "../env"
+const appConfigPath = "./env"
 const appConfigName = "config"
 
 var logger *log.Logger
@@ -34,34 +29,12 @@ func main() {
 	defer env.Cleanup()
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
 
-	words := nlp.ParseText(text)
-
-	opPhrase, leftMetric := nlp.FindOperatorPhrase(&words)
-
-	leftPlayerExpr := nlp.FindLeftPlayerExpr(&words, opPhrase, leftMetric)
-
-	fmt.Println("left player expr: ", leftPlayerExpr.Player.Name, leftPlayerExpr.Metric.Word.Text)
-
-	rightPlayerExpr := nlp.FindRightPlayerExpr(&words, opPhrase, leftMetric)
-
-	fmt.Println("right player expr: ", rightPlayerExpr.Player.Name)
-
-	eq := t.Equation{
-		LeftExpression:  *leftPlayerExpr,
-		RightExpression: *rightPlayerExpr,
-		Operator:        *opPhrase,
-	}
-	fmt.Println(
-		"equation: ",
-		eq.LeftExpression.Player.Name,
-		eq.Operator.ActionWord.Text,
-		eq.Operator.OperatorWord.Text,
-		leftPlayerExpr.Metric.Word.Text,
-		leftPlayerExpr.Metric.Modifiers,
-		leftPlayerExpr.EventTime.Word.Text,
-		leftPlayerExpr.EventTime.Modifiers,
-		rightPlayerExpr.Player.Name,
-	)
+	// err, eq := b.BuildEquationFromText(text)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// } else {
+	// 	fmt.Println(eq.Text())
+	// }
 
 	// bet, _ := db.FindBetByProposerCheckTweet("1192715899028922369")
 	// bet, _ := db.FindBetById("c00716a6-4ad4-4f37-8708-db112c43fff2")
