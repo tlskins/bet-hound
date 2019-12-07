@@ -17,14 +17,16 @@ func BuildBetFromTweet(tweet *t.Tweet) (err error, bet *t.Bet) {
 	if len(tweet.Recipients()) == 0 {
 		return fmt.Errorf("Not enough recipients!"), nil
 	}
+	recipient := tweet.Recipients()[0]
 	bet = &t.Bet{
-		Id:              uuid.NewV4().String(),
-		SourceFk:        tweet.IdStr,
-		Proposer:        tweet.User,
-		Recipient:       tweet.Recipients()[0],
-		BetStatus:       t.BetStatusFromString("Pending Proposer"),
-		ProposerCheckFk: tweet.User.IdStr,
-		Equation:        *eq,
+		Id:               uuid.NewV4().String(),
+		SourceFk:         tweet.IdStr,
+		Proposer:         tweet.User,
+		Recipient:        recipient,
+		BetStatus:        t.BetStatusFromString("Pending Proposer"),
+		ProposerCheckFk:  tweet.User.IdStr,
+		RecipientCheckFk: recipient.IdStr,
+		Equation:         *eq,
 	}
 	err = db.UpsertBet(bet)
 	return err, bet
