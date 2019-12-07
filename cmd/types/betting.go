@@ -174,4 +174,5 @@ type Player struct {
 	TeamShort string `bson:"team_short,omitempty" json:"team_short"`
 	Position  string `bson:"pos,omitempty" json:"position"`
 	Url       string `bson:"url,omitempty" json:"url"`
+	Batting Average string `bson:"bat" json:"batting"`
 }
