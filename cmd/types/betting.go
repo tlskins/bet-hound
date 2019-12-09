@@ -47,6 +47,7 @@ type Bet struct {
 	RecipientCheckFk string    `bson:"r_chk_fk" json:"recipient_check_fk"`
 	Equation         Equation  `bson:"eq" "json:"equation"`
 	Result           string    `bson:"result" json:"result"`
+	FinalizedAt      time.Time `bson:"final_at" json:"finalized_at"`
 }
 
 func (b Bet) Response() (txt string) {
@@ -62,16 +63,6 @@ func (b Bet) Response() (txt string) {
 		"@",
 		b.Recipient.ScreenName,
 	)
-}
-
-func (b Bet) FinalizedAt() (date time.Time) {
-	lTime := b.Equation.LeftExpression.Game.GameTime
-	rTime := b.Equation.RightExpression.Game.GameTime
-	if lTime.After(rTime) {
-		return lTime.Add(time.Hour * 24)
-	} else {
-		return rTime.Add(time.Hour * 24)
-	}
 }
 
 // Equation
@@ -90,11 +81,11 @@ func (e Equation) Complete() (err error) {
 	if err != nil {
 		return err
 	}
-	err, _ = e.LeftExpression.Complete()
+	err, lFinal := e.LeftExpression.Complete()
 	if err != nil {
 		return err
 	}
-	err, _ = e.RightExpression.Complete()
+	err, rFinal := e.RightExpression.Complete()
 	if err != nil {
 		return err
 	}

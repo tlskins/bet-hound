@@ -12,6 +12,23 @@ import (
 	"regexp"
 )
 
+func ProcessPendingFinalBets(twitterClient *http.Client) (err error) {
+	bets := db.FindPendingFinal()
+	for _, bet := range bets {
+		result := b.CalcBetResult(bet)
+		bet.Result = result
+		bet.BetStatus = t.BetStatusFinal
+		_, err := SendTweet(twitterClient, result, bet.SourceFk)
+		if err != nil {
+			fmt.Println("err sending final bet tweet: ", err)
+			return err
+		}
+		fmt.Println("Final bet id: ", bet.Id, b.CalcBetResult(bet))
+		db.UpsertBet(bet)
+	}
+	return nil
+}
+
 func LoadTweet(twitterClient *http.Client, tweetId string) (tweet *t.Tweet, err error) {
 	url := fmt.Sprintf("https://api.twitter.com/1.1/statuses/show.json?tweet_mode=extended&id=%s", tweetId)
 	// client := CreateClient()

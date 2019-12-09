@@ -17,18 +17,6 @@ type Tweet struct {
 	Entities             Entities `bson:"entities" json:"entities"`
 }
 
-// type Tweet struct {
-//     Id    int64
-//     IdStr string `json:"id_str"`
-//     User  User
-//     Text  string
-// }
-
-// type Tweet struct {
-// 	BaseTweet
-// 	FullText *string `bson:"full_txt,omitempty" json:"full_text"`
-// }
-
 func (t *Tweet) GetText() (text string) {
 	if t.FullText != nil {
 		return *t.FullText
@@ -62,10 +50,3 @@ type User struct {
 	IdStr      string   `bson:"id_str" json:"id_str"`
 	Indices    *[]int64 `bson:"indices,omitempty" json:"indices"`
 }
-
-// type User struct {
-// 	Id         int64  `bson:"_id" json:"id"`
-// 	IdStr      string `bson:"id_str" json:"id_str"`
-// 	Name       string `bson:"nm" json:"name"`
-// 	ScreenName string `json:"screen_name"`
-// }

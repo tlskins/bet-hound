@@ -34,14 +34,17 @@ func main() {
 
 	// games := scraper.ScrapeThisWeeksGames()
 	// // bet, err := db.FindBetById("5a12fcb9-aff3-4f16-b8e8-c8b34e4a0942")
-	// loc, err := time.LoadLocation("America/Los_Angeles")
+	// loc, err := time.LoadLocation("America/New_York")
 	// if err != nil {
 	// 	fmt.Println(loc, err)
 	// }
+	// fmt.Println(time.Date(2019, 12, 9, 12, 0, 0, 0, loc).UTC())
+
 	// fmt.Println("game at: ", games[0].GameTime.In(loc))
 
+	fmt.Println("before find")
 	bets := db.FindPendingFinal()
-	for _, bet := range *bets {
+	for _, bet := range bets {
 		fmt.Println(bet.Equation.Text(), b.CalcBetResult(bet))
 	}
 

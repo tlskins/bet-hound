@@ -47,19 +47,13 @@ func FindBetByReply(tweet *t.Tweet) (*t.Bet, error) {
 	return &bet, err
 }
 
-func FindPendingFinal() *[]*t.Bet {
+func FindPendingFinal() []*t.Bet {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
 
-	bets := []*t.Bet{}
 	pending := make([]*t.Bet, 0, 1)
-	c.Find(m.M{"status": 2}).All(&pending)
+	c.Find(m.M{"status": 2, "final_at": m.M{"$lte": time.Now()}}).All(&pending)
 
-	for _, p := range pending {
-		if p.FinalizedAt().Before(time.Now()) {
-			bets = append(bets, p)
-		}
-	}
-	return &bets
+	return pending
 }

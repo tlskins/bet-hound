@@ -20,14 +20,6 @@ type WebhookLoad struct {
 	TweetCreateEvent []t.Tweet `json:"tweet_create_events"`
 }
 
-//Struct to parse tweet
-// type Tweet struct {
-// 	Id    int64
-// 	IdStr string `json:"id_str"`
-// 	User  User
-// 	Text  string
-// }
-
 //Struct to parse user
 type User struct {
 	Id     int64

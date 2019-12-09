@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/satori/go.uuid"
 	"math"
+	"time"
 )
 
 func BuildBetFromTweet(tweet *t.Tweet) (err error, bet *t.Bet) {
@@ -19,13 +20,20 @@ func BuildBetFromTweet(tweet *t.Tweet) (err error, bet *t.Bet) {
 		return fmt.Errorf("Not enough recipients!"), nil
 	}
 	recipient := tweet.Recipients()[0]
+	maxGmTime := eq.LeftExpression.Game.GameTime
+	if eq.RightExpression.Game.GameTime.After(eq.LeftExpression.Game.GameTime) {
+		maxGmTime = eq.RightExpression.Game.GameTime
+	}
+	yr, mth, day := maxGmTime.Date()
+	loc, _ := time.LoadLocation("America/New_York")
 	bet = &t.Bet{
-		Id:        uuid.NewV4().String(),
-		SourceFk:  tweet.IdStr,
-		Proposer:  tweet.User,
-		Recipient: recipient,
-		BetStatus: t.BetStatusFromString("Pending Proposer"),
-		Equation:  *eq,
+		Id:          uuid.NewV4().String(),
+		SourceFk:    tweet.IdStr,
+		Proposer:    tweet.User,
+		Recipient:   recipient,
+		BetStatus:   t.BetStatusFromString("Pending Proposer"),
+		Equation:    *eq,
+		FinalizedAt: time.Date(yr, mth, day, 12, 0, 0, 0, loc),
 	}
 	return nil, bet
 }
@@ -100,9 +108,7 @@ func buildEquationFromText(text string) (err error, eq *t.Equation) {
 	words := nlp.ParseText(text)
 	opPhrase, leftMetric := nlp.FindOperatorPhrase(&words)
 	leftPlayerExpr := nlp.FindLeftPlayerExpr(&words, opPhrase, leftMetric)
-	fmt.Println("left player expr: ", leftPlayerExpr.Player.Name, leftPlayerExpr.Metric.Word.Text)
 	rightPlayerExpr := nlp.FindRightPlayerExpr(&words, opPhrase, leftMetric)
-	fmt.Println("right player expr: ", rightPlayerExpr.Player.Name)
 
 	eq = &t.Equation{
 		LeftExpression:  *leftPlayerExpr,

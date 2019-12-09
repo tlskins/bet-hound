@@ -83,7 +83,6 @@ func ScrapeGameLog(game *t.Game) (gameLog map[string]*t.GameStat) {
 						stat.FumbleLost, _ = strconv.ParseInt(s.Text(), 0, 64)
 					}
 				})
-				fmt.Println("stat: ", stat)
 				gameLog[stat.PlayerFk] = &stat
 			}
 		})
