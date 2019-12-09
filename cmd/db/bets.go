@@ -3,20 +3,12 @@ package db
 import (
 	"fmt"
 	"github.com/satori/go.uuid"
+	"time"
 
 	"bet-hound/cmd/env"
 	t "bet-hound/cmd/types"
 	m "bet-hound/pkg/mongo"
 )
-
-// func CreateBet(bet *t.Bet) (*t.Bet, error) {
-// 	conn := env.MGOSession().Copy()
-// 	defer conn.Close()
-// 	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
-
-// 	err := m.Upsert(c, &bet, nil, m.M{"$set": bet})
-// 	return bet, err
-// }
 
 func UpsertBet(bet *t.Bet) error {
 	conn := env.MGOSession().Copy()
@@ -46,12 +38,28 @@ func FindBetByReply(tweet *t.Tweet) (*t.Bet, error) {
 
 	authorId := tweet.User.IdStr
 	var bet t.Bet
-	fmt.Println("FindBetByReply ", tweet.IdStr, authorId)
+	fmt.Println("FindBetByReply ", tweet.InReplyToStatusIdStr, authorId)
 	q := m.M{"$or": []m.M{
-		m.M{"pchk_tweet_id": tweet.IdStr, "status": 0, "proposer.id_str": authorId},
-		m.M{"rchk_tweet_id": tweet.IdStr, "status": 1, "recipient.id_str": authorId},
+		m.M{"p_chk_fk": tweet.InReplyToStatusIdStr, "status": 0, "proposer.id_str": authorId},
+		m.M{"r_chk_fk": tweet.InReplyToStatusIdStr, "status": 1, "recipient.id_str": authorId},
 	}}
-	// q := m.M{"$and": [ []m.M{"$or": [m.M{"pchk_tweet_id": tweetId}, m.M{"rchk_tweet_id": tweetId}]}, m.M{"$or": [m.M{"status": 0}, m.M{"status": 1}]} ]}
 	err := m.FindOne(c, &bet, q)
 	return &bet, err
+}
+
+func FindPendingFinal() *[]*t.Bet {
+	conn := env.MGOSession().Copy()
+	defer conn.Close()
+	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
+
+	bets := []*t.Bet{}
+	pending := make([]*t.Bet, 0, 1)
+	c.Find(m.M{"status": 2}).All(&pending)
+
+	for _, p := range pending {
+		if p.FinalizedAt().Before(time.Now()) {
+			bets = append(bets, p)
+		}
+	}
+	return &bets
 }

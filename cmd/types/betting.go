@@ -3,7 +3,7 @@ package types
 import (
 	"fmt"
 	// "strings"
-	// "time"
+	"time"
 )
 
 // Bet status
@@ -46,6 +46,7 @@ type Bet struct {
 	ProposerCheckFk  string    `bson:"p_chk_fk" json:"proposer_check_fk"`
 	RecipientCheckFk string    `bson:"r_chk_fk" json:"recipient_check_fk"`
 	Equation         Equation  `bson:"eq" "json:"equation"`
+	Result           string    `bson:"result" json:"result"`
 }
 
 func (b Bet) Response() (txt string) {
@@ -54,7 +55,23 @@ func (b Bet) Response() (txt string) {
 	} else if b.BetStatus.String() == "Pending Recipient" {
 		return fmt.Sprintf("%s%s Do you accept this bet? : \"%s\" Reply \"Yes\"", "@", b.Recipient.ScreenName, b.Equation.Text())
 	}
-	return fmt.Sprintf("%s%s Bet recorded! When the bet has been finalized I will tweet the final results", b.Proposer.ScreenName, b.Recipient.ScreenName)
+	return fmt.Sprintf(
+		"%s%s %s%s Bet recorded! When the bet has been finalized I will tweet the final results.",
+		"@",
+		b.Proposer.ScreenName,
+		"@",
+		b.Recipient.ScreenName,
+	)
+}
+
+func (b Bet) FinalizedAt() (date time.Time) {
+	lTime := b.Equation.LeftExpression.Game.GameTime
+	rTime := b.Equation.RightExpression.Game.GameTime
+	if lTime.After(rTime) {
+		return lTime.Add(time.Hour * 24)
+	} else {
+		return rTime.Add(time.Hour * 24)
+	}
 }
 
 // Equation
@@ -68,25 +85,70 @@ type Equation struct {
 	// TODO : Add complete function to check event time / metric exists
 }
 
-func (e Equation) Complete() bool {
-	return e.LeftExpression.Complete() &&
-		e.RightExpression.Complete() &&
-		e.Operator.Complete() &&
-		e.LeftExpression.Game != nil &&
-		e.RightExpression.Game != nil
+func (e Equation) Complete() (err error) {
+	err = e.Operator.Complete()
+	if err != nil {
+		return err
+	}
+	err, _ = e.LeftExpression.Complete()
+	if err != nil {
+		return err
+	}
+	err, _ = e.RightExpression.Complete()
+	if err != nil {
+		return err
+	}
+	if rFinal && lFinal {
+		return fmt.Errorf("Both games are already final!")
+	}
+	return nil
+}
+
+func (e Equation) Metrics() (lftMetric Metric, rgtMetric Metric) {
+	if e.LeftExpression.Metric != nil {
+		lftMetric = *e.LeftExpression.Metric
+		if e.RightExpression.Metric == nil {
+			rgtMetric = *e.LeftExpression.Metric
+		}
+	} else {
+		lftMetric = *e.RightExpression.Metric
+		rgtMetric = *e.RightExpression.Metric
+	}
+
+	return lftMetric, rgtMetric
+}
+
+func (e Equation) MetricString() (metricStr string, rightMetric string) {
+	metric := e.LeftExpression.Metric
+	if metric == nil {
+		metric = e.RightExpression.Metric
+	}
+	for _, m := range metric.Modifiers {
+		metricStr = m + " " + metricStr
+	}
+	metricStr = metricStr + metric.Word.Lemma + "s"
+	if e.RightExpression.Metric != nil {
+		rightMetric = e.RightExpression.Metric.Word.Lemma
+		for _, m := range metric.Modifiers {
+			rightMetric = metricStr + " " + m
+		}
+	}
+	return metricStr, rightMetric
 }
 
 func (e Equation) Text() (txt string) {
-	// s := append([]string{
-	// 	e.LeftExpression.Player.Name,
-	// 	e.LeftExpression.Game.Name,
-	// 	e.Operator.ActionWord.Text,
-	// 	e.Operator.OperatorWord.Text,
-	// 	e.LeftExpression.Metric.Word.Text,
-	// }, e.LeftExpression.Metric.Modifiers...)
-	// s = append(s, []string{"than", e.RightExpression.Player.Name, e.RightExpression.Game.Name}...)
-	// return strings.Join(s, " ")
-	return e.LeftExpression.ShortDescription() + " " + e.Operator.Text() + " " + e.RightExpression.ShortDescription()
+	metric, rightMetric := e.MetricString()
+	if len(rightMetric) > 0 {
+		rightMetric = " " + e.Operator.ActionWord.Lemma + rightMetric
+	}
+	return fmt.Sprintf("%s %s %s %s %s%s",
+		e.LeftExpression.Description(),
+		e.Operator.Text(),
+		metric,
+		"than",
+		e.RightExpression.Description(),
+		rightMetric,
+	)
 }
 
 // Operator Phrase
@@ -96,8 +158,12 @@ type OperatorPhrase struct {
 	OperatorWord Word `bson:"op_word" json:"operator_word"`
 }
 
-func (p OperatorPhrase) Complete() bool {
-	return p.ActionWord.Lemma != "" && p.OperatorWord.Lemma != ""
+func (p OperatorPhrase) Complete() (err error) {
+	if p.ActionWord.Lemma == "" && p.OperatorWord.Lemma == "" {
+		return fmt.Errorf("Invalid bet syntax.")
+	} else {
+		return nil
+	}
 }
 
 func (p OperatorPhrase) Text() string {
@@ -109,6 +175,17 @@ func (p OperatorPhrase) Text() string {
 type Metric struct {
 	Word      Word     `bson:"word" json:"word"`
 	Modifiers []string `bson:"mods" json:"modifiers"`
+}
+
+func (m Metric) PPR() float64 {
+	for _, m := range m.Modifiers {
+		if m == "ppr" {
+			return 1.0
+		} else if m == "0.5ppr" || m == ".5ppr" {
+			return 0.5
+		}
+	}
+	return 0.0
 }
 
 type EventTime struct {
@@ -132,8 +209,13 @@ type PlayerExpression struct {
 	EventTime *EventTime `bson:"event_time" json:"event_time"` // TODO : if event time not exists point to operatoer event time
 }
 
-func (e PlayerExpression) Complete() bool {
-	return len(e.Player.Id) > 0 && e.Game != nil
+func (e PlayerExpression) Complete() (err error, final bool) {
+	if len(e.Player.Id) == 0 {
+		return fmt.Errorf("Player not found."), e.Game.Final
+	} else if e.Game == nil {
+		return fmt.Errorf("Game not found."), e.Game.Final
+	}
+	return nil, e.Game.Final
 }
 
 func (e PlayerExpression) Description() (desc string) {
@@ -151,9 +233,11 @@ func (e PlayerExpression) Description() (desc string) {
 }
 
 func (e PlayerExpression) ShortDescription() (desc string) {
-	return fmt.Sprintf("%s.%s",
+	return fmt.Sprintf("%s.%s %s %s",
 		e.Player.FirstName[:1],
 		e.Player.LastName,
+		"vs",
+		e.Game.VsTeamFk(e.Player.TeamFk),
 	)
 }
 

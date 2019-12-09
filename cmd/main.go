@@ -1,13 +1,16 @@
 package main
 
 import (
-	// "fmt"
+	"bet-hound/cmd/db"
+	"fmt"
 	"log"
 	"os"
+	// "time"
 
-	// b "bet-hound/cmd/betting"
+	b "bet-hound/cmd/betting"
 	"bet-hound/cmd/env"
 	// "bet-hound/cmd/scraper"
+	// t "bet-hound/cmd/types"
 	// "bet-hound/cmd/twitter"
 	m "bet-hound/pkg/mongo"
 )
@@ -17,7 +20,7 @@ const appConfigName = "config"
 
 var logger *log.Logger
 
-const text = "yo fart face, do wanna bet that Mike Evans scores more ppr points than Allen Robinson this week???"
+const text = "yo fart face, do you wanna bet that Mike Evans scores more ppr points than Allen Robinson this week???"
 
 func main() {
 	// Initialization
@@ -29,27 +32,30 @@ func main() {
 	defer env.Cleanup()
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
 
-	// err, eq := b.BuildEquationFromText(text)
+	// games := scraper.ScrapeThisWeeksGames()
+	// // bet, err := db.FindBetById("5a12fcb9-aff3-4f16-b8e8-c8b34e4a0942")
+	// loc, err := time.LoadLocation("America/Los_Angeles")
 	// if err != nil {
-	// 	fmt.Println(err)
-	// } else {
-	// 	fmt.Println(eq.Text())
+	// 	fmt.Println(loc, err)
 	// }
+	// fmt.Println("game at: ", games[0].GameTime.In(loc))
 
-	// bet, _ := db.FindBetByProposerCheckTweet("1192715899028922369")
-	// bet, _ := db.FindBetById("c00716a6-4ad4-4f37-8708-db112c43fff2")
-	// fmt.Println("text", bet.Text(), bet.BetStatus)
+	bets := db.FindPendingFinal()
+	for _, bet := range *bets {
+		fmt.Println(bet.Equation.Text(), b.CalcBetResult(bet))
+	}
 
-	// Reply to proposer check
-	// logger.Println("reply to bet", *bet.Id, bet.Text())
+	// fmt.Println(bet.Equation.LeftExpression.Game.GameTime.In(loc))
+	// fmt.Println(bet.FinalizedAt().In(loc))
 
-	// replyTweetId := "1192702597905256448"
-	// logger.Println("replyTweetId", replyTweetId)
-	// bet, _ := db.FindBetByProposerCheckTweet(replyTweetId)
-	// if err != nil {
-	// 	logger.Println("err finding by proposer check tweet", err)
-	// 	panic(err)
-	// }
+	// bet, err := db.FindBetById("9b6247a8-6653-4e86-845e-3b8c25296331")
+	// // result := b.CalcBetResult(bet)
+	// // fmt.Println(result)
+
+	// game := bet.Equation.LeftExpression.Game
+	// fmt.Println("game time ", game.GameTime.String())
+	// gameEnd := game.GameTime.Add(time.Hour * 6)
+	// fmt.Println("game end ", gameEnd.String())
 }
 
 func setUpLogger(logPath, defaultPath string) *log.Logger {

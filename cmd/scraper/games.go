@@ -1,20 +1,21 @@
 package scraper
 
 import (
-	// "fmt"
+	"fmt"
 	gq "github.com/PuerkitoBio/goquery"
 	"log"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 	// "bet-hound/cmd/db"
 	t "bet-hound/cmd/types"
 )
 
-func ScrapeThisWeeksGames() (games []*t.Game) {
+func ScrapeGameLog(game *t.Game) (gameLog map[string]*t.GameStat) {
 	// Request the HTML page.
-	res, err := http.Get("https://www.pro-football-reference.com/boxscores/")
+	res, err := http.Get(game.Url)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -28,10 +29,88 @@ func ScrapeThisWeeksGames() (games []*t.Game) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	gameLog = make(map[string]*t.GameStat)
+
+	// doc.Find(".game_summaries table.teams tbody").Each(func(i int, s *gq.Selection) {
+	doc.Find("#player_offense tbody").Each(func(i int, s *gq.Selection) {
+		s.Find("tr").Each(func(i int, s *gq.Selection) {
+			playerFk, _ := s.Find("th").Attr("data-append-csv")
+
+			if len(playerFk) > 0 {
+				stat := t.GameStat{PlayerFk: playerFk}
+				s.Find("td").Each(func(i int, s *gq.Selection) {
+					data, _ := s.Attr("data-stat")
+					switch data {
+					case "pass_cmp":
+						stat.PassCmp, _ = strconv.ParseInt(s.Text(), 0, 64)
+					case "pass_att":
+						stat.PassAtt, _ = strconv.ParseInt(s.Text(), 0, 64)
+					case "pass_yds":
+						stat.PassYd, _ = strconv.ParseInt(s.Text(), 0, 64)
+					case "pass_td":
+						stat.PassTd, _ = strconv.ParseInt(s.Text(), 0, 64)
+					case "pass_int":
+						stat.PassInt, _ = strconv.ParseInt(s.Text(), 0, 64)
+					case "pass_sacked":
+						stat.PassSacked, _ = strconv.ParseInt(s.Text(), 0, 64)
+					case "pass_sacked_yds":
+						stat.PassSackedYd, _ = strconv.ParseInt(s.Text(), 0, 64)
+					case "pass_long":
+						stat.PassLong, _ = strconv.ParseInt(s.Text(), 0, 64)
+					case "pass_rating":
+						stat.PassRating, _ = strconv.ParseFloat(s.Text(), 64)
+					case "rush_att":
+						stat.RushAtt, _ = strconv.ParseInt(s.Text(), 0, 64)
+					case "rush_yds":
+						stat.RushYd, _ = strconv.ParseInt(s.Text(), 0, 64)
+					case "rush_td":
+						stat.RushTd, _ = strconv.ParseInt(s.Text(), 0, 64)
+					case "rush_long":
+						stat.RushLong, _ = strconv.ParseInt(s.Text(), 0, 64)
+					case "target":
+						stat.Target, _ = strconv.ParseInt(s.Text(), 0, 64)
+					case "rec":
+						stat.Rec, _ = strconv.ParseInt(s.Text(), 0, 64)
+					case "rec_yds":
+						stat.RecYd, _ = strconv.ParseInt(s.Text(), 0, 64)
+					case "rec_td":
+						stat.RecTd, _ = strconv.ParseInt(s.Text(), 0, 64)
+					case "rec_long":
+						stat.RecLong, _ = strconv.ParseInt(s.Text(), 0, 64)
+					case "fumbles":
+						stat.Fumble, _ = strconv.ParseInt(s.Text(), 0, 64)
+					case "fumbles_lost":
+						stat.FumbleLost, _ = strconv.ParseInt(s.Text(), 0, 64)
+					}
+				})
+				fmt.Println("stat: ", stat)
+				gameLog[stat.PlayerFk] = &stat
+			}
+		})
+	})
+	return gameLog
+}
+
+func ScrapeThisWeeksGames() (games []*t.Game) {
+	// Request the HTML page.
+	res, err := http.Get("https://www.pro-football-reference.com/boxscores/")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
+	}
+	// Load the HTML document
+	doc, err := gq.NewDocumentFromReader(res.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	pfrRoot := "https://www.pro-football-reference.com"
-	gameDayTxt := doc.Find(".game_summaries div:nth-child(1) table.teams tbody tr:nth-child(1) td").Text()
+	gameUrls := make(map[string]string)
 
+	// Compile games
 	doc.Find(".game_summaries table.teams tbody").Each(func(i int, s *gq.Selection) {
 		urlSuffix, _ := s.Find("tr td.gamelink a").Attr("href")
 		url := strings.Join([]string{pfrRoot, urlSuffix}, "")
@@ -51,21 +130,14 @@ func ScrapeThisWeeksGames() (games []*t.Game) {
 		homeTeamMatch := teamFkRgx.FindStringSubmatch(homeTeamUrl)
 		homeTeamFk := strings.ToUpper(homeTeamMatch[1])
 
+		// Update map for game urls to pull dates from
+		gameUrls[homeTeamFk] = url
+		gameUrls[awayTeamFk] = url
+
 		name := strings.Join([]string{awayTeam, homeTeam}, " at ")
 		gameTimeTxt := s.Find("tr:nth-child(3) td:nth-child(3)").Text()
 		gameTimeTxt = strings.TrimSpace(gameTimeTxt)
-		var gameTime time.Time
-		if len(gameTimeTxt) > 0 {
-			gameDateTxt := strings.Join([]string{gameDayTxt, gameTimeTxt}, " ")
-			name = strings.Join([]string{name, gameDateTxt}, " ")
-			gameTime, _ = time.Parse("Jan 2, 2006 3:04pm", gameDateTxt)
-		} else {
-			name = strings.Join([]string{name, gameDayTxt}, " ")
-			gameTime, _ = time.Parse("Jan 2, 2006", gameDayTxt)
-		}
 
-		// game already happened
-		// if len(gameTimeTxt) > 0 {
 		games = append(games, &t.Game{
 			Name:         name,
 			Fk:           fk,
@@ -74,10 +146,55 @@ func ScrapeThisWeeksGames() (games []*t.Game) {
 			AwayTeamName: awayTeam,
 			HomeTeamFk:   homeTeamFk,
 			HomeTeamName: homeTeam,
-			GameTime:     gameTime,
 		})
-		// }
 	})
+
+	// Scrape game times
+	gameTimes := make(map[string]*time.Time)
+	for _, url := range gameUrls {
+		if gameTimes[url] == nil {
+			// Request the HTML page.
+			res, err := http.Get(url)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer res.Body.Close()
+			if res.StatusCode != 200 {
+				log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
+			}
+			// Load the HTML document
+			doc, err := gq.NewDocumentFromReader(res.Body)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			doc.Find(".scorebox_meta").Each(func(i int, s *gq.Selection) {
+				gmTime := fmt.Sprintf(
+					"%s%s %s",
+					s.Find("div:nth-child(1)").Text(),
+					strings.Replace(s.Find("div:nth-child(2)").Text(), "Start Time:", "", -1),
+					" -0500 EST", // This will depend on the server time zone i guess which is what the browser will render
+				)
+				date, err := time.Parse("Monday Jan 2, 2006 3:04pm -0700 MST", gmTime)
+				if err != nil {
+					fmt.Println(err)
+				}
+				gameTimes[url] = &date
+			})
+		}
+	}
+
+	// Add game times
+	for _, gm := range games {
+		gm.GameTime = *gameTimes[gm.Url]
+		fmt.Sprintln("Game %s @ %s", gm.Name, gm.GameTime.String())
+		if gm.GameTime.Before(time.Now()) {
+			gm.Final = true
+		} else {
+			gm.Final = false
+		}
+		fmt.Println(*gm)
+	}
 
 	return games
 }
