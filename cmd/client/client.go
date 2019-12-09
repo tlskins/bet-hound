@@ -38,10 +38,10 @@ func CreateClient() *http.Client {
 	return httpClient
 }
 
-func registerWebhook(logger *log.Logger) {
+func registerWebhook(httpClient *http.Client, logger *log.Logger) {
 	logger.Println("Registering webhook...", env.WebhookEnv())
 	fmt.Println("Registering webhook...")
-	httpClient := CreateClient()
+	// httpClient := CreateClient()
 
 	//Set parameters
 	path := "https://api.twitter.com/1.1/account_activity/all/" + env.WebhookEnv() + "/webhooks.json"
@@ -69,10 +69,10 @@ func registerWebhook(logger *log.Logger) {
 	fmt.Println("data", data)
 	fmt.Println("Webhook id of " + data["id"].(string) + " has been registered")
 	logger.Println("Webhook id of " + data["id"].(string) + " has been registered")
-	subscribeWebhook()
+	subscribeWebhook(httpClient)
 }
 
-func subscribeWebhook() {
+func subscribeWebhook(httpClient *http.Client) {
 	fmt.Println("Subscribing webapp...")
 	client := CreateClient()
 	path := "https://api.twitter.com/1.1/account_activity/all/" + env.WebhookEnv() + "/subscriptions.json"
