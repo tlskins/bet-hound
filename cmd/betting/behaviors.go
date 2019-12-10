@@ -38,8 +38,8 @@ func BuildBetFromTweet(tweet *t.Tweet) (err error, bet *t.Bet) {
 	return nil, bet
 }
 
-func CalcBetResult(bet *t.Bet) (result string) {
-	fmt.Println("calc bet result ", bet.Id, bet.Equation.Text())
+func CalcBetResult(bet *t.Bet) *string {
+	fmt.Println("calc bet result ", bet.Id, bet.Text())
 	eq := bet.Equation
 	games := scraper.ScrapeThisWeeksGames()
 	lftMetric, rgtMetric := eq.Metrics()
@@ -58,24 +58,29 @@ func CalcBetResult(bet *t.Bet) (result string) {
 	rgtLog := scraper.ScrapeGameLog(rightGame)
 	rgtScore := calcPlayerGameScore(&rgtLog, &eq.RightExpression.Player, &rgtMetric)
 
+	if lftScore == nil || rgtScore == nil {
+		return nil
+	}
+
 	var wId, lId, wPlayer, lPlayer string
 	var wScore, lScore float64
-	if lftScore > rgtScore {
+	if *lftScore > *rgtScore {
 		wId = bet.Proposer.ScreenName
 		lId = bet.Recipient.ScreenName
 		wPlayer = bet.Equation.LeftExpression.Player.Name
 		lPlayer = bet.Equation.RightExpression.Player.Name
-		wScore = lftScore
-		lScore = rgtScore
+		wScore = *lftScore
+		lScore = *rgtScore
 	} else {
 		wId = bet.Recipient.ScreenName
 		lId = bet.Proposer.ScreenName
 		wPlayer = bet.Equation.RightExpression.Player.Name
 		lPlayer = bet.Equation.LeftExpression.Player.Name
-		wScore = rgtScore
-		lScore = lftScore
+		wScore = *rgtScore
+		lScore = *lftScore
 	}
-	return fmt.Sprintf(
+
+	result := fmt.Sprintf(
 		"Congrats @%s you beat @%s! %s scored %.1f while %s only scored %.1f.",
 		wId,
 		lId,
@@ -84,13 +89,16 @@ func CalcBetResult(bet *t.Bet) (result string) {
 		lPlayer,
 		lScore,
 	)
+	return &result
 }
 
-func calcPlayerGameScore(log *map[string]*t.GameStat, player *t.Player, metric *t.Metric) (score float64) {
+func calcPlayerGameScore(log *map[string]*t.GameStat, player *t.Player, metric *t.Metric) *float64 {
 	l := *log
 	if l[player.Fk] == nil {
-		fmt.Println(player.Fk, l)
+		fmt.Println("cant find game score", player.Fk, l)
+		return nil
 	}
+	score := 0.0
 	score += float64(l[player.Fk].PassYd) * 0.04
 	score += float64(l[player.Fk].PassTd) * 4.0
 	score -= float64(l[player.Fk].PassInt) * 2.0
@@ -101,7 +109,8 @@ func calcPlayerGameScore(log *map[string]*t.GameStat, player *t.Player, metric *
 	score += float64(l[player.Fk].RecYd) * 0.1
 	score += float64(l[player.Fk].RecTd) * 6.0
 	score -= float64(l[player.Fk].FumbleLost) * 2.0
-	return math.Ceil(score*10) / 10
+	score = math.Ceil(score*10) / 10
+	return &score
 }
 
 func BuildEquationFromText(text string) (err error, eq *t.Equation) {

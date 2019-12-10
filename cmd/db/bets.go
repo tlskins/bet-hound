@@ -40,8 +40,8 @@ func FindBetByReply(tweet *t.Tweet) (*t.Bet, error) {
 	var bet t.Bet
 	fmt.Println("FindBetByReply ", tweet.InReplyToStatusIdStr, authorId)
 	q := m.M{"$or": []m.M{
-		m.M{"p_chk_fk": tweet.InReplyToStatusIdStr, "status": 0, "proposer.id_str": authorId},
-		m.M{"r_chk_fk": tweet.InReplyToStatusIdStr, "status": 1, "recipient.id_str": authorId},
+		m.M{"acc_fk": tweet.InReplyToStatusIdStr, "status": 0, "proposer.id_str": authorId, "pr_fk": nil},
+		m.M{"acc_fk": tweet.InReplyToStatusIdStr, "status": 0, "recipient.id_str": authorId, "rr_fk": nil},
 	}}
 	err := m.FindOne(c, &bet, q)
 	return &bet, err
@@ -53,7 +53,7 @@ func FindPendingFinal() []*t.Bet {
 	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
 
 	pending := make([]*t.Bet, 0, 1)
-	c.Find(m.M{"status": 2, "final_at": m.M{"$lte": time.Now()}}).All(&pending)
+	c.Find(m.M{"status": 1, "final_at": m.M{"$lte": time.Now()}}).All(&pending)
 
 	return pending
 }

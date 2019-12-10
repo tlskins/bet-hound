@@ -11,8 +11,7 @@ import (
 type BetStatus int
 
 const (
-	BetStatusPendingProposer BetStatus = iota
-	BetStatusPendingRecipient
+	BetStatusPendingApproval BetStatus = iota
 	BetStatusAccepted
 	BetStatusFinal
 	BetStatusExpired
@@ -21,19 +20,21 @@ const (
 
 func BetStatusFromString(s string) BetStatus {
 	return map[string]BetStatus{
-		"Pending Proposer":  BetStatusPendingProposer,
-		"Pending Recipient": BetStatusPendingRecipient,
-		"Accepted":          BetStatusAccepted,
-		"Final":             BetStatusFinal,
+		"Pending Approval": BetStatusPendingApproval,
+		"Accepted":         BetStatusAccepted,
+		"Final":            BetStatusFinal,
+		"Expired":          BetStatusExpired,
+		"Cancelled":        BetStatusCancelled,
 	}[s]
 }
 
 func (s BetStatus) String() string {
 	return map[BetStatus]string{
-		BetStatusPendingProposer:  "Pending Proposer",
-		BetStatusPendingRecipient: "Pending Recipient",
-		BetStatusAccepted:         "Accepted",
-		BetStatusFinal:            "Final",
+		BetStatusPendingApproval: "Pending Approval",
+		BetStatusAccepted:        "Accepted",
+		BetStatusFinal:           "Final",
+		BetStatusExpired:         "Expired",
+		BetStatusCancelled:       "Cancelled",
 	}[s]
 }
 
@@ -45,25 +46,52 @@ type Bet struct {
 	Proposer         User      `bson:"proposer" json:"proposer"`
 	Recipient        User      `bson:"recipient" json:"recipient"`
 	BetStatus        BetStatus `bson:"status" json:"bet_status"`
-	ProposerCheckFk  string    `bson:"p_chk_fk" json:"proposer_check_fk"`
-	RecipientCheckFk string    `bson:"r_chk_fk" json:"recipient_check_fk"`
+	AcceptFk         string    `bson:"acc_fk" json:"acc_fk"`
+	ProposerReplyFk  *string   `bson:"pr_fk" json:"proposer_reply_fk"`
+	RecipientReplyFk *string   `bson:"rr_fk" json:"recipient_reply_fk"`
 	Equation         Equation  `bson:"eq" "json:"equation"`
 	Result           string    `bson:"result" json:"result"`
 	FinalizedAt      time.Time `bson:"final_at" json:"finalized_at"`
 }
 
 func (b Bet) Response() (txt string) {
-	if b.BetStatus.String() == "Pending Proposer" {
-		return fmt.Sprintf("%s%s Is this correct: \"%s\" ? Reply \"Yes\"", "@", b.Proposer.ScreenName, b.Equation.Text())
-	} else if b.BetStatus.String() == "Pending Recipient" {
-		return fmt.Sprintf("%s%s Do you accept this bet? : \"%s\" Reply \"Yes\"", "@", b.Recipient.ScreenName, b.Equation.Text())
+	if b.BetStatus.String() == "Pending Approval" {
+		return fmt.Sprintf(
+			"@%s @%s Is this correct: \"%s\" ? Reply \"Yes\"",
+			b.Proposer.ScreenName,
+			b.Recipient.ScreenName,
+			b.Text(),
+		)
+	} else if b.BetStatus.String() == "Accepted" {
+		return fmt.Sprintf(
+			"@%s @%s Bet recorded! When the bet has been finalized I will tweet the final results.",
+			b.Proposer.ScreenName,
+			b.Recipient.ScreenName,
+		)
+	} else if b.BetStatus.String() == "Final" {
+		return b.Result
+	} else if b.BetStatus.String() == "Expired" {
+		return "Bet has expired."
+	} else if b.BetStatus.String() == "Cancelled" {
+		return "Bet has been cancelled."
 	}
-	return fmt.Sprintf(
-		"%s%s %s%s Bet recorded! When the bet has been finalized I will tweet the final results.",
-		"@",
-		b.Proposer.ScreenName,
-		"@",
-		b.Recipient.ScreenName,
+	return ""
+}
+
+func (b Bet) Text() (txt string) {
+	eq := b.Equation
+	metric, rightMetric := eq.MetricString()
+	if len(rightMetric) > 0 {
+		rightMetric = " " + eq.Operator.ActionWord.Lemma + rightMetric
+	}
+	return fmt.Sprintf("%s bets %s %s %s %s %s%s",
+		b.Proposer.Name,
+		eq.LeftExpression.Description(),
+		eq.Operator.Text(),
+		metric,
+		"than",
+		eq.RightExpression.Description(),
+		rightMetric,
 	)
 }
 
@@ -83,17 +111,17 @@ func (e Equation) Complete() (err error) {
 	if err != nil {
 		return err
 	}
-	err, lFinal := e.LeftExpression.Complete()
+	err, _ = e.LeftExpression.Complete()
 	if err != nil {
 		return err
 	}
-	err, rFinal := e.RightExpression.Complete()
+	err, _ = e.RightExpression.Complete()
 	if err != nil {
 		return err
 	}
-	if rFinal && lFinal {
-		return fmt.Errorf("Both games are already final!")
-	}
+	// if rFinal && lFinal {
+	// 	return fmt.Errorf("Both games are already final!")
+	// }
 	return nil
 }
 
@@ -127,21 +155,6 @@ func (e Equation) MetricString() (metricStr string, rightMetric string) {
 		}
 	}
 	return metricStr, rightMetric
-}
-
-func (e Equation) Text() (txt string) {
-	metric, rightMetric := e.MetricString()
-	if len(rightMetric) > 0 {
-		rightMetric = " " + e.Operator.ActionWord.Lemma + rightMetric
-	}
-	return fmt.Sprintf("%s %s %s %s %s%s",
-		e.LeftExpression.Description(),
-		e.Operator.Text(),
-		metric,
-		"than",
-		e.RightExpression.Description(),
-		rightMetric,
-	)
 }
 
 // Operator Phrase

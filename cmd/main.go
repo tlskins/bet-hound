@@ -46,24 +46,6 @@ func main() {
 	// fmt.Println(*tweet)
 	_, eq := b.BuildEquationFromText(text)
 	fmt.Println(eq)
-
-	// fmt.Println("before find")
-	// bets := db.FindPendingFinal()
-	// for _, bet := range bets {
-	// 	fmt.Println(bet.Equation.Text(), b.CalcBetResult(bet))
-	// }
-
-	// fmt.Println(bet.Equation.LeftExpression.Game.GameTime.In(loc))
-	// fmt.Println(bet.FinalizedAt().In(loc))
-
-	// bet, err := db.FindBetById("9b6247a8-6653-4e86-845e-3b8c25296331")
-	// // result := b.CalcBetResult(bet)
-	// // fmt.Println(result)
-
-	// game := bet.Equation.LeftExpression.Game
-	// fmt.Println("game time ", game.GameTime.String())
-	// gameEnd := game.GameTime.Add(time.Hour * 6)
-	// fmt.Println("game end ", gameEnd.String())
 }
 
 func setUpLogger(logPath, defaultPath string) *log.Logger {

@@ -38,6 +38,17 @@ func main() {
 	// Create client
 	client := CreateClient()
 
+	// TESTING
+	// tweet, err := twitter.LoadTweet(client, "1204221008237826048")
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+	// bet, err := db.FindBetByReply(tweet)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+	// fmt.Println(bet)
+
 	// Register webhook
 	if args := os.Args; len(args) > 1 && args[1] == "-register" {
 		go registerWebhook(client, logger)
@@ -97,7 +108,7 @@ func WebhookHandlerWrapper(httpClient *http.Client) func(writer http.ResponseWri
 
 		// Reply to proposer check
 		if bet != nil && err == nil {
-			logger.Println("reply to bet", bet.Id, bet.Equation.Text())
+			logger.Println("reply to bet", bet.Id, bet.Text())
 			err = twitter.ProcessReplyTweet(httpClient, &newTweet, bet)
 			if err != nil {
 				logger.Println("err processing reply tweet", err)
@@ -121,63 +132,6 @@ func WebhookHandlerWrapper(httpClient *http.Client) func(writer http.ResponseWri
 		}
 	}
 }
-
-// func WebhookHandler(writer http.ResponseWriter, request *http.Request) {
-// 	logger.Println("Handler called")
-
-// 	// Read and decode tweet
-// 	body, _ := ioutil.ReadAll(request.Body)
-// 	var load WebhookLoad
-// 	err := json.Unmarshal(body, &load)
-// 	if err != nil {
-// 		logger.Println("An error occured unmarshaling: " + err.Error())
-// 	}
-
-// 	//Check if it was a tweet_create_event and tweet was in the payload and it was not tweeted by the bot
-// 	if len(load.TweetCreateEvent) < 1 || load.UserId == load.TweetCreateEvent[0].User.IdStr {
-// 		logger.Println("filtered out tweet: ", len(load.TweetCreateEvent), load.UserId, load.TweetCreateEvent[0].User.IdStr, load.TweetCreateEvent[0])
-// 		return
-// 	}
-
-// 	newTweet := load.TweetCreateEvent[0]
-// 	logger.Println("incoming created tweet", newTweet.GetText(), newTweet.User.IdStr)
-
-// 	// Check if response to a check tweet
-// 	replyTweetId := newTweet.InReplyToStatusIdStr
-// 	logger.Println("replyTweetId", replyTweetId)
-// 	var bet *t.Bet
-// 	if len(replyTweetId) > 0 {
-// 		bet, err = db.FindBetByReply(&newTweet)
-// 		if err != nil {
-// 			fmt.Println("FindBetByReply err ", err.Error())
-// 		}
-// 	}
-
-// 	// Reply to proposer check
-// 	if bet != nil && err == nil {
-// 		logger.Println("reply to bet", bet.Id, bet.Equation.Text())
-// 		err = twitter.ProcessReplyTweet(client, &newTweet, bet)
-// 		if err != nil {
-// 			logger.Println("err processing reply tweet", err)
-// 		}
-// 	} else {
-// 		// Process a new bet
-// 		logger.Println("processing new tweet...")
-// 		err, bet := twitter.ProcessNewTweet(client, &newTweet)
-// 		if err != nil {
-// 			logger.Println("err processing new tweet", err)
-// 		} else {
-// 			logger.Println("created bet: ", bet.Id)
-// 		}
-// 	}
-
-// 	if err != nil {
-// 		fmt.Println("An error occured:")
-// 		fmt.Println(err.Error())
-// 	} else {
-// 		fmt.Println("Tweet handled successfully")
-// 	}
-// }
 
 func CrcCheck(writer http.ResponseWriter, request *http.Request) {
 	//Set response header to json type

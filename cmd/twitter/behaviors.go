@@ -15,10 +15,14 @@ import (
 func ProcessPendingFinalBets(twitterClient *http.Client) (err error) {
 	bets := db.FindPendingFinal()
 	for _, bet := range bets {
+		fmt.Println("finalizing bet ", bet.Text())
 		result := b.CalcBetResult(bet)
-		bet.Result = result
+		if result == nil {
+			continue
+		}
+		bet.Result = *result
 		bet.BetStatus = t.BetStatusFinal
-		_, err := SendTweet(twitterClient, result, bet.SourceFk)
+		_, err := SendTweet(twitterClient, bet.Result, bet.SourceFk)
 		if err != nil {
 			fmt.Println("err sending final bet tweet: ", err)
 			return err
@@ -49,7 +53,7 @@ func LoadTweet(twitterClient *http.Client, tweetId string) (tweet *t.Tweet, err 
 }
 
 func SendTweet(twitterClient *http.Client, text string, replyId string) (responseTweet *t.Tweet, err error) {
-	fmt.Println("Sending tweet ", replyId, text)
+	fmt.Println("Replying to tweet with", replyId, text)
 	params := url.Values{}
 	params.Set("status", text)
 	params.Set("in_reply_to_status_id", replyId)
@@ -62,8 +66,11 @@ func SendTweet(twitterClient *http.Client, text string, replyId string) (respons
 	body, _ := ioutil.ReadAll(resp.Body)
 	responseTweet = &t.Tweet{}
 	if err = json.Unmarshal([]byte(body), responseTweet); err != nil {
+		fmt.Println("err sending tweet: ", err)
 		return nil, err
 	}
+	fmt.Println("Sent tweet to status: ", responseTweet.IdStr, responseTweet.InReplyToStatusIdStr, responseTweet.GetText())
+
 	return responseTweet, nil
 }
 
@@ -81,11 +88,11 @@ func ProcessNewTweet(twitterClient *http.Client, tweet *t.Tweet) (error, *t.Bet)
 	if err != nil {
 		SendTweet(twitterClient, err.Error(), tweetId)
 	} else {
-		responseTweet, err := SendTweet(twitterClient, bet.Response(), tweetId)
+		responseTweet, err := SendTweet(twitterClient, bet.Response(), bet.SourceFk)
 		if err != nil {
 			return err, nil
 		}
-		bet.ProposerCheckFk = responseTweet.IdStr
+		bet.AcceptFk = responseTweet.IdStr
 		err = db.UpsertBet(bet)
 	}
 
@@ -95,33 +102,42 @@ func ProcessNewTweet(twitterClient *http.Client, tweet *t.Tweet) (error, *t.Bet)
 func ProcessReplyTweet(twitterClient *http.Client, tweet *t.Tweet, bet *t.Bet) (err error) {
 	var yesRgx = regexp.MustCompile(`(?i)yes`)
 	text := tweet.GetText()
-	if yesRgx.Match([]byte(text)) {
-		if bet.BetStatus.String() == "Pending Proposer" {
-			bet.BetStatus = t.BetStatusPendingRecipient
-			fmt.Println("Sending response tweet to recipient: ", bet.Response(), tweet.IdStr)
-			responseTweet, err := SendTweet(twitterClient, bet.Response(), tweet.IdStr)
-			if err != nil {
-				return err
-			}
-			bet.RecipientCheckFk = responseTweet.IdStr
-			err = db.UpsertBet(bet)
-			if err != nil {
-				fmt.Println("err upserting bet after proposer reply:", bet)
-			}
-		} else if bet.BetStatus.String() == "Pending Recipient" {
-			bet.BetStatus = t.BetStatusAccepted
-			fmt.Println("Sending response bet accepted: ", bet.Response(), tweet.IdStr)
-			_, err := SendTweet(twitterClient, bet.Response(), tweet.IdStr)
-			if err != nil {
-				return err
-			}
-			err = db.UpsertBet(bet)
-			if err != nil {
-				fmt.Println("err upserting bet after proposer reply:", bet)
-			}
-		}
-	} else {
-		// logger.Println("Did not reply yes")
+
+	if bet.BetStatus.String() != "Pending Approval" {
+		return fmt.Errorf("Bet status no longer pending: %s", bet.BetStatus.String())
 	}
+
+	if bet.ProposerReplyFk != nil && bet.RecipientReplyFk != nil {
+		return fmt.Errorf("Bet already accepted by both parties.")
+	}
+
+	if yesRgx.Match([]byte(text)) {
+		if bet.ProposerReplyFk == nil && bet.Proposer.IdStr == tweet.User.IdStr {
+			bet.ProposerReplyFk = &tweet.InReplyToStatusIdStr
+		} else if bet.RecipientReplyFk == nil && bet.Recipient.IdStr == tweet.User.IdStr {
+			bet.RecipientReplyFk = &tweet.InReplyToStatusIdStr
+		}
+
+		if bet.RecipientReplyFk != nil && bet.ProposerReplyFk != nil {
+			bet.BetStatus = t.BetStatusAccepted
+			rTweet, err := SendTweet(twitterClient, bet.Response(), bet.SourceFk)
+			fmt.Println("Sent response tweet id to id: ", rTweet.IdStr, bet.SourceFk, rTweet.GetText())
+
+			if err != nil {
+				return err
+			}
+			// fmt.Println("Sending response tweets to recipient status: ", *bet.RecipientReplyFk, bet.Response())
+			// _, err = SendTweet(twitterClient, bet.Response(), *bet.RecipientReplyFk)
+			// if err != nil {
+			// 	return err
+			// }
+		}
+
+		err = db.UpsertBet(bet)
+		if err != nil {
+			return err
+		}
+	}
+
 	return err
 }
