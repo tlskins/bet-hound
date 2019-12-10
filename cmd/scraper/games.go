@@ -192,7 +192,6 @@ func ScrapeThisWeeksGames() (games []*t.Game) {
 		} else {
 			gm.Final = false
 		}
-		fmt.Println(*gm)
 	}
 
 	return games

@@ -122,10 +122,10 @@ func BuildEquationFromText(text string) (err error, eq *t.Equation) {
 	words := nlp.ParseText(text)
 	opPhrase, leftMetric := nlp.FindOperatorPhrase(&words)
 	if opPhrase == nil {
-		return fmt.Errorf("Sorry, couldn't find a betting operator, like 'score more points'!"), nil
+		return fmt.Errorf("Sorry, couldn't find a betting operator (like 'score more'!)"), nil
 	}
 	if leftMetric == nil {
-		return fmt.Errorf("Sorry, couldn't find a betting metric!"), nil
+		return fmt.Errorf("Sorry, couldn't find a betting metric (like 'ppr points')!"), nil
 	}
 
 	leftPlayerExpr := nlp.FindLeftPlayerExpr(&words, opPhrase, leftMetric)

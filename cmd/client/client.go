@@ -30,18 +30,15 @@ type User struct {
 
 func CreateClient() *http.Client {
 	//Create oauth client with consumer keys and access token
-	fmt.Println("create twitter client", env.ConsumerKey(), env.ConsumerSecret(), env.AccessTokenKey(), env.AccessTokenSecret())
 	config := oauth1.NewConfig(env.ConsumerKey(), env.ConsumerSecret())
 	token := oauth1.NewToken(env.AccessTokenKey(), env.AccessTokenSecret())
 	httpClient := config.Client(oauth1.NoContext, token)
-
 	return httpClient
 }
 
 func registerWebhook(httpClient *http.Client, logger *log.Logger) {
 	logger.Println("Registering webhook...", env.WebhookEnv())
 	fmt.Println("Registering webhook...")
-	// httpClient := CreateClient()
 
 	//Set parameters
 	path := "https://api.twitter.com/1.1/account_activity/all/" + env.WebhookEnv() + "/webhooks.json"

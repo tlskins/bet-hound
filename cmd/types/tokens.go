@@ -148,39 +148,3 @@ type DependencyEdge struct {
 	Label          string `bson:"label,omitempty" json:"label"`
 	HeadTokenIndex int    `bson:"hd_tkn_idx,omitempty" json:"head_token_index"`
 }
-
-// func FindWordByTxt(words []Word, txt string) *Word {
-// 	for _, w := range words {
-// 		if w.Text == txt {
-// 			return &w
-// 		}
-// 	}
-// 	return nil
-// }
-
-// func FindWordByIdx(words []*Word, idx int) *Word {
-// 	for _, w := range words {
-// 		if w.Index == idx {
-// 			return &w
-// 		}
-// 	}
-// 	return nil
-// }
-
-// func FindPhraseByIdx(phrases []*Phrase, index int) *Phrase {
-// 	for _, p := range phrases {
-// 		if p.Word.Index == index {
-// 			return p
-// 		}
-// 	}
-// 	return nil
-// }
-
-// func findPhraseByWordTxt(phrases []*Phrase, txt string) *Phrase {
-// 	for _, p := range phrases {
-// 		if p.Word.Text == txt {
-// 			return p
-// 		}
-// 	}
-// 	return nil
-// }
