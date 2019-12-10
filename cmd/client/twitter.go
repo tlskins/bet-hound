@@ -38,17 +38,6 @@ func main() {
 	// Create client
 	client := CreateClient()
 
-	// TESTING
-	// tweet, err := twitter.LoadTweet(client, "1204221008237826048")
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
-	// bet, err := db.FindBetByReply(tweet)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
-	// fmt.Println(bet)
-
 	// Register webhook
 	if args := os.Args; len(args) > 1 && args[1] == "-register" {
 		go registerWebhook(client, logger)
@@ -99,16 +88,13 @@ func WebhookHandlerWrapper(httpClient *http.Client) func(writer http.ResponseWri
 		logger.Println("replyTweetId", replyTweetId)
 		var bet *t.Bet
 		if len(replyTweetId) > 0 {
-			bet, err = db.FindBetByReply(&newTweet)
+			bet = db.FindBetByReply(&newTweet)
 			// TODO : Send reply tweet that its invalid bet if start time < now and expire bet
-			if err != nil {
-				fmt.Println("FindBetByReply err ", err.Error())
-			}
 		}
 
 		// Reply to proposer check
-		if bet != nil && err == nil {
-			logger.Println("reply to bet", bet.Id, bet.Text())
+		if bet != nil {
+			logger.Println("processing reply to bet", bet.Id, bet.Text())
 			err = twitter.ProcessReplyTweet(httpClient, &newTweet, bet)
 			if err != nil {
 				logger.Println("err processing reply tweet", err)

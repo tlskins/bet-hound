@@ -51,6 +51,7 @@ type Bet struct {
 	RecipientReplyFk *string   `bson:"rr_fk" json:"recipient_reply_fk"`
 	Equation         Equation  `bson:"eq" "json:"equation"`
 	Result           string    `bson:"result" json:"result"`
+	ExpiresAt        time.Time `bson:"exp_at" json:"expires_at"`
 	FinalizedAt      time.Time `bson:"final_at" json:"finalized_at"`
 }
 
@@ -103,7 +104,6 @@ type Equation struct {
 	LeftExpression  PlayerExpression `bson:"l_exp" json:"left_expression"`
 	RightExpression PlayerExpression `bson:"r_exp" json:"right_expression"`
 	Operator        OperatorPhrase   `bson:"m_phrase" json:"metric_phrase"`
-	// TODO : Add complete function to check event time / metric exists
 }
 
 func (e Equation) Complete() (err error) {

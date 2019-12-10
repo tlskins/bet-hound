@@ -34,12 +34,7 @@ func FindOperatorPhrase(words *[]*t.Word) (opPhrase *t.OperatorPhrase, leftMetri
 			break
 		}
 	}
-
-	if opPhrase == nil || leftMetric == nil {
-		panic("No operator phrase and metric found!")
-	} else {
-		return opPhrase, leftMetric
-	}
+	return opPhrase, leftMetric
 }
 
 func FindLeftPlayerExpr(words *[]*t.Word, opPhrase *t.OperatorPhrase, leftMetric *t.Metric) (leftPlayerExpr *t.PlayerExpression) {
@@ -67,11 +62,7 @@ func FindLeftPlayerExpr(words *[]*t.Word, opPhrase *t.OperatorPhrase, leftMetric
 		}
 	}
 
-	if opPhrase == nil || leftMetric == nil {
-		panic("No operator phrase and metric found!")
-	} else {
-		return leftPlayerExpr
-	}
+	return leftPlayerExpr
 }
 
 func FindRightPlayerExpr(words *[]*t.Word, opPhrase *t.OperatorPhrase, leftMetric *t.Metric) *t.PlayerExpression {
@@ -103,10 +94,10 @@ func findActions(words *[]*t.Word) (actionWords []*t.Word) {
 }
 
 func buildOperatorPhrase(words *[]*t.Word, action *t.Word) (opPhrase *t.OperatorPhrase, metric *t.Metric) {
-	nouns := t.FindWords(words, action.Index, []string{"NOUN"}, []string{})
+	nouns := t.FindWords(words, action.Index, []string{"NOUN", "VERB"}, []string{})
 	for _, noun := range nouns {
 		if isMetricLemma(noun.Lemma) {
-			adjs := t.FindWords(words, noun.Index, []string{"ADJ"}, []string{})
+			adjs := t.FindWords(words, noun.Index, []string{"ADJ", "NOUN"}, []string{})
 			modWords := t.FindWords(words, noun.Index, []string{}, []string{})
 			metricMods := []string{}
 			for _, m := range modWords {
@@ -119,6 +110,7 @@ func buildOperatorPhrase(words *[]*t.Word, action *t.Word) (opPhrase *t.Operator
 				Modifiers: metricMods,
 			}
 			for _, adj := range adjs {
+				fmt.Println("adj", *adj)
 				opPhrase = &t.OperatorPhrase{
 					OperatorWord: *adj,
 					ActionWord:   *action,

@@ -31,7 +31,7 @@ func FindBetById(id string) (*t.Bet, error) {
 	return &bet, err
 }
 
-func FindBetByReply(tweet *t.Tweet) (*t.Bet, error) {
+func FindBetByReply(tweet *t.Tweet) *t.Bet {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
@@ -43,8 +43,8 @@ func FindBetByReply(tweet *t.Tweet) (*t.Bet, error) {
 		m.M{"acc_fk": tweet.InReplyToStatusIdStr, "status": 0, "proposer.id_str": authorId, "pr_fk": nil},
 		m.M{"acc_fk": tweet.InReplyToStatusIdStr, "status": 0, "recipient.id_str": authorId, "rr_fk": nil},
 	}}
-	err := m.FindOne(c, &bet, q)
-	return &bet, err
+	m.FindOne(c, &bet, q)
+	return &bet
 }
 
 func FindPendingFinal() []*t.Bet {
@@ -54,6 +54,5 @@ func FindPendingFinal() []*t.Bet {
 
 	pending := make([]*t.Bet, 0, 1)
 	c.Find(m.M{"status": 1, "final_at": m.M{"$lte": time.Now()}}).All(&pending)
-
 	return pending
 }

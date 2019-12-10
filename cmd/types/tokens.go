@@ -1,8 +1,7 @@
 package types
 
 import (
-	"fmt"
-	// "strings"
+// "strings"
 )
 
 func ReverseStrings(ss []string) {
@@ -36,8 +35,10 @@ func FilterWordsByTag(words *[]*Word, tag string) (results []*Word) {
 }
 
 func matchWord(w *Word, hdIdx int, tags []string, exclTxt []string) bool {
+	// fmt.Println("matching ", w.Text, w.DependencyEdge.HeadTokenIndex, hdIdx, w.PartOfSpeech.Tag, tags)
 	idxMatch := hdIdx == -1 || w.DependencyEdge.HeadTokenIndex == hdIdx
 	if !idxMatch {
+		// fmt.Println("not id match")
 		return false
 	}
 
@@ -50,6 +51,7 @@ func matchWord(w *Word, hdIdx int, tags []string, exclTxt []string) bool {
 			}
 		}
 		if !tagMatch {
+			// fmt.Println("not tag match")
 			return false
 		}
 	}
@@ -58,6 +60,7 @@ func matchWord(w *Word, hdIdx int, tags []string, exclTxt []string) bool {
 	if !exclTxtMatch {
 		for _, x := range exclTxt {
 			if x == w.Text {
+				// fmt.Println("not exclTxtMatch match")
 				return false
 			}
 		}
@@ -68,6 +71,7 @@ func matchWord(w *Word, hdIdx int, tags []string, exclTxt []string) bool {
 		wHdIdx := w.DependencyEdge.HeadTokenIndex
 		// Words can be their own children
 		if !((wHdIdx == hdIdx) && (w.Index != wHdIdx)) {
+			// fmt.Println("not child of match")
 			return false
 		}
 	}
@@ -78,6 +82,7 @@ func matchWord(w *Word, hdIdx int, tags []string, exclTxt []string) bool {
 func FindWords(words *[]*Word, hdIdx int, tags []string, exclTxt []string) []*Word {
 	results := []*Word{}
 	for _, w := range *words {
+		// fmt.Println("considering word", w.Text, w.Index)
 		if matchWord(w, hdIdx, tags, exclTxt) {
 			results = append(results, w)
 		}
@@ -95,7 +100,6 @@ func FindWords(words *[]*Word, hdIdx int, tags []string, exclTxt []string) []*Wo
 }
 
 func FindGroupedWords(words *[]*Word, hdIdx int, tags []string, exclTxt []string) [][]*Word {
-	fmt.Println("FindGroupedWords exclTxt: ", exclTxt)
 	results := [][]*Word{}
 	for _, w := range *words {
 		if matchWord(w, hdIdx, tags, exclTxt) {

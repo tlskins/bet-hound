@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"time"
 )
 
 func ProcessPendingFinalBets(twitterClient *http.Client) (err error) {
@@ -86,7 +87,11 @@ func ProcessNewTweet(twitterClient *http.Client, tweet *t.Tweet) (error, *t.Bet)
 	// Build Bet
 	err, bet := b.BuildBetFromTweet(tweet)
 	if err != nil {
-		SendTweet(twitterClient, err.Error(), tweetId)
+		SendTweet(
+			twitterClient,
+			fmt.Sprintf("@%s %s", tweet.User.ScreenName, err.Error()),
+			tweetId,
+		)
 	} else {
 		responseTweet, err := SendTweet(twitterClient, bet.Response(), bet.SourceFk)
 		if err != nil {
@@ -104,11 +109,16 @@ func ProcessReplyTweet(twitterClient *http.Client, tweet *t.Tweet, bet *t.Bet) (
 	text := tweet.GetText()
 
 	if bet.BetStatus.String() != "Pending Approval" {
+		SendTweet(twitterClient, bet.Response(), tweet.IdStr)
 		return fmt.Errorf("Bet status no longer pending: %s", bet.BetStatus.String())
-	}
-
-	if bet.ProposerReplyFk != nil && bet.RecipientReplyFk != nil {
-		return fmt.Errorf("Bet already accepted by both parties.")
+	} else if bet.ExpiresAt.Before(time.Now()) {
+		bet.BetStatus = t.BetStatusExpired
+		SendTweet(twitterClient, bet.Response(), tweet.IdStr)
+		err = db.UpsertBet(bet)
+		if err != nil {
+			return err
+		}
+		return fmt.Errorf("Bet expired", bet.Id)
 	}
 
 	if yesRgx.Match([]byte(text)) {
@@ -122,15 +132,9 @@ func ProcessReplyTweet(twitterClient *http.Client, tweet *t.Tweet, bet *t.Bet) (
 			bet.BetStatus = t.BetStatusAccepted
 			rTweet, err := SendTweet(twitterClient, bet.Response(), bet.SourceFk)
 			fmt.Println("Sent response tweet id to id: ", rTweet.IdStr, bet.SourceFk, rTweet.GetText())
-
 			if err != nil {
 				return err
 			}
-			// fmt.Println("Sending response tweets to recipient status: ", *bet.RecipientReplyFk, bet.Response())
-			// _, err = SendTweet(twitterClient, bet.Response(), *bet.RecipientReplyFk)
-			// if err != nil {
-			// 	return err
-			// }
 		}
 
 		err = db.UpsertBet(bet)

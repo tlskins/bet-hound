@@ -20,11 +20,15 @@ func BuildBetFromTweet(tweet *t.Tweet) (err error, bet *t.Bet) {
 		return fmt.Errorf("Not enough recipients!"), nil
 	}
 	recipient := tweet.Recipients()[0]
-	maxGmTime := eq.LeftExpression.Game.GameTime
+	var maxGmTime, minGmTime time.Time
 	if eq.RightExpression.Game.GameTime.After(eq.LeftExpression.Game.GameTime) {
 		maxGmTime = eq.RightExpression.Game.GameTime
+		minGmTime = eq.LeftExpression.Game.GameTime
+	} else {
+		maxGmTime = eq.LeftExpression.Game.GameTime
+		minGmTime = eq.RightExpression.Game.GameTime
 	}
-	yr, mth, day := maxGmTime.Date()
+	yrM, mthM, dayM := maxGmTime.Date()
 	loc, _ := time.LoadLocation("America/New_York")
 	bet = &t.Bet{
 		Id:          uuid.NewV4().String(),
@@ -33,7 +37,8 @@ func BuildBetFromTweet(tweet *t.Tweet) (err error, bet *t.Bet) {
 		Recipient:   recipient,
 		BetStatus:   t.BetStatusFromString("Pending Proposer"),
 		Equation:    *eq,
-		FinalizedAt: time.Date(yr, mth, day, 12, 0, 0, 0, loc),
+		ExpiresAt:   minGmTime.In(loc),
+		FinalizedAt: time.Date(yrM, mthM, dayM, 12, 0, 0, 0, loc),
 	}
 	return nil, bet
 }
@@ -116,8 +121,21 @@ func calcPlayerGameScore(log *map[string]*t.GameStat, player *t.Player, metric *
 func BuildEquationFromText(text string) (err error, eq *t.Equation) {
 	words := nlp.ParseText(text)
 	opPhrase, leftMetric := nlp.FindOperatorPhrase(&words)
+	if opPhrase == nil {
+		return fmt.Errorf("Sorry, couldn't find a betting operator, like 'score more points'!"), nil
+	}
+	if leftMetric == nil {
+		return fmt.Errorf("Sorry, couldn't find a betting metric!"), nil
+	}
+
 	leftPlayerExpr := nlp.FindLeftPlayerExpr(&words, opPhrase, leftMetric)
+	if leftPlayerExpr == nil {
+		return fmt.Errorf("Sorry, couldn't a player for the proposer!"), nil
+	}
 	rightPlayerExpr := nlp.FindRightPlayerExpr(&words, opPhrase, leftMetric)
+	if rightPlayerExpr == nil {
+		return fmt.Errorf("Sorry, couldn't a player for the recipient!"), nil
+	}
 
 	eq = &t.Equation{
 		LeftExpression:  *leftPlayerExpr,
