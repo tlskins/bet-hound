@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bet-hound/cmd/db"
+	// "bet-hound/cmd/db"
 	"fmt"
 	"log"
 	"os"
@@ -20,7 +20,7 @@ const appConfigName = "config"
 
 var logger *log.Logger
 
-const text = "yo fart face, do you wanna bet that Mike Evans scores more ppr points than Allen Robinson this week???"
+const text = "@bettybetbot @richayelfuego yo richardo u wanna bet that Alshon Jeffery scores more ppr points that Saquon Barkley this week?"
 
 func main() {
 	// Initialization
@@ -42,11 +42,16 @@ func main() {
 
 	// fmt.Println("game at: ", games[0].GameTime.In(loc))
 
-	fmt.Println("before find")
-	bets := db.FindPendingFinal()
-	for _, bet := range bets {
-		fmt.Println(bet.Equation.Text(), b.CalcBetResult(bet))
-	}
+	// tweet, _ := db.FindTweet("501399114")
+	// fmt.Println(*tweet)
+	_, eq := b.BuildEquationFromText(text)
+	fmt.Println(eq)
+
+	// fmt.Println("before find")
+	// bets := db.FindPendingFinal()
+	// for _, bet := range bets {
+	// 	fmt.Println(bet.Equation.Text(), b.CalcBetResult(bet))
+	// }
 
 	// fmt.Println(bet.Equation.LeftExpression.Game.GameTime.In(loc))
 	// fmt.Println(bet.FinalizedAt().In(loc))

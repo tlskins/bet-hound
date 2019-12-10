@@ -15,6 +15,8 @@ const (
 	BetStatusPendingRecipient
 	BetStatusAccepted
 	BetStatusFinal
+	BetStatusExpired
+	BetStatusCancelled
 )
 
 func BetStatusFromString(s string) BetStatus {

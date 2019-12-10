@@ -75,13 +75,13 @@ func WebhookHandlerWrapper(httpClient *http.Client) func(writer http.ResponseWri
 		}
 
 		//Check if it was a tweet_create_event and tweet was in the payload and it was not tweeted by the bot
-		if len(load.TweetCreateEvent) < 1 || load.UserId == load.TweetCreateEvent[0].User.IdStr {
-			logger.Println("filtered out tweet: ", len(load.TweetCreateEvent), load.UserId, load.TweetCreateEvent[0].User.IdStr, load.TweetCreateEvent[0])
+		if len(load.TweetCreateEvent) < 1 || len(load.TweetCreateEvent[0].IdStr) == 0 || load.UserId == load.TweetCreateEvent[0].User.IdStr {
+			logger.Println("filtered out tweet")
 			return
 		}
 
 		newTweet := load.TweetCreateEvent[0]
-		logger.Println("incoming created tweet", newTweet.GetText(), newTweet.User.IdStr)
+		logger.Println("incoming created tweet", newTweet.GetText(), newTweet.IdStr)
 
 		// Check if response to a check tweet
 		replyTweetId := newTweet.InReplyToStatusIdStr
@@ -89,6 +89,7 @@ func WebhookHandlerWrapper(httpClient *http.Client) func(writer http.ResponseWri
 		var bet *t.Bet
 		if len(replyTweetId) > 0 {
 			bet, err = db.FindBetByReply(&newTweet)
+			// TODO : Send reply tweet that its invalid bet if start time < now and expire bet
 			if err != nil {
 				fmt.Println("FindBetByReply err ", err.Error())
 			}

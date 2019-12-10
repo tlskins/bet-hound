@@ -95,7 +95,6 @@ func ProcessNewTweet(twitterClient *http.Client, tweet *t.Tweet) (error, *t.Bet)
 func ProcessReplyTweet(twitterClient *http.Client, tweet *t.Tweet, bet *t.Bet) (err error) {
 	var yesRgx = regexp.MustCompile(`(?i)yes`)
 	text := tweet.GetText()
-	// logger.Println("process reply text: ", text)
 	if yesRgx.Match([]byte(text)) {
 		if bet.BetStatus.String() == "Pending Proposer" {
 			bet.BetStatus = t.BetStatusPendingRecipient
@@ -109,7 +108,6 @@ func ProcessReplyTweet(twitterClient *http.Client, tweet *t.Tweet, bet *t.Bet) (
 			if err != nil {
 				fmt.Println("err upserting bet after proposer reply:", bet)
 			}
-			// logger.Println("Sent check to recipient")
 		} else if bet.BetStatus.String() == "Pending Recipient" {
 			bet.BetStatus = t.BetStatusAccepted
 			fmt.Println("Sending response bet accepted: ", bet.Response(), tweet.IdStr)

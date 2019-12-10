@@ -12,7 +12,7 @@ import (
 )
 
 func BuildBetFromTweet(tweet *t.Tweet) (err error, bet *t.Bet) {
-	err, eq := buildEquationFromText(*tweet.FullText)
+	err, eq := BuildEquationFromText(*tweet.FullText)
 	if err != nil {
 		return err, nil
 	}
@@ -104,7 +104,7 @@ func calcPlayerGameScore(log *map[string]*t.GameStat, player *t.Player, metric *
 	return math.Ceil(score*10) / 10
 }
 
-func buildEquationFromText(text string) (err error, eq *t.Equation) {
+func BuildEquationFromText(text string) (err error, eq *t.Equation) {
 	words := nlp.ParseText(text)
 	opPhrase, leftMetric := nlp.FindOperatorPhrase(&words)
 	leftPlayerExpr := nlp.FindLeftPlayerExpr(&words, opPhrase, leftMetric)
