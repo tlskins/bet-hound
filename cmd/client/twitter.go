@@ -16,6 +16,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
 
 const appConfigPath = "../env"
@@ -38,13 +39,22 @@ func main() {
 	// Create client
 	client := CreateClient()
 
+	// Schedule process pending final bets
+	ticker := time.NewTicker(15 * time.Minute)
+	go func() {
+		for {
+			select {
+			case t := <-ticker.C:
+				fmt.Println("Processing pending final bets at ", t)
+				twitter.ProcessPendingFinalBets(client)
+			}
+		}
+	}()
+
 	// Register webhook
 	if args := os.Args; len(args) > 1 && args[1] == "-register" {
 		go registerWebhook(client, logger)
 	}
-
-	// Process pending final bets
-	twitter.ProcessPendingFinalBets(client)
 
 	// Setup handler
 	m := mux.NewRouter()
@@ -59,6 +69,7 @@ func main() {
 		Handler: m,
 	}
 	server.Addr = ":9090"
+	fmt.Println("listen and serving...")
 	server.ListenAndServe()
 }
 

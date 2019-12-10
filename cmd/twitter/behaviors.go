@@ -112,13 +112,13 @@ func ProcessReplyTweet(twitterClient *http.Client, tweet *t.Tweet, bet *t.Bet) (
 		SendTweet(twitterClient, bet.Response(), tweet.IdStr)
 		return fmt.Errorf("Bet status no longer pending: %s", bet.BetStatus.String())
 	} else if bet.ExpiresAt.Before(time.Now()) {
-		bet.BetStatus = t.BetStatusExpired
-		SendTweet(twitterClient, bet.Response(), tweet.IdStr)
-		err = db.UpsertBet(bet)
-		if err != nil {
-			return err
-		}
-		return fmt.Errorf("Bet expired", bet.Id)
+		// bet.BetStatus = t.BetStatusExpired
+		// SendTweet(twitterClient, bet.Response(), tweet.IdStr)
+		// err = db.UpsertBet(bet)
+		// if err != nil {
+		// 	return err
+		// }
+		// return fmt.Errorf("Bet expired")
 	}
 
 	if yesRgx.Match([]byte(text)) {

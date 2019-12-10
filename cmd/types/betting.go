@@ -72,9 +72,17 @@ func (b Bet) Response() (txt string) {
 	} else if b.BetStatus.String() == "Final" {
 		return b.Result
 	} else if b.BetStatus.String() == "Expired" {
-		return "Bet has expired."
+		return fmt.Sprintf(
+			"@%s @%s Bet has expired.",
+			b.Proposer.ScreenName,
+			b.Recipient.ScreenName,
+		)
 	} else if b.BetStatus.String() == "Cancelled" {
-		return "Bet has been cancelled."
+		return fmt.Sprintf(
+			"@%s @%s Bet has been cancelled.",
+			b.Proposer.ScreenName,
+			b.Recipient.ScreenName,
+		)
 	}
 	return ""
 }

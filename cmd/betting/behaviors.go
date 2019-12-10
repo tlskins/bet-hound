@@ -28,8 +28,14 @@ func BuildBetFromTweet(tweet *t.Tweet) (err error, bet *t.Bet) {
 		maxGmTime = eq.LeftExpression.Game.GameTime
 		minGmTime = eq.RightExpression.Game.GameTime
 	}
-	yrM, mthM, dayM := maxGmTime.Date()
+
 	loc, _ := time.LoadLocation("America/New_York")
+	yrM, mthM, dayM := maxGmTime.Date()
+	expiresAt := minGmTime.In(loc)
+	// if expiresAt.Before(time.Now()) {
+	// 	return fmt.Errorf("Those games have already started."), nil
+	// }
+
 	bet = &t.Bet{
 		Id:          uuid.NewV4().String(),
 		SourceFk:    tweet.IdStr,
@@ -37,8 +43,8 @@ func BuildBetFromTweet(tweet *t.Tweet) (err error, bet *t.Bet) {
 		Recipient:   recipient,
 		BetStatus:   t.BetStatusFromString("Pending Proposer"),
 		Equation:    *eq,
-		ExpiresAt:   minGmTime.In(loc),
-		FinalizedAt: time.Date(yrM, mthM, dayM, 12, 0, 0, 0, loc),
+		ExpiresAt:   expiresAt,
+		FinalizedAt: time.Date(yrM, mthM, dayM, 9, 0, 0, 0, loc),
 	}
 	return nil, bet
 }
