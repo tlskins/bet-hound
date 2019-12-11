@@ -2,56 +2,56 @@ package betting
 
 import (
 	// "bet-hound/cmd/db"
-	"bet-hound/cmd/nlp"
+	// "bet-hound/cmd/nlp"
 	"bet-hound/cmd/scraper"
 	t "bet-hound/cmd/types"
 	"fmt"
-	"github.com/satori/go.uuid"
+	// "github.com/satori/go.uuid"
 	"math"
-	"strings"
+	// "strings"
 	"time"
 )
 
-func BuildBetFromTweet(tweet *t.Tweet) (err error, bet *t.Bet) {
-	txt := strings.TrimSpace(nlp.RemoveReservedTwitterWords(tweet.GetText()))
-	err, eq := BuildEquationFromText(txt)
-	if err != nil {
-		return err, nil
-	}
-	if len(tweet.Recipients()) == 0 {
-		return fmt.Errorf("Not enough recipients!"), nil
-	}
-	recipient := tweet.Recipients()[0]
-	var maxGmTime, minGmTime time.Time
-	if eq.RightExpression.Game.GameTime.After(eq.LeftExpression.Game.GameTime) {
-		maxGmTime = eq.RightExpression.Game.GameTime
-		minGmTime = eq.LeftExpression.Game.GameTime
-	} else {
-		maxGmTime = eq.LeftExpression.Game.GameTime
-		minGmTime = eq.RightExpression.Game.GameTime
-	}
+// func BuildBetFromTweet(tweet *t.Tweet) (err error, bet *t.Bet) {
+// 	txt := strings.TrimSpace(nlp.RemoveReservedTwitterWords(tweet.GetText()))
+// 	err, eq := BuildEquationFromText(txt)
+// 	if err != nil {
+// 		return err, nil
+// 	}
+// 	if len(tweet.Recipients()) == 0 {
+// 		return fmt.Errorf("Not enough recipients!"), nil
+// 	}
+// 	recipient := tweet.Recipients()[0]
+// 	var maxGmTime, minGmTime time.Time
+// 	if eq.RightExpression.Game.GameTime.After(eq.LeftExpression.Game.GameTime) {
+// 		maxGmTime = eq.RightExpression.Game.GameTime
+// 		minGmTime = eq.LeftExpression.Game.GameTime
+// 	} else {
+// 		maxGmTime = eq.LeftExpression.Game.GameTime
+// 		minGmTime = eq.RightExpression.Game.GameTime
+// 	}
 
-	loc, _ := time.LoadLocation("America/New_York")
-	yrM, mthM, dayM := maxGmTime.Date()
-	expiresAt := minGmTime.In(loc)
-	// Toggle Expiration Here
-	// if expiresAt.Before(time.Now()) {
-	// 	return fmt.Errorf("Those games have already started."), nil
-	// }
-	// Toggle Expiration Here
+// 	loc, _ := time.LoadLocation("America/New_York")
+// 	yrM, mthM, dayM := maxGmTime.Date()
+// 	expiresAt := minGmTime.In(loc)
+// 	// Toggle Expiration Here
+// 	// if expiresAt.Before(time.Now()) {
+// 	// 	return fmt.Errorf("Those games have already started."), nil
+// 	// }
+// 	// Toggle Expiration Here
 
-	bet = &t.Bet{
-		Id:          uuid.NewV4().String(),
-		SourceFk:    tweet.IdStr,
-		Proposer:    tweet.User,
-		Recipient:   recipient,
-		BetStatus:   t.BetStatusFromString("Pending Proposer"),
-		Equation:    *eq,
-		ExpiresAt:   expiresAt,
-		FinalizedAt: time.Date(yrM, mthM, dayM, 9, 0, 0, 0, loc),
-	}
-	return nil, bet
-}
+// 	bet = &t.Bet{
+// 		Id:          uuid.NewV4().String(),
+// 		SourceFk:    tweet.IdStr,
+// 		Proposer:    tweet.User,
+// 		Recipient:   recipient,
+// 		BetStatus:   t.BetStatusFromString("Pending Proposer"),
+// 		Equation:    *eq,
+// 		ExpiresAt:   expiresAt,
+// 		FinalizedAt: time.Date(yrM, mthM, dayM, 9, 0, 0, 0, loc),
+// 	}
+// 	return nil, bet
+// }
 
 func calcExpressionResult(expr *t.PlayerExpression, games *[]*t.Game, metric *t.Metric) (total float64, err error) {
 	gm := t.FindGameByAwayFk(games, expr.Player.TeamFk)
@@ -147,35 +147,35 @@ func calcPlayerGameScore(log *map[string]*t.GameStat, player *t.Player, metric *
 	return &score
 }
 
-func BuildEquationFromText(text string) (err error, eq *t.Equation) {
-	words := nlp.ParseText(text)
-	opPhrase, leftMetric := nlp.FindOperatorPhrase(&words)
-	if opPhrase == nil {
-		return fmt.Errorf("Sorry, couldn't find a betting operator (like 'score more than'!)"), nil
-	}
-	if leftMetric == nil {
-		return fmt.Errorf("Sorry, couldn't find a betting metric (like 'ppr points')!"), nil
-	}
+// func BuildEquationFromText(text string) (err error, eq *t.Equation) {
+// 	words := nlp.ParseText(text)
+// 	opPhrase, leftMetric := nlp.FindOperatorPhrase(&words)
+// 	if opPhrase == nil {
+// 		return fmt.Errorf("Sorry, couldn't find a betting operator (like 'score more than'!)"), nil
+// 	}
+// 	if leftMetric == nil {
+// 		return fmt.Errorf("Sorry, couldn't find a betting metric (like 'ppr points')!"), nil
+// 	}
 
-	leftPlayerExpr := nlp.FindLeftPlayerExpr(&words, opPhrase, leftMetric)
-	if leftPlayerExpr == nil {
-		return fmt.Errorf("Sorry, couldn't a player for the proposer!"), nil
-	}
-	rightPlayerExpr := nlp.FindRightPlayerExpr(&words, opPhrase, leftMetric)
-	if rightPlayerExpr == nil {
-		return fmt.Errorf("Sorry, couldn't a player for the recipient!"), nil
-	}
+// 	leftPlayerExpr := nlp.FindLeftPlayerExpr(&words, opPhrase, leftMetric)
+// 	if leftPlayerExpr == nil {
+// 		return fmt.Errorf("Sorry, couldn't a player for the proposer!"), nil
+// 	}
+// 	rightPlayerExpr := nlp.FindRightPlayerExpr(&words, opPhrase, leftMetric)
+// 	if rightPlayerExpr == nil {
+// 		return fmt.Errorf("Sorry, couldn't a player for the recipient!"), nil
+// 	}
 
-	eq = &t.Equation{
-		LeftExpression:  *leftPlayerExpr,
-		RightExpression: *rightPlayerExpr,
-		Operator:        *opPhrase,
-	}
-	addGamesToEquation(eq)
-	err = eq.Complete()
+// 	eq = &t.Equation{
+// 		LeftExpression:  *leftPlayerExpr,
+// 		RightExpression: *rightPlayerExpr,
+// 		Operator:        *opPhrase,
+// 	}
+// 	addGamesToEquation(eq)
+// 	err = eq.Complete()
 
-	return err, eq
-}
+// 	return err, eq
+// }
 
 func addGamesToEquation(e *t.Equation) {
 	games := scraper.ScrapeThisWeeksGames()
