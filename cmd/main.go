@@ -1,7 +1,7 @@
 package main
 
 import (
-	// "bet-hound/cmd/db"
+	"bet-hound/cmd/db"
 	"fmt"
 	"log"
 	"os"
@@ -20,10 +20,6 @@ const appConfigName = "config"
 
 var logger *log.Logger
 
-// Points comes up as verb
-const pt_to_vrb_txt = "@bettybetbot @richayelfuego yo richardo u wanna bet that Alshon Jeffery scores more ppr points that Saquon Barkley this week?"
-const name_matching_txt = "@bettybetbot @richayelfuego bet you that juju scores more ppr points than AJ Brown this week?"
-
 func main() {
 	// Initialization
 	logger = setUpLogger(env.LogPath(), "logs.log")
@@ -34,11 +30,19 @@ func main() {
 	defer env.Cleanup()
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
 
-	err, eq := b.BuildEquationFromText(name_matching_txt)
+	// Text samples
+	// pt_to_vrb_txt := "@bettybetbot @richayelfuego yo richardo u wanna bet that Alshon Jeffery scores more ppr points that Saquon Barkley this week?"
+	// name_matching_txt := "@bettybetbot @richayelfuego bet you that juju scores more ppr points than AJ Brown this week?"
+	num_mod_txt := "@bettybetbot @richayelfuego bet you that Alshon Jeffery scores 5.6 more ppr points than Alvin Kamara this week?"
+
+	tweet, nil := db.FindTweet("1204576588387373056")
+	tweet.FullText = &num_mod_txt
+	err, bet := b.BuildBetFromTweet(tweet)
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(eq)
+	lMetric, rMetric := bet.Equation.MetricString()
+	fmt.Println("bet", bet.Equation.Operator, lMetric, rMetric)
 }
 
 func setUpLogger(logPath, defaultPath string) *log.Logger {
