@@ -51,6 +51,16 @@ func main() {
 	txt := strings.TrimSpace(nlp.RemoveReservedTwitterWords(num_mod_txt1))
 	words := nlp.ParseText(txt)
 	actions := t.SearchWords(&words, -1, -1, -1, []string{}, []string{"ACTION"})
+
+	var metrics []*t.Word
+	for _, action := range actions {
+		m := t.SearchShallowestWord(&words, action.Index, -1, -1, []string{}, []string{"METRIC"})
+		if m != nil {
+			fmt.Println("found metric ", m.Text)
+			metrics = append(metrics, m)
+		}
+	}
+
 	var actionWords [][]*t.Word
 	for _, action := range actions {
 		recWords := t.SearchGroupedWords(&words, action.Index, -1, -1)

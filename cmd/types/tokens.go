@@ -163,6 +163,26 @@ func SearchGroupedWords(words *[]*Word, hdIdx, stIdx, endIdx int) (results [][]*
 	return results
 }
 
+func SearchShallowestWord(words *[]*Word, hdIdx, stIdx, endIdx int, tags, btCmps []string) (word *Word) {
+	head := (*words)[hdIdx]
+	if len(head.DependencyEdge.ChildTokenIndices) == 0 || head.DependencyEdge.HeadTokenIndex == head.Index {
+		return nil
+	}
+
+	for _, cIdx := range head.DependencyEdge.ChildTokenIndices {
+		child := (*words)[cIdx]
+		if matchSearchWord(word, -1, stIdx, endIdx, trags, btCmps) {
+			return child
+		} else {
+			recurse := SearchShallowestWord(words, cIdx, stIdx, endIdx, tags, btCmps)
+			if recurse != nil {
+				return recurse
+			}
+		}
+	}
+	return nil
+}
+
 // func SearchGroupedWords(words *[]*Word, hdIdx, stIdx, endIdx int, tags, btCmps []string) (results [][]*Word) {
 // 	children := []*Word{}
 // 	for _, w := range *words {
