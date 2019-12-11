@@ -17,18 +17,20 @@ func ProcessPendingFinalBets(twitterClient *http.Client) (err error) {
 	bets := db.FindPendingFinal()
 	for _, bet := range bets {
 		fmt.Println("finalizing bet ", bet.Text())
-		result := b.CalcBetResult(bet)
-		if result == nil {
-			continue
+		result, err := b.CalcBetResult(bet)
+		if err != nil {
+			return err
 		}
-		bet.Result = *result
+
 		bet.BetStatus = t.BetStatusFinal
-		_, err := SendTweet(twitterClient, bet.Result, bet.SourceFk)
+		bet.BetResult = result
+		respTweet, err := SendTweet(twitterClient, bet.Response(), bet.SourceFk)
 		if err != nil {
 			fmt.Println("err sending final bet tweet: ", err)
 			return err
 		}
-		fmt.Println("Final bet id: ", bet.Id, b.CalcBetResult(bet))
+		bet.BetResult.ResponseFk = respTweet.IdStr
+		fmt.Println("Finalized bet: ", bet.Id, bet.Response())
 		db.UpsertBet(bet)
 	}
 	return nil
@@ -112,13 +114,15 @@ func ProcessReplyTweet(twitterClient *http.Client, tweet *t.Tweet, bet *t.Bet) (
 		SendTweet(twitterClient, bet.Response(), tweet.IdStr)
 		return fmt.Errorf("Bet status no longer pending: %s", bet.BetStatus.String())
 	} else if bet.ExpiresAt.Before(time.Now()) {
-		bet.BetStatus = t.BetStatusExpired
-		SendTweet(twitterClient, bet.Response(), tweet.IdStr)
-		err = db.UpsertBet(bet)
-		if err != nil {
-			return err
-		}
-		return fmt.Errorf("Bet expired")
+		// Toggle Expiration Here
+		// bet.BetStatus = t.BetStatusExpired
+		// SendTweet(twitterClient, bet.Response(), tweet.IdStr)
+		// err = db.UpsertBet(bet)
+		// if err != nil {
+		// 	return err
+		// }
+		// return fmt.Errorf("Bet expired")
+		// Toggle Expiration Here
 	}
 
 	if yesRgx.Match([]byte(text)) {

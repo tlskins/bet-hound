@@ -49,8 +49,8 @@ func (g Game) VsTeamFk(playerTmFk string) string {
 	return ""
 }
 
-func FindGameByAwayFk(games []*Game, awayTeamFk string) *Game {
-	for _, g := range games {
+func FindGameByAwayFk(games *[]*Game, awayTeamFk string) *Game {
+	for _, g := range *games {
 		if g.AwayTeamFk == awayTeamFk {
 			return g
 		}
@@ -58,8 +58,8 @@ func FindGameByAwayFk(games []*Game, awayTeamFk string) *Game {
 	return nil
 }
 
-func FindGameByHomeFk(games []*Game, homeTeamFk string) *Game {
-	for _, g := range games {
+func FindGameByHomeFk(games *[]*Game, homeTeamFk string) *Game {
+	for _, g := range *games {
 		if g.HomeTeamFk == homeTeamFk {
 			return g
 		}

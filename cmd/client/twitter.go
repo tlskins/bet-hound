@@ -43,6 +43,7 @@ func main() {
 	ticker := time.NewTicker(15 * time.Minute)
 	go func() {
 		fmt.Println("Starting bet finalizer process...")
+		twitter.ProcessPendingFinalBets(client)
 		for {
 			select {
 			case t := <-ticker.C:
@@ -98,7 +99,6 @@ func WebhookHandlerWrapper(httpClient *http.Client) func(writer http.ResponseWri
 		var bet *t.Bet
 		if len(replyTweetId) > 0 {
 			bet = db.FindBetByReply(&newTweet)
-			// TODO : Send reply tweet that its invalid bet if start time < now and expire bet
 		}
 
 		// Reply to proposer check

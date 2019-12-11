@@ -38,21 +38,34 @@ func (s BetStatus) String() string {
 	}[s]
 }
 
+// Bet result
+
+type BetResult struct {
+	Winner       User      `bson:"winner" json:"winner"`
+	Loser        User      `bson:"loser" json:"loser"`
+	WinnerTotal  float64   `bson:"w_ttl" json:"winner_total"`
+	LoserTotal   float64   `bson:"l_ttl" json:"loser_total"`
+	Differential float64   `bson:"diff" json:"differential"`
+	Response     string    `bson:"resp" json:"response"`
+	ResponseFk   string    `bson:"resp_fk" json:"response_fk"`
+	DecidedAt    time.Time `bson:"dec_at" json:"decided_at"`
+}
+
 // Bet
 
 type Bet struct {
-	Id               string    `bson:"_id" json:"id"`
-	SourceFk         string    `bson:"source_fk" json:"source_fk"`
-	Proposer         User      `bson:"proposer" json:"proposer"`
-	Recipient        User      `bson:"recipient" json:"recipient"`
-	BetStatus        BetStatus `bson:"status" json:"bet_status"`
-	AcceptFk         string    `bson:"acc_fk" json:"acc_fk"`
-	ProposerReplyFk  *string   `bson:"pr_fk" json:"proposer_reply_fk"`
-	RecipientReplyFk *string   `bson:"rr_fk" json:"recipient_reply_fk"`
-	Equation         Equation  `bson:"eq" "json:"equation"`
-	Result           string    `bson:"result" json:"result"`
-	ExpiresAt        time.Time `bson:"exp_at" json:"expires_at"`
-	FinalizedAt      time.Time `bson:"final_at" json:"finalized_at"`
+	Id               string     `bson:"_id" json:"id"`
+	SourceFk         string     `bson:"source_fk" json:"source_fk"`
+	Proposer         User       `bson:"proposer" json:"proposer"`
+	Recipient        User       `bson:"recipient" json:"recipient"`
+	AcceptFk         string     `bson:"acc_fk" json:"acc_fk"`
+	ProposerReplyFk  *string    `bson:"pr_fk" json:"proposer_reply_fk"`
+	RecipientReplyFk *string    `bson:"rr_fk" json:"recipient_reply_fk"`
+	Equation         Equation   `bson:"eq" "json:"equation"`
+	ExpiresAt        time.Time  `bson:"exp_at" json:"expires_at"`
+	FinalizedAt      time.Time  `bson:"final_at" json:"finalized_at"`
+	BetStatus        BetStatus  `bson:"status" json:"bet_status"`
+	BetResult        *BetResult `bson:"rslt" json:"result"`
 }
 
 func (b Bet) Response() (txt string) {
@@ -70,7 +83,7 @@ func (b Bet) Response() (txt string) {
 			b.Recipient.ScreenName,
 		)
 	} else if b.BetStatus.String() == "Final" {
-		return b.Result
+		return b.BetResult.Response
 	} else if b.BetStatus.String() == "Expired" {
 		return fmt.Sprintf(
 			"@%s @%s Bet has expired.",
@@ -119,17 +132,28 @@ func (e Equation) Complete() (err error) {
 	if err != nil {
 		return err
 	}
-	err, lFinal := e.LeftExpression.Complete()
+	// Toggle Expiration Here
+	err, _ = e.LeftExpression.Complete()
 	if err != nil {
 		return err
 	}
-	err, rFinal := e.RightExpression.Complete()
+	err, _ = e.RightExpression.Complete()
 	if err != nil {
 		return err
 	}
-	if rFinal && lFinal {
-		return fmt.Errorf("Both games are already final!")
-	}
+
+	// err, lFinal := e.LeftExpression.Complete()
+	// if err != nil {
+	// 	return err
+	// }
+	// err, rFinal := e.RightExpression.Complete()
+	// if err != nil {
+	// 	return err
+	// }
+	// if rFinal && lFinal {
+	// 	return fmt.Errorf("Both games are already final!")
+	// }
+	// Toggle Expiration Here
 	return nil
 }
 

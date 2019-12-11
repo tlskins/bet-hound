@@ -205,44 +205,47 @@ func getThisWeeksGames() (*gq.Document, error) {
 		return nil, err
 	}
 
-	// Get week date
-	var gmYr, gmWk string
-	gameDate := doc.Find("#content > div.section_heading > h2").Text()
-	re := regexp.MustCompile(`^(?P<yr>\d+) Week (?P<wk>\d+)$`)
-	match := re.FindStringSubmatch(gameDate)
-	gmYr = match[1]
-	gmWkInt, _ := strconv.ParseInt(match[2], 0, 64)
-	gmWkInt += 1
-	gmWk = strconv.FormatInt(gmWkInt, 10)
-
-	// Check if all games finalized
-	notFinal := false
-	doc.Find(".game_summaries table.teams tbody").Each(func(i int, s *gq.Selection) {
-		txt := s.Find("tr td.gamelink a").Text()
-		if txt != "Final" {
-			notFinal = true
-			return
-		}
-	})
-	if notFinal {
-		return doc, nil
-	}
-
-	// Pull next week if games final
-	res, err = http.Get(fmt.Sprintf("https://www.pro-football-reference.com/years/%s/week_%s.htm", gmYr, gmWk))
-	if err != nil {
-		log.Fatal(err)
-		return nil, err
-	}
-	defer res.Body.Close()
-	if res.StatusCode != 200 {
-		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
-		return nil, err
-	}
-	doc, err = gq.NewDocumentFromReader(res.Body)
-	if err != nil {
-		log.Fatal(err)
-		return nil, err
-	}
+	// Toggle Expiration Here
 	return doc, err
+	// Get week date
+	// var gmYr, gmWk string
+	// gameDate := doc.Find("#content > div.section_heading > h2").Text()
+	// re := regexp.MustCompile(`^(?P<yr>\d+) Week (?P<wk>\d+)$`)
+	// match := re.FindStringSubmatch(gameDate)
+	// gmYr = match[1]
+	// gmWkInt, _ := strconv.ParseInt(match[2], 0, 64)
+	// gmWkInt += 1
+	// gmWk = strconv.FormatInt(gmWkInt, 10)
+
+	// // Check if all games finalized
+	// notFinal := false
+	// doc.Find(".game_summaries table.teams tbody").Each(func(i int, s *gq.Selection) {
+	// 	txt := s.Find("tr td.gamelink a").Text()
+	// 	if txt != "Final" {
+	// 		notFinal = true
+	// 		return
+	// 	}
+	// })
+	// if notFinal {
+	// 	return doc, nil
+	// }
+
+	// // Pull next week if games final
+	// res, err = http.Get(fmt.Sprintf("https://www.pro-football-reference.com/years/%s/week_%s.htm", gmYr, gmWk))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// 	return nil, err
+	// }
+	// defer res.Body.Close()
+	// if res.StatusCode != 200 {
+	// 	log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
+	// 	return nil, err
+	// }
+	// doc, err = gq.NewDocumentFromReader(res.Body)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// 	return nil, err
+	// }
+	// return doc, err
+	// Toggle Expiration Here
 }

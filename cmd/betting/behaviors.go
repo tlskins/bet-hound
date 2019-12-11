@@ -32,9 +32,11 @@ func BuildBetFromTweet(tweet *t.Tweet) (err error, bet *t.Bet) {
 	loc, _ := time.LoadLocation("America/New_York")
 	yrM, mthM, dayM := maxGmTime.Date()
 	expiresAt := minGmTime.In(loc)
-	if expiresAt.Before(time.Now()) {
-		return fmt.Errorf("Those games have already started."), nil
-	}
+	// Toggle Expiration Here
+	// if expiresAt.Before(time.Now()) {
+	// 	return fmt.Errorf("Those games have already started."), nil
+	// }
+	// Toggle Expiration Here
 
 	bet = &t.Bet{
 		Id:          uuid.NewV4().String(),
@@ -49,58 +51,77 @@ func BuildBetFromTweet(tweet *t.Tweet) (err error, bet *t.Bet) {
 	return nil, bet
 }
 
-func CalcBetResult(bet *t.Bet) *string {
+func calcExpressionResult(expr *t.PlayerExpression, games *[]*t.Game, metric *t.Metric) (total float64, err error) {
+	gm := t.FindGameByAwayFk(games, expr.Player.TeamFk)
+	if gm == nil {
+		gm = t.FindGameByHomeFk(games, expr.Player.TeamFk)
+	}
+	log := scraper.ScrapeGameLog(gm)
+	score := calcPlayerGameScore(&log, &expr.Player, metric)
+
+	if score == nil {
+		return 0.0, fmt.Errorf("Unable to determine score for ", expr.Description())
+	}
+	return *score, nil
+}
+
+func CalcBetResult(bet *t.Bet) (betRes *t.BetResult, err error) {
 	fmt.Println("calc bet result ", bet.Id, bet.Text())
 	eq := bet.Equation
 	games := scraper.ScrapeThisWeeksGames()
 	lftMetric, rgtMetric := eq.Metrics()
 
-	leftGame := t.FindGameByAwayFk(games, eq.LeftExpression.Player.TeamFk)
-	if leftGame == nil {
-		leftGame = t.FindGameByHomeFk(games, eq.LeftExpression.Player.TeamFk)
+	// Calculate expression values
+	leftRes, err := calcExpressionResult(&bet.Equation.LeftExpression, &games, &lftMetric)
+	if err != nil {
+		return nil, err
 	}
-	lftLog := scraper.ScrapeGameLog(leftGame)
-	lftScore := calcPlayerGameScore(&lftLog, &eq.LeftExpression.Player, &lftMetric)
-
-	rightGame := t.FindGameByAwayFk(games, eq.RightExpression.Player.TeamFk)
-	if rightGame == nil {
-		rightGame = t.FindGameByHomeFk(games, eq.RightExpression.Player.TeamFk)
-	}
-	rgtLog := scraper.ScrapeGameLog(rightGame)
-	rgtScore := calcPlayerGameScore(&rgtLog, &eq.RightExpression.Player, &rgtMetric)
-
-	if lftScore == nil || rgtScore == nil {
-		return nil
+	rightRes, err := calcExpressionResult(&bet.Equation.RightExpression, &games, &rgtMetric)
+	if err != nil {
+		return nil, err
 	}
 
-	var wId, lId, wPlayer, lPlayer string
+	var wSn, lSn string
+	var wPlayer, lPlayer t.Player
+	var wUsr, lUsr t.User
 	var wScore, lScore float64
-	if *lftScore > *rgtScore {
-		wId = bet.Proposer.ScreenName
-		lId = bet.Recipient.ScreenName
-		wPlayer = bet.Equation.LeftExpression.Player.Name
-		lPlayer = bet.Equation.RightExpression.Player.Name
-		wScore = *lftScore
-		lScore = *rgtScore
+	if leftRes > rightRes {
+		wUsr = bet.Proposer
+		lUsr = bet.Recipient
+		wSn = bet.Proposer.ScreenName
+		lSn = bet.Recipient.ScreenName
+		wPlayer = bet.Equation.LeftExpression.Player
+		lPlayer = bet.Equation.RightExpression.Player
+		wScore = leftRes
+		lScore = rightRes
 	} else {
-		wId = bet.Recipient.ScreenName
-		lId = bet.Proposer.ScreenName
-		wPlayer = bet.Equation.RightExpression.Player.Name
-		lPlayer = bet.Equation.LeftExpression.Player.Name
-		wScore = *rgtScore
-		lScore = *lftScore
+		wUsr = bet.Recipient
+		lUsr = bet.Proposer
+		wSn = bet.Recipient.ScreenName
+		lSn = bet.Proposer.ScreenName
+		wPlayer = bet.Equation.RightExpression.Player
+		lPlayer = bet.Equation.LeftExpression.Player
+		wScore = rightRes
+		lScore = leftRes
 	}
 
-	result := fmt.Sprintf(
-		"Congrats @%s you beat @%s! %s scored %.1f while %s only scored %.1f.",
-		wId,
-		lId,
-		wPlayer,
-		wScore,
-		lPlayer,
-		lScore,
-	)
-	return &result
+	betRes = &t.BetResult{
+		Winner:       wUsr,
+		Loser:        lUsr,
+		WinnerTotal:  wScore,
+		LoserTotal:   lScore,
+		Differential: wScore - lScore,
+		Response: fmt.Sprintf("Congrats @%s you beat @%s! %s scored %.1f while %s only scored %.1f.",
+			wSn,
+			lSn,
+			wPlayer.Name,
+			wScore,
+			lPlayer.Name,
+			lScore,
+		),
+		DecidedAt: time.Now(),
+	}
+	return betRes, nil
 }
 
 func calcPlayerGameScore(log *map[string]*t.GameStat, player *t.Player, metric *t.Metric) *float64 {
@@ -157,15 +178,15 @@ func BuildEquationFromText(text string) (err error, eq *t.Equation) {
 func addGamesToEquation(e *t.Equation) {
 	games := scraper.ScrapeThisWeeksGames()
 
-	leftGame := t.FindGameByAwayFk(games, e.LeftExpression.Player.TeamFk)
+	leftGame := t.FindGameByAwayFk(&games, e.LeftExpression.Player.TeamFk)
 	if leftGame == nil {
-		leftGame = t.FindGameByHomeFk(games, e.LeftExpression.Player.TeamFk)
+		leftGame = t.FindGameByHomeFk(&games, e.LeftExpression.Player.TeamFk)
 	}
 	e.LeftExpression.Game = leftGame
 
-	rightGame := t.FindGameByAwayFk(games, e.RightExpression.Player.TeamFk)
+	rightGame := t.FindGameByAwayFk(&games, e.RightExpression.Player.TeamFk)
 	if rightGame == nil {
-		rightGame = t.FindGameByHomeFk(games, e.RightExpression.Player.TeamFk)
+		rightGame = t.FindGameByHomeFk(&games, e.RightExpression.Player.TeamFk)
 	}
 	e.RightExpression.Game = rightGame
 }
