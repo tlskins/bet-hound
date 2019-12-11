@@ -6,10 +6,10 @@ import (
 	language "cloud.google.com/go/language/apiv1"
 	"context"
 	"fmt"
-	// "fmt"
 	langpb "google.golang.org/genproto/googleapis/cloud/language/v1"
 	"log"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -97,7 +97,7 @@ func buildOperatorPhrase(words *[]*t.Word, action *t.Word) (opPhrase *t.Operator
 	nouns := t.FindWords(words, action.Index, []string{"NOUN", "VERB"}, []string{})
 	for _, noun := range nouns {
 		if isMetricLemma(noun.Lemma) {
-			adjs := t.FindWords(words, noun.Index, []string{"ADJ", "NOUN"}, []string{})
+			adjs := t.FindWords(words, noun.Index, []string{"ADJ", "NOUN", "NUM"}, []string{})
 			modWords := t.FindWords(words, noun.Index, []string{}, []string{})
 			metricMods := []string{}
 			for _, m := range modWords {
@@ -110,10 +110,11 @@ func buildOperatorPhrase(words *[]*t.Word, action *t.Word) (opPhrase *t.Operator
 				Modifiers: metricMods,
 			}
 			for _, adj := range adjs {
-				fmt.Println("adj", *adj)
-				opPhrase = &t.OperatorPhrase{
-					OperatorWord: *adj,
-					ActionWord:   *action,
+				if isOperatorLemma(adj.Lemma) {
+					opPhrase = &t.OperatorPhrase{
+						OperatorWord: *adj,
+						ActionWord:   *action,
+					}
 				}
 				return opPhrase, metric
 			}
@@ -140,6 +141,14 @@ func isActionLemma(str string) bool {
 	}
 }
 
+func isOperatorLemma(str string) bool {
+	if str == "more" || str == "few" || str == "less" {
+		return true
+	} else {
+		return false
+	}
+}
+
 func isMetricLemma(str string) bool {
 	if str == "point" || str == "pt" || str == "yard" || str == "yd" || str == "touchdown" || str == "td" {
 		return true
@@ -149,7 +158,8 @@ func isMetricLemma(str string) bool {
 }
 
 func isMetricModText(str string) bool {
-	if str == "ppr" || str == "0.5ppr" || str == ".5ppr" {
+	_, floatErr := strconv.ParseFloat(str, 64) // no err means it is a float
+	if str == "ppr" || str == "0.5ppr" || str == ".5ppr" || floatErr == nil {
 		return true
 	} else {
 		return false
