@@ -50,20 +50,24 @@ func main() {
 	fmt.Println("start")
 	txt := strings.TrimSpace(nlp.RemoveReservedTwitterWords(num_mod_txt1))
 	words := nlp.ParseText(txt)
+
+	// Find Actions
 	actions := t.SearchWords(&words, -1, -1, -1, []string{}, []string{"ACTION"})
 
+	// Find Metrics
 	var metrics []*t.Word
 	for _, action := range actions {
 		m := t.SearchShallowestWord(&words, action.Index, -1, -1, []string{}, []string{"METRIC"})
 		if m != nil {
-			fmt.Println("found metric ", m.Text)
+			fmt.Println("found metric ", m.Text, m.Index)
 			metrics = append(metrics, m)
 		}
 	}
 
+	// Action Paths
 	var actionWords [][]*t.Word
 	for _, action := range actions {
-		recWords := t.SearchGroupedWords(&words, action.Index, -1, -1)
+		recWords := t.SearchGroupedWords(&words, action.Index, -1, -1, false)
 		for _, r := range recWords {
 			actionWords = append(actionWords, r)
 		}
