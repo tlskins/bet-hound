@@ -32,9 +32,9 @@ func BuildBetFromTweet(tweet *t.Tweet) (err error, bet *t.Bet) {
 	loc, _ := time.LoadLocation("America/New_York")
 	yrM, mthM, dayM := maxGmTime.Date()
 	expiresAt := minGmTime.In(loc)
-	// if expiresAt.Before(time.Now()) {
-	// 	return fmt.Errorf("Those games have already started."), nil
-	// }
+	if expiresAt.Before(time.Now()) {
+		return fmt.Errorf("Those games have already started."), nil
+	}
 
 	bet = &t.Bet{
 		Id:          uuid.NewV4().String(),

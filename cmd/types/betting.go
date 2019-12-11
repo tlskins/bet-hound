@@ -119,17 +119,17 @@ func (e Equation) Complete() (err error) {
 	if err != nil {
 		return err
 	}
-	err, _ = e.LeftExpression.Complete()
+	err, lFinal := e.LeftExpression.Complete()
 	if err != nil {
 		return err
 	}
-	err, _ = e.RightExpression.Complete()
+	err, rFinal := e.RightExpression.Complete()
 	if err != nil {
 		return err
 	}
-	// if rFinal && lFinal {
-	// 	return fmt.Errorf("Both games are already final!")
-	// }
+	if rFinal && lFinal {
+		return fmt.Errorf("Both games are already final!")
+	}
 	return nil
 }
 

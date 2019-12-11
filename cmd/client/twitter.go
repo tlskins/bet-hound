@@ -42,6 +42,7 @@ func main() {
 	// Schedule process pending final bets
 	ticker := time.NewTicker(15 * time.Minute)
 	go func() {
+		fmt.Println("Starting bet finalizer process...")
 		for {
 			select {
 			case t := <-ticker.C:
@@ -65,10 +66,7 @@ func main() {
 	m.HandleFunc("/webhook/twitter", CrcCheck).Methods("GET")
 	m.HandleFunc("/webhook/twitter", WebhookHandlerWrapper(client)).Methods("POST")
 
-	server := &http.Server{
-		Handler: m,
-	}
-	server.Addr = ":9090"
+	server := &http.Server{Handler: m, Addr: ":9090"}
 	fmt.Println("listen and serving...")
 	server.ListenAndServe()
 }
