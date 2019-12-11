@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"github.com/satori/go.uuid"
 	"math"
+	"strings"
 	"time"
 )
 
 func BuildBetFromTweet(tweet *t.Tweet) (err error, bet *t.Bet) {
-	err, eq := BuildEquationFromText(*tweet.FullText)
+	txt := strings.TrimSpace(nlp.RemoveReservedTwitterWords(tweet.GetText()))
+	err, eq := BuildEquationFromText(txt)
 	if err != nil {
 		return err, nil
 	}

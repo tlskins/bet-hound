@@ -133,6 +133,7 @@ type Word struct {
 	Index          int            `bson:"idx,omitempty" json:"index"`
 	PartOfSpeech   PartOfSpeech   `bson:"pos,omitempty" json:"part_of_speech"`
 	DependencyEdge DependencyEdge `bson:"dep_edge,omitempty" json:"dependency_edge"`
+	BetComponent   string         `bson:"b_comp" json:"bet_component"`
 }
 
 type PartOfSpeech struct {

@@ -94,14 +94,19 @@ func findActions(words *[]*t.Word) (actionWords []*t.Word) {
 }
 
 func buildOperatorPhrase(words *[]*t.Word, action *t.Word) (opPhrase *t.OperatorPhrase, metric *t.Metric) {
+	fmt.Println("begin buildOperatorPhrase, action: ", action.Text)
 	nouns := t.FindWords(words, action.Index, []string{"NOUN", "VERB"}, []string{})
 	for _, noun := range nouns {
+		fmt.Printf("noun: %s\n", noun.Text)
 		if isMetricLemma(noun.Lemma) {
+			fmt.Printf("noun %s is a metric\n", noun.Text)
 			adjs := t.FindWords(words, noun.Index, []string{"ADJ", "NOUN", "NUM"}, []string{})
 			modWords := t.FindWords(words, noun.Index, []string{}, []string{})
 			metricMods := []string{}
 			for _, m := range modWords {
+				fmt.Printf("checking mod word %s\n", m.Text)
 				if isMetricModText(m.Text) {
+					fmt.Printf("modword %s is metric\n", m.Text)
 					metricMods = append(metricMods, m.Text)
 				}
 			}
@@ -110,7 +115,9 @@ func buildOperatorPhrase(words *[]*t.Word, action *t.Word) (opPhrase *t.Operator
 				Modifiers: metricMods,
 			}
 			for _, adj := range adjs {
+				fmt.Printf("checking adj %s\n", adj.Text)
 				if isOperatorLemma(adj.Lemma) {
+					fmt.Printf("adj %s is an operator\n", adj.Text)
 					opPhrase = &t.OperatorPhrase{
 						OperatorWord: *adj,
 						ActionWord:   *action,
