@@ -32,15 +32,14 @@ func SearchPlayerByName(search string) (player *t.Player) {
 	c := conn.DB(env.MongoDb()).C(env.PlayersCollection())
 
 	// TODO : set indexes somewhere else
-	index := mgo.Index{Key: []string{"$text:f_name", "$text:l_name"}}
+	index := mgo.Index{Key: []string{"$text:f_name", "$text:l_name", "$text:name"}}
 	m.CreateIndex(c, index)
 
 	// TODO : rewrite with pkg functions
 	result := make([]t.Player, 0, 1)
 	query := m.M{"$text": m.M{"$search": search}}
 	sel := m.M{"score": m.M{"$meta": "textScore"}}
-	q := c.Find(query).Select(sel).Sort("$textScore:score")
-	q.All(&result)
+	c.Find(query).Select(sel).Sort("$textScore:score").All(&result)
 
 	if len(result) > 0 {
 		return &result[0]

@@ -14,7 +14,7 @@
 # ignore binaries
 *main
 *config
-
+cmd/client/client
 # Ignore envs
 *.env
 config*.json

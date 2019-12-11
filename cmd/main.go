@@ -21,7 +21,8 @@ const appConfigName = "config"
 var logger *log.Logger
 
 // Points comes up as verb
-const text = "@bettybetbot @richayelfuego yo richardo u wanna bet that Alshon Jeffery scores more ppr points that Saquon Barkley this week?"
+const pt_to_vrb_txt = "@bettybetbot @richayelfuego yo richardo u wanna bet that Alshon Jeffery scores more ppr points that Saquon Barkley this week?"
+const name_matching_txt = "@bettybetbot @richayelfuego bet you that juju scores more ppr points than AJ Brown this week?"
 
 func main() {
 	// Initialization
@@ -33,7 +34,7 @@ func main() {
 	defer env.Cleanup()
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
 
-	err, eq := b.BuildEquationFromText(text)
+	err, eq := b.BuildEquationFromText(name_matching_txt)
 	if err != nil {
 		fmt.Println(err)
 	}

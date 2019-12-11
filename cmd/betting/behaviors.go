@@ -60,7 +60,7 @@ func calcExpressionResult(expr *t.PlayerExpression, games *[]*t.Game, metric *t.
 	score := calcPlayerGameScore(&log, &expr.Player, metric)
 
 	if score == nil {
-		return 0.0, fmt.Errorf("Unable to determine score for ", expr.Description())
+		return 0.0, fmt.Errorf("Unable to determine score for %s", expr.Description())
 	}
 	return *score, nil
 }
@@ -149,7 +149,7 @@ func BuildEquationFromText(text string) (err error, eq *t.Equation) {
 	words := nlp.ParseText(text)
 	opPhrase, leftMetric := nlp.FindOperatorPhrase(&words)
 	if opPhrase == nil {
-		return fmt.Errorf("Sorry, couldn't find a betting operator (like 'score more'!)"), nil
+		return fmt.Errorf("Sorry, couldn't find a betting operator (like 'score more than'!)"), nil
 	}
 	if leftMetric == nil {
 		return fmt.Errorf("Sorry, couldn't find a betting metric (like 'ppr points')!"), nil

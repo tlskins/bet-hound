@@ -23,15 +23,12 @@ func ScrapeGameLog(game *t.Game) (gameLog map[string]*t.GameStat) {
 	if res.StatusCode != 200 {
 		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
 	}
-
-	// Load the HTML document
 	doc, err := gq.NewDocumentFromReader(res.Body)
 	if err != nil {
 		log.Fatal(err)
 	}
 	gameLog = make(map[string]*t.GameStat)
 
-	// doc.Find(".game_summaries table.teams tbody").Each(func(i int, s *gq.Selection) {
 	doc.Find("#player_offense tbody").Each(func(i int, s *gq.Selection) {
 		s.Find("tr").Each(func(i int, s *gq.Selection) {
 			playerFk, _ := s.Find("th").Attr("data-append-csv")

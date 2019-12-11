@@ -3,6 +3,7 @@ package twitter
 import (
 	b "bet-hound/cmd/betting"
 	"bet-hound/cmd/db"
+	"bet-hound/cmd/nlp"
 	t "bet-hound/cmd/types"
 	"encoding/json"
 	"fmt"
@@ -10,7 +11,8 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
-	"time"
+	"strings"
+	// "time"
 )
 
 func ProcessPendingFinalBets(twitterClient *http.Client) (err error) {
@@ -107,24 +109,29 @@ func ProcessNewTweet(twitterClient *http.Client, tweet *t.Tweet) (error, *t.Bet)
 }
 
 func ProcessReplyTweet(twitterClient *http.Client, tweet *t.Tweet, bet *t.Bet) (err error) {
-	var yesRgx = regexp.MustCompile(`(?i)yes`)
-	text := tweet.GetText()
+	var yesRgx = regexp.MustCompile(`(?i)^(y(e|a)\S*|ok|sure|deal)`)
+	var noRgx = regexp.MustCompile(`(?i)^(n(a|o)\S*|pass)`)
+	text := strings.TrimSpace(nlp.RemoveReservedTwitterWords(tweet.GetText()))
 
-	if bet.BetStatus.String() != "Pending Approval" {
-		SendTweet(twitterClient, bet.Response(), tweet.IdStr)
-		return fmt.Errorf("Bet status no longer pending: %s", bet.BetStatus.String())
-	} else if bet.ExpiresAt.Before(time.Now()) {
-		// Toggle Expiration Here
-		// bet.BetStatus = t.BetStatusExpired
-		// SendTweet(twitterClient, bet.Response(), tweet.IdStr)
-		// err = db.UpsertBet(bet)
-		// if err != nil {
-		// 	return err
-		// }
-		// return fmt.Errorf("Bet expired")
-		// Toggle Expiration Here
-	}
+	// if bet.BetStatus.String() != "Expired" {
+	// 	SendTweet(twitterClient, bet.Response(), tweet.IdStr)
+	// 	return fmt.Errorf("Bet status no longer pending: %s", bet.BetStatus.String())
+	// } else
 
+	// Toggle Expiration Here
+	// if bet.ExpiresAt.Before(time.Now()) {
+	// 	bet.BetStatus = t.BetStatusExpired
+	// 	SendTweet(twitterClient, bet.Response(), tweet.IdStr)
+	// 	err = db.UpsertBet(bet)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	return fmt.Errorf("Bet expired")
+	// }
+	// Toggle Expiration Here
+
+	// Process bet acceptance
+	fmt.Printf("matching response text: %s", text)
 	if yesRgx.Match([]byte(text)) {
 		if bet.ProposerReplyFk == nil && bet.Proposer.IdStr == tweet.User.IdStr {
 			bet.ProposerReplyFk = &tweet.InReplyToStatusIdStr
@@ -135,13 +142,20 @@ func ProcessReplyTweet(twitterClient *http.Client, tweet *t.Tweet, bet *t.Bet) (
 		if bet.RecipientReplyFk != nil && bet.ProposerReplyFk != nil {
 			bet.BetStatus = t.BetStatusAccepted
 			rTweet, err := SendTweet(twitterClient, bet.Response(), bet.SourceFk)
-			fmt.Println("Sent response tweet id to id: ", rTweet.IdStr, bet.SourceFk, rTweet.GetText())
+			fmt.Println("Accept bet tweet id to id: ", rTweet.IdStr, bet.SourceFk, rTweet.GetText())
 			if err != nil {
 				return err
 			}
 		}
 
 		err = db.UpsertBet(bet)
+		if err != nil {
+			return err
+		}
+	} else if noRgx.Match([]byte(text)) {
+		bet.BetStatus = t.BetStatusCancelled
+		rTweet, err := SendTweet(twitterClient, bet.Response(), bet.SourceFk)
+		fmt.Println("Cancel bet tweet id to id: ", rTweet.IdStr, bet.SourceFk, rTweet.GetText())
 		if err != nil {
 			return err
 		}
