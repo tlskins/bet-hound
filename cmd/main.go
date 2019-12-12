@@ -35,8 +35,8 @@ func main() {
 	// Text samples
 	// pt_to_vrb_txt := "@bettybetbot @richayelfuego yo richardo u wanna bet that Alshon Jeffery scores more ppr points that Saquon Barkley this week?"
 	// name_matching_txt := "@bettybetbot @richayelfuego bet you that juju scores more ppr points than AJ Brown this week?"
-	num_mod_txt1 := "@bettybetbot @richayelfuego bet you that Alshon Jeffery scores 5.6 more ppr points than Alvin Kamara scores ppr points this week?"
-	// num_mod_txt2 := "@bettybetbot @richayelfuego bet you that Alshon Jeffery scores 5.6 more ppr points than Alvin Kamara this week?"
+	// num_mod_txt1 := "@bettybetbot @richayelfuego bet you that Alshon Jeffery scores 5.6 more ppr points than Alvin Kamara scores ppr points this week?"
+	num_mod_txt2 := "@bettybetbot @richayelfuego bet you that Alshon Jeffery scores 5.6 more ppr points than Alvin Kamara this week?"
 
 	// tweet, nil := db.FindTweet("1204576588387373056")
 	// tweet.FullText = &num_mod_txt
@@ -48,36 +48,87 @@ func main() {
 	// fmt.Println("bet", bet.Equation.Operator, lMetric, rMetric)
 
 	fmt.Println("start")
-	txt := strings.TrimSpace(nlp.RemoveReservedTwitterWords(num_mod_txt1))
-	words := nlp.ParseText(txt)
+	txt := strings.TrimSpace(nlp.RemoveReservedTwitterWords(num_mod_txt2))
+	allWords := nlp.ParseText(txt)
 
 	// Find Actions
-	actions := t.SearchWords(&words, -1, -1, -1, []string{}, []string{"ACTION"})
+	actions := t.SearchWords(&allWords, -1, -1, -1, []string{}, []string{"ACTION"})
 
 	// Find Metrics
-	var metrics []*t.Word
+	// var metrics []*t.Word
+	var lastDelim *t.Word
 	for _, action := range actions {
-		m := t.SearchShallowestWord(&words, action.Index, -1, -1, []string{}, []string{"METRIC"})
-		if m != nil {
-			fmt.Println("found metric ", m.Text, m.Index)
-			metrics = append(metrics, m)
-		}
-	}
+		fmt.Printf("\nPROCESSING action word: %s %d\n", action.Text, action.Index)
+		// lExpr := PlayerExpression{}
+		// rExpr := PlayerExpression
+		// op := t.OperatorPhrase{}
+		var metric *t.Metric
 
-	// Action Paths
-	var actionWords [][]*t.Word
-	for _, action := range actions {
-		recWords := t.SearchGroupedWords(&words, action.Index, -1, -1, false)
-		for _, r := range recWords {
-			actionWords = append(actionWords, r)
+		// Action child phrases
+		fmt.Printf("Child phrases for action word: %s %d\n", action.Text, action.Index)
+		words2D := t.SearchGroupedWords(&allWords, action.Index, -1, -1, false)
+
+		// Each child phrase off action
+		for _, words := range words2D {
+			// Print child phrase
+			for _, word := range words {
+				fmt.Print(" " + word.Text)
+			}
+			fmt.Print("\n")
+
+			// Find Deliminator
+			if len(words) >= 1 {
+				if words[0].BetComponent == "DELIMINATOR" {
+					lastDelim = words[0]
+					fmt.Printf("Found deliminator word: %s %d\n", words[0].Text, words[0].Index)
+				}
+			}
+
+			// Find Metric
+			if metric == nil {
+				metricWord := t.SearchShallowestWord(&allWords, action.Index, -1, -1, []string{}, []string{"METRIC"})
+				if metricWord != nil {
+					metric = &t.Metric{Word: *metricWord}
+					fmt.Printf("Found metric word: %s %d\n", metricWord.Text, metricWord.Index)
+				}
+			} else {
+				// Find Metric Mods
+				if words[len(words)-1].BetComponent == "METRIC" {
+					for _, w := range words {
+						if w.BetComponent == "METRIC_MOD" {
+							fmt.Printf("Found metric mod: %s %d\n", w.Text, w.Index)
+							metric.Modifiers = append(metric.Modifiers, *w)
+						}
+					}
+				}
+			}
+
+			// Find Player
+			notComponent := true
+			playerNms := []*t.Word{}
+			for _, word := range words {
+				if word.PartOfSpeech.Tag == "NOUN" {
+					playerNms = append(playerNms, word)
+				}
+				if len(word.BetComponent) > 0 {
+					notComponent = false
+				}
+			}
+			if notComponent && len(playerNms) > 0 {
+				fmt.Print("Found player: ")
+				for _, p := range playerNms {
+					fmt.Print(" " + p.Text)
+				}
+				fmt.Print("\n")
+			}
 		}
-	}
-	for i, a := range actionWords {
-		fmt.Print("Actions word ", i)
-		for _, n := range a {
-			fmt.Print(" " + n.Text)
+
+		// Left or Right
+		if lastDelim != nil && action.Index < lastDelim.Index {
+			fmt.Println("Left expression")
+		} else {
+			fmt.Println("Right expression")
 		}
-		fmt.Print("\n")
 	}
 }
 

@@ -177,13 +177,13 @@ func (e Equation) MetricString() (metricStr string, rightMetric string) {
 		metric = e.RightExpression.Metric
 	}
 	for _, m := range metric.Modifiers {
-		metricStr = m + " " + metricStr
+		metricStr = m.Text + " " + metricStr
 	}
 	metricStr = metricStr + metric.Word.Lemma + "s"
 	if e.RightExpression.Metric != nil {
 		rightMetric = e.RightExpression.Metric.Word.Lemma
 		for _, m := range metric.Modifiers {
-			rightMetric = metricStr + " " + m
+			rightMetric = metricStr + " " + m.Text
 		}
 	}
 	return metricStr, rightMetric
@@ -192,12 +192,17 @@ func (e Equation) MetricString() (metricStr string, rightMetric string) {
 // Operator Phrase
 
 type OperatorPhrase struct {
-	ActionWord   Word `bson:"a_word" json:"action_word"`
-	OperatorWord Word `bson:"op_word" json:"operator_word"`
+	ActionWord      Word `bson:"a_word" json:"action_word"`
+	OperatorWord    Word `bson:"op_word" json:"operator_word"`
+	DeliminatorWord Word `bson:"delim" json:"deliminator_word"`
 }
 
 func (p OperatorPhrase) Complete() (err error) {
-	if p.ActionWord.Lemma == "" && p.OperatorWord.Lemma == "" {
+	if p.ActionWord.Index == p.OperatorWord.Index || p.ActionWord.Index == p.DeliminatorWord.Index || p.OperatorWord.Index == p.DeliminatorWord.Index {
+		return fmt.Errorf("Words must have distinct indices.")
+		// } else if !((p.ActionWord.Index < p.ExpressionDeliminator.Index) == (p.OperatorWord.Index < p.ExpressionDeliminator.Index)) {
+		// return fmt.Errorf("Words must be on same side of expression deliminator.")
+	} else if p.ActionWord.Lemma == "" && p.OperatorWord.Lemma == "" {
 		return fmt.Errorf("Invalid bet syntax.")
 	} else {
 		return nil
@@ -211,15 +216,15 @@ func (p OperatorPhrase) Text() string {
 // Metric / Event Time
 
 type Metric struct {
-	Word      Word     `bson:"word" json:"word"`
-	Modifiers []string `bson:"mods" json:"modifiers"`
+	Word      Word   `bson:"word" json:"word"`
+	Modifiers []Word `bson:"mods" json:"modifiers"`
 }
 
 func (m Metric) PPR() float64 {
 	for _, m := range m.Modifiers {
-		if m == "ppr" {
+		if m.Text == "ppr" {
 			return 1.0
-		} else if m == "0.5ppr" || m == ".5ppr" {
+		} else if m.Text == "0.5ppr" || m.Text == ".5ppr" {
 			return 0.5
 		}
 	}
@@ -227,8 +232,8 @@ func (m Metric) PPR() float64 {
 }
 
 type EventTime struct {
-	Word      Word     `bson:"word" json:"word"`
-	Modifiers []string `bson:"mods" json:"modifiers"`
+	Word      Word   `bson:"word" json:"word"`
+	Modifiers []Word `bson:"mods" json:"modifiers"`
 }
 
 // Expression

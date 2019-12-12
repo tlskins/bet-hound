@@ -199,6 +199,8 @@ func CalcBetComponent(lemma string) string {
 		return "ACTION"
 	} else if lemma == "more" || lemma == "few" || lemma == "less" {
 		return "OPERATOR"
+	} else if lemma == "than" {
+		return "DELIMINATOR"
 	} else if lemma == "point" || lemma == "pt" || lemma == "yard" || lemma == "yd" || lemma == "touchdown" || lemma == "td" {
 		return "METRIC"
 	} else if lemma == "ppr" || lemma == "0.5ppr" || lemma == ".5ppr" || floatErr == nil {
