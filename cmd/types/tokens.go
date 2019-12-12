@@ -147,11 +147,11 @@ func SearchWords(words *[]*Word, hdIdx, stIdx, endIdx int, tags, btCmps []string
 func SearchGroupedWords(words *[]*Word, hdIdx, stIdx, endIdx int, incl bool) (results [][]*Word) {
 	word := (*words)[hdIdx]
 	if len(word.DependencyEdge.ChildTokenIndices) == 0 || word.DependencyEdge.HeadTokenIndex == word.Index {
-		return append(results, []*Word{word})
+		results = append(results, []*Word{word})
 	}
 
 	for _, cIdx := range word.DependencyEdge.ChildTokenIndices {
-		if (stIdx == -1 || stIdx < hdIdx) && (endIdx == -1 || endIdx > hdIdx) {
+		if (stIdx == -1 || stIdx <= hdIdx) && (endIdx == -1 || endIdx >= hdIdx) {
 			child := (*words)[cIdx]
 			recurse := SearchGroupedWords(words, child.Index, stIdx, endIdx, true)
 			for _, r := range recurse {
@@ -163,6 +163,15 @@ func SearchGroupedWords(words *[]*Word, hdIdx, stIdx, endIdx int, incl bool) (re
 		}
 	}
 	return results
+}
+
+func SearchFirstWord(words *[]*Word, stIdx, endIdx int, tags, btCmps []string) (word *Word) {
+	for _, word := range *words {
+		if matchSearchWord(word, -1, stIdx, endIdx, tags, btCmps) {
+			return word
+		}
+	}
+	return nil
 }
 
 func SearchShallowestWord(words *[]*Word, hdIdx, stIdx, endIdx int, tags, btCmps []string) (word *Word) {
