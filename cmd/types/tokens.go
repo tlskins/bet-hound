@@ -174,6 +174,17 @@ func SearchFirstWord(words *[]*Word, stIdx, endIdx int, tags, btCmps []string) (
 	return nil
 }
 
+func SearchFirstParent(words *[]*Word, idx, stIdx, endIdx int, tags, btCmps []string) (word *Word) {
+	tgt := (*words)[idx]
+	if matchSearchWord(tgt, -1, stIdx, endIdx, tags, btCmps) {
+		return tgt
+	} else if tgt.DependencyEdge.HeadTokenIndex == tgt.Index {
+		return nil
+	} else {
+		return SearchFirstParent(words, tgt.DependencyEdge.HeadTokenIndex, stIdx, endIdx, tags, btCmps)
+	}
+}
+
 func SearchShallowestWord(words *[]*Word, hdIdx, stIdx, endIdx int, tags, btCmps []string) (word *Word) {
 	head := (*words)[hdIdx]
 	if len(head.DependencyEdge.ChildTokenIndices) == 0 || head.DependencyEdge.HeadTokenIndex == head.Index {
