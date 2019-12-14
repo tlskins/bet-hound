@@ -27,110 +27,152 @@ func ParseText(text string) (allWords []*t.Word) {
 	return buildWords(resp)
 }
 
-// func FindOperatorPhrase(words *[]*t.Word) (opPhrase *t.OperatorPhrase, leftMetric *t.Metric) {
-// 	for _, action := range findActions(words) {
-// 		opPhrase, leftMetric = buildOperatorPhrase(words, action)
-// 		if opPhrase != nil {
-// 			break
-// 		}
-// 	}
-// 	return opPhrase, leftMetric
-// }
+func WordsLemmas(words *[]*t.Word) (results []string) {
+	for _, w := range *words {
+		results = append(results, w.Lemma)
+	}
+	return results
+}
 
-// func FindLeftPlayerExpr(words *[]*t.Word, opPhrase *t.OperatorPhrase, leftMetric *t.Metric) (leftPlayerExpr *t.PlayerExpression) {
-// 	// Find Player
-// 	groupedNouns := t.FindGroupedWords(words, opPhrase.ActionWord.Index, []string{"NOUN"}, []string{leftMetric.Word.Text})
-// 	for _, groupedNoun := range groupedNouns {
-// 		player := db.SearchPlayerByName(t.JoinedWordGroup(groupedNoun, true))
-// 		if player != nil {
-// 			leftPlayerExpr = &t.PlayerExpression{
-// 				Player: *player,
-// 				Metric: leftMetric,
-// 			}
-// 			break
-// 		}
-// 	}
-// 	// Find Event Time
-// 	actionChildren := t.FindGroupedWords(words, opPhrase.ActionWord.Index, []string{}, []string{leftMetric.Word.Text})
-// 	for _, a := range actionChildren {
-// 		if isEventTimeLemma(a[0].Lemma) {
-// 			remaining := a[1:len(a)]
-// 			leftPlayerExpr.EventTime = &t.EventTime{
-// 				Word:      *a[0],
-// 				Modifiers: t.WordsLemmas(&remaining),
-// 			}
-// 		}
-// 	}
+func matchSearchWord(w *t.Word, hdIdx, stIdx, endIdx int, tags, btCmps []string) bool {
+	// head index match
+	idxMatch := hdIdx == -1 || w.DependencyEdge.HeadTokenIndex == hdIdx
+	if !idxMatch {
+		return false
+	}
 
-// 	return leftPlayerExpr
-// }
+	// match start - end idx
+	idx := w.Index
+	if (stIdx != -1 && stIdx >= idx) || (endIdx != -1 && endIdx <= idx) {
+		return false
+	}
 
-// func FindRightPlayerExpr(words *[]*t.Word, opPhrase *t.OperatorPhrase, leftMetric *t.Metric) *t.PlayerExpression {
-// 	exclTxt := append(leftMetric.Modifiers, opPhrase.OperatorWord.Text)
-// 	children := t.FindGroupedWords(words, leftMetric.Word.Index, []string{}, exclTxt)
-// 	for _, c := range children {
-// 		nouns := t.FilterWordsByTag(&c, "NOUN")
-// 		player := db.SearchPlayerByName(t.JoinedWordGroup(nouns, true))
-// 		if player != nil {
-// 			return &t.PlayerExpression{Player: *player}
-// 		}
-// 	}
-// 	return nil
-// }
+	// match part of speech
+	tagMatch := len(tags) == 0
+	if !tagMatch {
+		for _, t := range tags {
+			if t == w.PartOfSpeech.Tag {
+				tagMatch = true
+				break
+			}
+		}
+		if !tagMatch {
+			return false
+		}
+	}
 
-// nlp helpers
+	// match bet component
+	cmpMatch := len(btCmps) == 0
+	if !cmpMatch {
+		for _, t := range btCmps {
+			if t == w.BetComponent {
+				cmpMatch = true
+				break
+			} else if t == "NONE" && w.BetComponent == "" {
+				cmpMatch = true
+				break
+			}
+		}
+		if !cmpMatch {
+			return false
+		}
+	}
 
-// func findActions(words *[]*t.Word) (actionWords []*t.Word) {
-// 	verbs := t.FindWords(words, -1, []string{"VERB"}, []string{})
-// 	for _, v := range verbs {
-// 		if isActionLemma(v.Lemma) {
-// 			vChildren := t.FindWords(words, v.Index, []string{"NOUN"}, []string{})
-// 			if len(vChildren) > 0 {
-// 				actionWords = append(actionWords, v)
-// 			}
-// 		}
-// 	}
-// 	return actionWords
-// }
+	return true
+}
 
-// func buildOperatorPhrase(words *[]*t.Word, action *t.Word) (opPhrase *t.OperatorPhrase, metric *t.Metric) {
-// 	fmt.Println("begin buildOperatorPhrase, action: ", action.Text)
-// 	nouns := t.FindWords(words, action.Index, []string{"NOUN", "VERB"}, []string{})
-// 	for _, noun := range nouns {
-// 		fmt.Printf("noun: %s\n", noun.Text)
-// 		if isMetricLemma(noun.Lemma) {
-// 			fmt.Printf("noun %s is a metric\n", noun.Text)
-// 			adjs := t.FindWords(words, noun.Index, []string{"ADJ", "NOUN", "NUM"}, []string{})
-// 			modWords := t.FindWords(words, noun.Index, []string{}, []string{})
-// 			metricMods := []string{}
-// 			for _, m := range modWords {
-// 				fmt.Printf("checking mod word %s\n", m.Text)
-// 				if isMetricModText(m.Text) {
-// 					fmt.Printf("modword %s is metric\n", m.Text)
-// 					metricMods = append(metricMods, m.Text)
-// 				}
-// 			}
-// 			metric = &t.Metric{
-// 				Word:      *noun,
-// 				Modifiers: metricMods,
-// 			}
-// 			for _, adj := range adjs {
-// 				fmt.Printf("checking adj %s\n", adj.Text)
-// 				if isOperatorLemma(adj.Lemma) {
-// 					fmt.Printf("adj %s is an operator\n", adj.Text)
-// 					opPhrase = &t.OperatorPhrase{
-// 						OperatorWord: *adj,
-// 						ActionWord:   *action,
-// 					}
-// 				}
-// 				return opPhrase, metric
-// 			}
-// 		}
-// 	}
-// 	return nil, nil
-// }
+func SearchLastParent(words *[]*t.Word, idx, stIdx, endIdx int, tags, btCmps []string) (word *t.Word) {
+	tgt := (*words)[idx]
+	selfMatch := matchSearchWord(tgt, -1, stIdx, endIdx, tags, btCmps)
+	var parentMatch *t.Word
+	if tgt.DependencyEdge.HeadTokenIndex != tgt.Index {
+		parentMatch = SearchLastParent(words, tgt.DependencyEdge.HeadTokenIndex, stIdx, endIdx, tags, btCmps)
+	}
 
-// helpers
+	if parentMatch != nil {
+		return parentMatch
+	} else if selfMatch {
+		return tgt
+	} else {
+		return nil
+	}
+}
+
+func SearchChildren(words *[]*t.Word, idx, stIdx, endIdx int, tags, btCmps []string) (results []*t.Word) {
+	word := (*words)[idx]
+	if matchSearchWord(word, -1, stIdx, endIdx, tags, btCmps) {
+		results = append(results, word)
+	}
+
+	for _, wc := range word.DependencyEdge.ChildTokenIndices {
+		recurse := SearchChildren(words, wc, stIdx, endIdx, tags, btCmps)
+		results = append(results, recurse...)
+	}
+	return results
+}
+
+func SearchFirstChild(words *[]*t.Word, hdIdx, stIdx, endIdx int, tags, btCmps []string) (word *t.Word) {
+	head := (*words)[hdIdx]
+	if len(head.DependencyEdge.ChildTokenIndices) == 0 || head.DependencyEdge.HeadTokenIndex == head.Index {
+		return nil
+	}
+
+	for _, cIdx := range head.DependencyEdge.ChildTokenIndices {
+		child := (*words)[cIdx]
+		if matchSearchWord(child, -1, stIdx, endIdx, tags, btCmps) {
+			return child
+		} else {
+			recurse := SearchFirstChild(words, cIdx, stIdx, endIdx, tags, btCmps)
+			if recurse != nil {
+				return recurse
+			}
+		}
+	}
+	return nil
+}
+
+func FindPlayerWords(words *[]*t.Word) (playerWords [][]*t.Word) {
+	var temp *[]*t.Word
+	for i, word := range *words {
+		isPlayerWord := word.PartOfSpeech.Tag == "NOUN" && word.BetComponent == ""
+		isLastWord := i == len(*words)-1
+		if (!isPlayerWord || isLastWord) && temp != nil && len(*temp) > 0 {
+			playerWords = append(playerWords, *temp)
+			temp = nil
+		} else if isPlayerWord {
+			if temp == nil {
+				temp = &[]*t.Word{word}
+			} else {
+				*temp = append(*temp, word)
+			}
+		}
+	}
+
+	return playerWords
+}
+
+func CalcBetComponent(lemma string) string {
+	_, floatErr := strconv.ParseFloat(lemma, 64) // no err means it is a float
+	if lemma == "score" || lemma == "have" || lemma == "gain" {
+		return "ACTION"
+	} else if lemma == "more" || lemma == "few" || lemma == "less" {
+		return "OPERATOR"
+	} else if lemma == "and" || lemma == "," {
+		return "SUB_OPERATOR"
+	} else if lemma == "than" {
+		return "DELIMITER"
+	} else if lemma == "point" || lemma == "pt" || lemma == "yard" || lemma == "yd" || lemma == "touchdown" || lemma == "td" {
+		return "METRIC"
+	} else if lemma == "ppr" || lemma == "standard" || lemma == "std" || lemma == "0.5ppr" || lemma == ".5ppr" || floatErr == nil {
+		return "METRIC_MOD"
+	} else if lemma == "week" {
+		return "EVENT_TIME"
+	} else if lemma == "this" {
+		return "EVENT_TIME_MOD"
+	} else {
+		return ""
+	}
+}
 
 func RemoveReservedTwitterWords(text string) (result string) {
 	var handleRgx = regexp.MustCompile(`\@[^\s]*`)
@@ -139,6 +181,8 @@ func RemoveReservedTwitterWords(text string) (result string) {
 	result = hashRgx.ReplaceAllString(result, " ")
 	return result
 }
+
+// helpers
 
 func buildSyntaxRequest(text string) *langpb.AnalyzeSyntaxRequest {
 	return &langpb.AnalyzeSyntaxRequest{
@@ -192,74 +236,3 @@ func buildWords(resp *langpb.AnalyzeSyntaxResponse) (allWords []*t.Word) {
 
 	return allWords
 }
-
-func CalcBetComponent(lemma string) string {
-	_, floatErr := strconv.ParseFloat(lemma, 64) // no err means it is a float
-	if lemma == "score" || lemma == "have" || lemma == "gain" {
-		return "ACTION"
-	} else if lemma == "more" || lemma == "few" || lemma == "less" {
-		return "OPERATOR"
-	} else if lemma == "than" {
-		return "DELIMINATOR"
-	} else if lemma == "point" || lemma == "pt" || lemma == "yard" || lemma == "yd" || lemma == "touchdown" || lemma == "td" {
-		return "METRIC"
-	} else if lemma == "ppr" || lemma == "0.5ppr" || lemma == ".5ppr" || floatErr == nil {
-		return "METRIC_MOD"
-	} else if lemma == "week" {
-		return "EVENT_TIME"
-	} else if lemma == "this" {
-		return "EVENT_TIME_MOD"
-	} else {
-		return ""
-	}
-}
-
-// func isActionLemma(str string) bool {
-// 	_, floatErr := strconv.ParseFloat(str, 64) // no err means it is a float
-// 	if str == "score" || str == "have" || str == "gain" {
-// 		return true
-// 	} else {
-// 		return false
-// 	}
-// }
-
-// func isOperatorLemma(str string) bool {
-// 	if str == "more" || str == "few" || str == "less" {
-// 		return true
-// 	} else {
-// 		return false
-// 	}
-// }
-
-// func isMetricLemma(str string) bool {
-// 	if str == "point" || str == "pt" || str == "yard" || str == "yd" || str == "touchdown" || str == "td" {
-// 		return true
-// 	} else {
-// 		return false
-// 	}
-// }
-
-// func isMetricModText(str string) bool {
-// 	_, floatErr := strconv.ParseFloat(str, 64) // no err means it is a float
-// 	if str == "ppr" || str == "0.5ppr" || str == ".5ppr" || floatErr == nil {
-// 		return true
-// 	} else {
-// 		return false
-// 	}
-// }
-
-// func isEventTimeLemma(str string) bool {
-// 	if str == "week" {
-// 		return true
-// 	} else {
-// 		return false
-// 	}
-// }
-
-// func isEventTimeModText(str string) bool {
-// 	if str == "this" {
-// 		return true
-// 	} else {
-// 		return false
-// 	}
-// }

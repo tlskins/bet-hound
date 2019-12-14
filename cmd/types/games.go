@@ -28,16 +28,17 @@ type GameStat struct {
 }
 
 type Game struct {
-	Id           string    `bson:"_id,omitempty" json:"id"`
-	Name         string    `bson:"name,omitempty" json:"name"`
-	Fk           string    `bson:"fk,omitempty" json:"fk"`
-	Url          string    `bson:"url,omitempty" json:"url"`
-	AwayTeamFk   string    `bson:"a_team_fk,omitempty" json:"away_team_fk"`
-	AwayTeamName string    `bson:"a_team_name,omitempty" json:"away_team_name"`
-	HomeTeamFk   string    `bson:"h_team_fk,omitempty" json:"home_team_fk"`
-	HomeTeamName string    `bson:"h_team_name,omitempty" json:"home_team_name"`
-	GameTime     time.Time `bson:"gm_time,omitempty" json:"game_time"`
-	Final        bool      `bson::"final" json:"final"`
+	Id            string    `bson:"_id,omitempty" json:"id"`
+	Name          string    `bson:"name,omitempty" json:"name"`
+	Fk            string    `bson:"fk,omitempty" json:"fk"`
+	Url           string    `bson:"url,omitempty" json:"url"`
+	AwayTeamFk    string    `bson:"a_team_fk,omitempty" json:"away_team_fk"`
+	AwayTeamName  string    `bson:"a_team_name,omitempty" json:"away_team_name"`
+	HomeTeamFk    string    `bson:"h_team_fk,omitempty" json:"home_team_fk"`
+	HomeTeamName  string    `bson:"h_team_name,omitempty" json:"home_team_name"`
+	GameTime      time.Time `bson:"gm_time,omitempty" json:"game_time"`
+	GameResultsAt time.Time `bson:"gm_res_at,omitempty" json:"game_results_at"`
+	Final         bool      `bson:"fin" json:"final"`
 }
 
 func (g Game) VsTeamFk(playerTmFk string) string {
@@ -47,22 +48,4 @@ func (g Game) VsTeamFk(playerTmFk string) string {
 		return g.AwayTeamName
 	}
 	return ""
-}
-
-func FindGameByAwayFk(games *[]*Game, awayTeamFk string) *Game {
-	for _, g := range *games {
-		if g.AwayTeamFk == awayTeamFk {
-			return g
-		}
-	}
-	return nil
-}
-
-func FindGameByHomeFk(games *[]*Game, homeTeamFk string) *Game {
-	for _, g := range *games {
-		if g.HomeTeamFk == homeTeamFk {
-			return g
-		}
-	}
-	return nil
 }

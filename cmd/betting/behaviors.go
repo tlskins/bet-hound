@@ -1,14 +1,13 @@
 package betting
 
 import (
-	// "bet-hound/cmd/db"
-	// "bet-hound/cmd/nlp"
+	"bet-hound/cmd/db"
+	"bet-hound/cmd/nlp"
 	"bet-hound/cmd/scraper"
 	t "bet-hound/cmd/types"
 	"fmt"
-	// "github.com/satori/go.uuid"
 	"math"
-	// "strings"
+	"strings"
 	"time"
 )
 
@@ -53,80 +52,201 @@ import (
 // 	return nil, bet
 // }
 
-func calcExpressionResult(expr *t.PlayerExpression, games *[]*t.Game, metric *t.Metric) (total float64, err error) {
-	gm := t.FindGameByAwayFk(games, expr.Player.TeamFk)
-	if gm == nil {
-		gm = t.FindGameByHomeFk(games, expr.Player.TeamFk)
-	}
-	log := scraper.ScrapeGameLog(gm)
-	score := calcPlayerGameScore(&log, &expr.Player, metric)
+func BuildEquationsFromText(text string) (eqs []*t.Equation, err error) {
+	cleanedText := strings.TrimSpace(nlp.RemoveReservedTwitterWords(text))
+	allWords := nlp.ParseText(cleanedText)
+	playerWords := nlp.FindPlayerWords(&allWords)
+	currentGames := scraper.ScrapeThisWeeksGames()
 
-	if score == nil {
-		return 0.0, fmt.Errorf("Unable to determine score for %s", expr.Description())
+	// Build Equations
+	actionEqsMap := make(map[int]*t.Equation)
+	for _, pw := range playerWords {
+		// Find Player
+		playerWord := pw[len(pw)-1]
+		lemmas := nlp.WordsLemmas(&pw)
+		player := db.SearchPlayerByName(strings.Join(lemmas, " "))
+		if player == nil {
+			fmt.Printf("Player not found.\n")
+			continue
+		}
+		// Find game
+		game := findGameByFk(&currentGames, player.TeamFk)
+		if game == nil {
+			fmt.Printf("Game not found for %s.\n", player.Name)
+			continue
+		}
+		// Find action
+		action := nlp.SearchLastParent(&allWords, playerWord.Index, -1, -1, []string{}, []string{"ACTION"})
+		if action == nil {
+			fmt.Printf("No action found for %s.\n", player.Name)
+			continue
+		}
+
+		var eq *t.Equation
+		var delimiter *t.Word
+		// Get / Build equation
+		if actionEqsMap[action.Index] != nil {
+			eq = actionEqsMap[action.Index]
+			delimiter = eq.Delimiter
+		} else {
+			delimiter = nlp.SearchFirstChild(&allWords, action.Index, -1, -1, []string{}, []string{"DELIMITER"})
+			if delimiter == nil {
+				fmt.Printf("No delimiter found for %s.\n", player.Name)
+				continue
+			}
+
+			operator := nlp.SearchFirstChild(&allWords, action.Index, playerWord.Index, -1, []string{}, []string{"OPERATOR"})
+			if operator == nil {
+				fmt.Printf("No operator found for %s.\n", player.Name)
+				continue
+			}
+
+			metricWord := nlp.SearchFirstChild(&allWords, action.Index, -1, -1, []string{}, []string{"METRIC"})
+			var metric *t.Metric
+			if metricWord == nil {
+				fmt.Printf("No metric found for %s.\n", player.Name)
+				continue
+			} else {
+				mods := nlp.SearchChildren(&allWords, metricWord.Index, -1, -1, []string{}, []string{"METRIC_MOD"})
+				metric = &t.Metric{
+					Word:      metricWord,
+					Modifiers: mods,
+				}
+			}
+
+			eq = &t.Equation{
+				Action:    action,
+				Metric:    metric,
+				Delimiter: delimiter,
+				Operator:  operator,
+			}
+			actionEqsMap[action.Index] = eq
+		}
+
+		// Build Expression
+		expr := t.PlayerExpression{
+			Player: player,
+			Game:   game,
+		}
+
+		if playerWord.Index < delimiter.Index {
+			eq.LeftExpressions = append(eq.LeftExpressions, &expr)
+		} else {
+			eq.RightExpressions = append(eq.RightExpressions, &expr)
+		}
 	}
-	return *score, nil
+
+	for _, eq := range actionEqsMap {
+		eqs = append(eqs, eq)
+	}
+	if len(eqs) == 0 {
+		return eqs, fmt.Errorf("No equations found!.")
+	}
+	return eqs, nil
 }
 
 func CalcBetResult(bet *t.Bet) (betRes *t.BetResult, err error) {
-	fmt.Println("calc bet result ", bet.Id, bet.Text())
-	eq := bet.Equation
+	fmt.Println("calc bet result ", bet.Id, bet.Description())
 	games := scraper.ScrapeThisWeeksGames()
-	lftMetric, rgtMetric := eq.Metrics()
 
-	// Calculate expression values
-	leftRes, err := calcExpressionResult(&bet.Equation.LeftExpression, &games, &lftMetric)
-	if err != nil {
-		return nil, err
-	}
-	rightRes, err := calcExpressionResult(&bet.Equation.RightExpression, &games, &rgtMetric)
-	if err != nil {
-		return nil, err
+	responses := []string{}
+	proposerWins := true
+	for _, eq := range bet.Equations {
+		eqResult, err := calcEquationResult(eq, &games)
+		if err != nil {
+			return nil, err
+		}
+		responses = append(responses, fmt.Sprintf("%s (%t)", eq.ResultDescription(), *eqResult))
+		proposerWins = proposerWins && *eqResult
 	}
 
-	var wSn, lSn string
-	var wPlayer, lPlayer t.Player
 	var wUsr, lUsr t.User
-	var wScore, lScore float64
-	if leftRes > rightRes {
+	if proposerWins {
 		wUsr = bet.Proposer
 		lUsr = bet.Recipient
-		wSn = bet.Proposer.ScreenName
-		lSn = bet.Recipient.ScreenName
-		wPlayer = bet.Equation.LeftExpression.Player
-		lPlayer = bet.Equation.RightExpression.Player
-		wScore = leftRes
-		lScore = rightRes
 	} else {
 		wUsr = bet.Recipient
 		lUsr = bet.Proposer
-		wSn = bet.Recipient.ScreenName
-		lSn = bet.Proposer.ScreenName
-		wPlayer = bet.Equation.RightExpression.Player
-		lPlayer = bet.Equation.LeftExpression.Player
-		wScore = rightRes
-		lScore = leftRes
 	}
-
 	betRes = &t.BetResult{
-		Winner:       wUsr,
-		Loser:        lUsr,
-		WinnerTotal:  wScore,
-		LoserTotal:   lScore,
-		Differential: wScore - lScore,
-		Response: fmt.Sprintf("Congrats @%s you beat @%s! %s scored %.1f while %s only scored %.1f.",
-			wSn,
-			lSn,
-			wPlayer.Name,
-			wScore,
-			lPlayer.Name,
-			lScore,
+		Winner: wUsr,
+		Loser:  lUsr,
+		Response: fmt.Sprintf("Congrats @%s you beat @%s! '%s'",
+			wUsr.ScreenName,
+			lUsr.ScreenName,
+			strings.Join(responses, ", "),
 		),
 		DecidedAt: time.Now(),
 	}
 	return betRes, nil
 }
 
-func calcPlayerGameScore(log *map[string]*t.GameStat, player *t.Player, metric *t.Metric) *float64 {
+// helpers
+
+func findGameByFk(games *[]*t.Game, teamFk string) *t.Game {
+	for _, g := range *games {
+		if g.AwayTeamFk == teamFk || g.HomeTeamFk == teamFk {
+			return g
+		}
+	}
+	return nil
+}
+
+func calcEquationResult(eq *t.Equation, games *[]*t.Game) (*bool, error) {
+	// Process each expression
+	allExprs := [][]*t.PlayerExpression{eq.LeftExpressions, eq.RightExpressions}
+	errs := []string{}
+	for _, exprs := range allExprs {
+		for _, expr := range exprs {
+			err := calcExpressionResult(expr, games, eq.Metric)
+			if err != nil {
+				errs = append(errs, err.Error())
+			}
+		}
+	}
+	if len(errs) > 0 {
+		return nil, fmt.Errorf(strings.Join(errs, ""))
+	}
+
+	// Record result
+	lTtl := calcExpressionsTotal(&eq.LeftExpressions)
+	rTtl := calcExpressionsTotal(&eq.RightExpressions)
+	var result bool
+	if eq.Operator.Lemma == "more" {
+		result = *lTtl > *rTtl
+	} else if eq.Operator.Lemma == "less" || eq.Operator.Lemma == "few" {
+		result = *lTtl < *rTtl
+	}
+	eq.Result = &result
+	return &result, nil
+}
+
+func calcExpressionsTotal(expressions *[]*t.PlayerExpression) *float64 {
+	total := 0.0
+	for _, e := range *expressions {
+		if e.Value == nil {
+			return nil
+		}
+		total += *e.Value
+	}
+
+	return &total
+}
+
+func calcExpressionResult(expr *t.PlayerExpression, games *[]*t.Game, metric *t.Metric) (err error) {
+	gm := findGameByFk(games, expr.Player.TeamFk)
+	log := scraper.ScrapeGameLog(gm)
+	value := calcPlayerGameValue(&log, expr.Player, metric)
+
+	if value == nil {
+		return fmt.Errorf("Unable to determine score for %s.", expr.Description())
+	} else {
+		expr.Value = value
+		return nil
+	}
+}
+
+func calcPlayerGameValue(log *map[string]*t.GameStat, player *t.Player, metric *t.Metric) *float64 {
 	l := *log
 	if l[player.Fk] == nil {
 		fmt.Println("cant find game score", player.Fk, l)
@@ -145,50 +265,4 @@ func calcPlayerGameScore(log *map[string]*t.GameStat, player *t.Player, metric *
 	score -= float64(l[player.Fk].FumbleLost) * 2.0
 	score = math.Ceil(score*10) / 10
 	return &score
-}
-
-// func BuildEquationFromText(text string) (err error, eq *t.Equation) {
-// 	words := nlp.ParseText(text)
-// 	opPhrase, leftMetric := nlp.FindOperatorPhrase(&words)
-// 	if opPhrase == nil {
-// 		return fmt.Errorf("Sorry, couldn't find a betting operator (like 'score more than'!)"), nil
-// 	}
-// 	if leftMetric == nil {
-// 		return fmt.Errorf("Sorry, couldn't find a betting metric (like 'ppr points')!"), nil
-// 	}
-
-// 	leftPlayerExpr := nlp.FindLeftPlayerExpr(&words, opPhrase, leftMetric)
-// 	if leftPlayerExpr == nil {
-// 		return fmt.Errorf("Sorry, couldn't a player for the proposer!"), nil
-// 	}
-// 	rightPlayerExpr := nlp.FindRightPlayerExpr(&words, opPhrase, leftMetric)
-// 	if rightPlayerExpr == nil {
-// 		return fmt.Errorf("Sorry, couldn't a player for the recipient!"), nil
-// 	}
-
-// 	eq = &t.Equation{
-// 		LeftExpression:  *leftPlayerExpr,
-// 		RightExpression: *rightPlayerExpr,
-// 		Operator:        *opPhrase,
-// 	}
-// 	addGamesToEquation(eq)
-// 	err = eq.Complete()
-
-// 	return err, eq
-// }
-
-func addGamesToEquation(e *t.Equation) {
-	games := scraper.ScrapeThisWeeksGames()
-
-	leftGame := t.FindGameByAwayFk(&games, e.LeftExpression.Player.TeamFk)
-	if leftGame == nil {
-		leftGame = t.FindGameByHomeFk(&games, e.LeftExpression.Player.TeamFk)
-	}
-	e.LeftExpression.Game = leftGame
-
-	rightGame := t.FindGameByAwayFk(&games, e.RightExpression.Player.TeamFk)
-	if rightGame == nil {
-		rightGame = t.FindGameByHomeFk(&games, e.RightExpression.Player.TeamFk)
-	}
-	e.RightExpression.Game = rightGame
 }

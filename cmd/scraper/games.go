@@ -119,10 +119,7 @@ func ScrapeThisWeeksGames() (games []*t.Game) {
 		// Update map for game urls to pull dates from
 		gameUrls[homeTeamFk] = url
 		gameUrls[awayTeamFk] = url
-
 		name := strings.Join([]string{awayTeam, homeTeam}, " at ")
-		gameTimeTxt := s.Find("tr:nth-child(3) td:nth-child(3)").Text()
-		gameTimeTxt = strings.TrimSpace(gameTimeTxt)
 
 		games = append(games, &t.Game{
 			Name:         name,
@@ -173,6 +170,11 @@ func ScrapeThisWeeksGames() (games []*t.Game) {
 	// Add game times
 	for _, gm := range games {
 		gm.GameTime = *gameTimes[gm.Url]
+		date := gm.GameTime.AddDate(0, 0, 1)
+		yrM, mthM, dayM := date.Date()
+		loc, _ := time.LoadLocation("America/New_York")
+		// Results at game date + 1 day @ 9AM EST
+		gm.GameResultsAt = time.Date(yrM, mthM, dayM, 9, 0, 0, 0, loc)
 		fmt.Sprintln("Game %s @ %s", gm.Name, gm.GameTime.String())
 		if gm.GameTime.Before(time.Now()) {
 			gm.Final = true
