@@ -240,11 +240,10 @@ func calcExpressionResult(expr *t.PlayerExpression, games *[]*t.Game, metric *t.
 
 func calcPlayerGameValue(log *map[string]*t.GameStat, player *t.Player, metric *t.Metric) *float64 {
 	l := *log
-	if l[player.Fk] == nil {
-		fmt.Println("cant find game score", player.Fk, l)
-		return nil
-	}
 	score := 0.0
+	if l[player.Fk] == nil {
+		return &score
+	}
 	score += float64(l[player.Fk].PassYd) * 0.04
 	score += float64(l[player.Fk].PassTd) * 4.0
 	score -= float64(l[player.Fk].PassInt) * 2.0

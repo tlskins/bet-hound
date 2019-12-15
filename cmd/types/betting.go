@@ -136,71 +136,80 @@ func (b Bet) Description() (result string) {
 	return result
 }
 
-func (b Bet) MinGameTime() time.Time {
+func (b Bet) minGameTime() *time.Time {
 	var minTime *time.Time
 	for _, eq := range b.Equations {
 		allExprs := [][]*PlayerExpression{eq.LeftExpressions, eq.RightExpressions}
 		for _, exprs := range allExprs {
 			for _, expr := range exprs {
 				// Toggle for expiration testing
-				// if !expr.Game.Final && (minTime == nil || expr.Game.GameTime.Before(*minTime)) {
-				if minTime == nil || expr.Game.GameTime.Before(*minTime) {
+				fmt.Println("min game time ", expr.Game.GameTime.String())
+				if !expr.Game.Final && (minTime == nil || expr.Game.GameTime.Before(*minTime)) {
+					// if minTime == nil || expr.Game.GameTime.Before(*minTime) {
 					minTime = &expr.Game.GameTime
 				}
 			}
 		}
 	}
 
-	return *minTime
+	return minTime
 }
 
-func (b Bet) MaxGameTime() time.Time {
+func (b Bet) maxFinalizedGameTime() *time.Time {
 	var maxTime *time.Time
 	for _, eq := range b.Equations {
 		allExprs := [][]*PlayerExpression{eq.LeftExpressions, eq.RightExpressions}
 		for _, exprs := range allExprs {
 			for _, expr := range exprs {
 				// Toggle for expiration testing
-				// if !expr.Game.Final && (maxTime == nil || expr.Game.GameTime.After(*maxTime)) {
-				if maxTime == nil || expr.Game.GameTime.After(*maxTime) {
-					maxTime = &expr.Game.GameTime
+				if !expr.Game.Final && (maxTime == nil || expr.Game.GameResultsAt.After(*maxTime)) {
+					// if maxTime == nil || expr.Game.GameTime.After(*maxTime) {
+					maxTime = &expr.Game.GameResultsAt
 				}
 			}
 		}
 	}
 
-	return *maxTime
+	return maxTime
 }
 
 func (b *Bet) PostProcess() error {
 	if b.ExpiresAt == nil {
-		eTime := b.MinGameTime()
-		b.ExpiresAt = &eTime
+		b.ExpiresAt = b.minGameTime()
 	}
 	if b.FinalizedAt == nil {
-		fTime := b.MaxGameTime()
-		b.FinalizedAt = &fTime
+		b.FinalizedAt = b.maxFinalizedGameTime()
 	}
 	// Toggle for expiration testing
-	// if b.BetStatus.String() == "Pending Approval" && time.Now().After(*b.ExpiresAt) {
-	// 	b.BetStatus = BetStatusFromString("Expired")
-	// }
+	if b.BetStatus.String() == "Pending Approval" && b.ExpiresAt != nil && time.Now().After(*b.ExpiresAt) {
+		b.BetStatus = BetStatusFromString("Expired")
+	}
 
 	return nil
 }
 
 func (b Bet) Valid() error {
+	errs := []string{}
+
 	if len(b.Equations) == 0 {
-		return fmt.Errorf("Invalid bet syntax, no equations found.")
+		errs = append(errs, "Invalid bet syntax, no equations found.")
 	}
 
-	errs := []string{}
+	if b.ExpiresAt == nil {
+		errs = append(errs, "Invalid bet, all referrenced games are already in progress or finalized.")
+	}
+
+	// if b.FinalizedAt == nil {
+	// 	errs = append(errs, "Invalid bet, no final game time found.")
+	// }
+
 	for _, eq := range b.Equations {
 		err := eq.Valid()
 		if err != nil {
 			errs = append(errs, err.Error())
 		}
 	}
+
 	if len(errs) > 0 {
 		return fmt.Errorf(strings.Join(errs, " "))
 	} else {

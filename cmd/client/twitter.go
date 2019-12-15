@@ -85,7 +85,8 @@ func WebhookHandlerWrapper(httpClient *http.Client) func(writer http.ResponseWri
 		}
 
 		//Check if it was a tweet_create_event and tweet was in the payload and it was not tweeted by the bot
-		if len(load.TweetCreateEvent) < 1 || len(load.TweetCreateEvent[0].IdStr) == 0 || load.UserId == load.TweetCreateEvent[0].User.IdStr {
+		// if len(load.TweetCreateEvent) < 1 || len(load.TweetCreateEvent[0].IdStr) == 0 || load.UserId == load.TweetCreateEvent[0].User.IdStr {
+		if len(load.TweetCreateEvent) < 1 || len(load.TweetCreateEvent[0].IdStr) == 0 {
 			logger.Println("filtered out tweet")
 			return
 		}
