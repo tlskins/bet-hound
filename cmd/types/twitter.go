@@ -2,7 +2,24 @@ package types
 
 import (
 	"bet-hound/cmd/env"
+	"fmt"
 )
+
+type TwitterErrorResponse struct {
+	Errors []TwitterError `json:"errors"`
+}
+
+func (t TwitterErrorResponse) String() (response string) {
+	for _, err := range t.Errors {
+		response += fmt.Sprintf("%s %s. ", err.Code, err.Message)
+	}
+	return response
+}
+
+type TwitterError struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
 
 type Tweet struct {
 	Id                   int64    `bson:"_id" json:"id"`

@@ -18,14 +18,12 @@ import (
 func ProcessPendingFinalBets(twitterClient *http.Client) (err error) {
 	bets := db.FindPendingFinal()
 	for _, bet := range bets {
-		fmt.Println("finalizing bet ", bet.Text())
-		result, err := b.CalcBetResult(bet)
+		fmt.Println("finalizing bet ", bet.Description())
+		err := b.CalcBetResult(bet)
 		if err != nil {
 			return err
 		}
 
-		bet.BetStatus = t.BetStatusFinal
-		bet.BetResult = result
 		respTweet, err := SendTweet(twitterClient, bet.Response(), bet.SourceFk)
 		if err != nil {
 			fmt.Println("err sending final bet tweet: ", err)
@@ -70,10 +68,18 @@ func SendTweet(twitterClient *http.Client, text string, replyId string) (respons
 
 	body, _ := ioutil.ReadAll(resp.Body)
 	responseTweet = &t.Tweet{}
-	if err = json.Unmarshal([]byte(body), responseTweet); err != nil {
-		fmt.Println("err sending tweet: ", err)
-		return nil, err
+	json.Unmarshal([]byte(body), responseTweet)
+	if responseTweet == nil || responseTweet.IdStr == "" {
+		var errResp *t.TwitterErrorResponse
+		json.Unmarshal([]byte(body), errResp)
+		if errResp != nil {
+			for _, r := range errResp.Errors {
+				fmt.Printf("Error sending tweet: %s %s\n", r.Code, r.Message)
+			}
+			return nil, fmt.Errorf(errResp.String())
+		}
 	}
+
 	fmt.Println("Sent tweet to status: ", responseTweet.IdStr, responseTweet.InReplyToStatusIdStr, responseTweet.GetText())
 
 	return responseTweet, nil
@@ -112,53 +118,30 @@ func ProcessReplyTweet(twitterClient *http.Client, tweet *t.Tweet, bet *t.Bet) (
 	var yesRgx = regexp.MustCompile(`(?i)^(y(e|a)\S*|ok|sure|deal)`)
 	var noRgx = regexp.MustCompile(`(?i)^(n(a|o)\S*|pass)`)
 	text := strings.TrimSpace(nlp.RemoveReservedTwitterWords(tweet.GetText()))
-
-	// if bet.BetStatus.String() != "Expired" {
-	// 	SendTweet(twitterClient, bet.Response(), tweet.IdStr)
-	// 	return fmt.Errorf("Bet status no longer pending: %s", bet.BetStatus.String())
-	// } else
-
-	// Toggle Expiration Here
-	// if bet.ExpiresAt.Before(time.Now()) {
-	// 	bet.BetStatus = t.BetStatusExpired
-	// 	SendTweet(twitterClient, bet.Response(), tweet.IdStr)
-	// 	err = db.UpsertBet(bet)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	return fmt.Errorf("Bet expired")
-	// }
-	// Toggle Expiration Here
+	beforeStatus := bet.BetStatus.String()
+	bet.PostProcess()
 
 	// Process bet acceptance
-	fmt.Printf("matching response text: %s", text)
+	fmt.Printf("parse bet response text: %s %s\n", bet.Id, text)
 	if yesRgx.Match([]byte(text)) {
-		if bet.ProposerReplyFk == nil && bet.Proposer.IdStr == tweet.User.IdStr {
-			bet.ProposerReplyFk = &tweet.InReplyToStatusIdStr
-		} else if bet.RecipientReplyFk == nil && bet.Recipient.IdStr == tweet.User.IdStr {
-			bet.RecipientReplyFk = &tweet.InReplyToStatusIdStr
-		}
-
-		if bet.RecipientReplyFk != nil && bet.ProposerReplyFk != nil {
-			bet.BetStatus = t.BetStatusAccepted
-			rTweet, err := SendTweet(twitterClient, bet.Response(), bet.SourceFk)
-			fmt.Println("Accept bet tweet id to id: ", rTweet.IdStr, bet.SourceFk, rTweet.GetText())
-			if err != nil {
-				return err
-			}
-		}
-
-		err = db.UpsertBet(bet)
-		if err != nil {
-			return err
-		}
+		bet.AcceptBy(tweet.User.IdStr, tweet.IdStr)
 	} else if noRgx.Match([]byte(text)) {
-		bet.BetStatus = t.BetStatusCancelled
+		bet.CancelBy(tweet.User.IdStr, tweet.IdStr)
+	}
+
+	// Respond if tweet changes bet status
+	if beforeStatus != bet.BetStatus.String() {
 		rTweet, err := SendTweet(twitterClient, bet.Response(), bet.SourceFk)
-		fmt.Println("Cancel bet tweet id to id: ", rTweet.IdStr, bet.SourceFk, rTweet.GetText())
 		if err != nil {
 			return err
 		}
+		fmt.Println("Responded bet tweet id to id: ", rTweet.IdStr, bet.SourceFk, rTweet.GetText())
+	}
+
+	// Persist changes
+	err = db.UpsertBet(bet)
+	if err != nil {
+		return err
 	}
 
 	return err

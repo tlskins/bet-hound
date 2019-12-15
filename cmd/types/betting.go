@@ -2,8 +2,8 @@ package types
 
 import (
 	"fmt"
-	// "strings"
-	// "strconv"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -60,10 +60,40 @@ type Bet struct {
 	ProposerReplyFk  *string     `bson:"pr_fk" json:"proposer_reply_fk"`
 	RecipientReplyFk *string     `bson:"rr_fk" json:"recipient_reply_fk"`
 	Equations        []*Equation `bson:"eqs" json:"equations"`
-	ExpiresAt        time.Time   `bson:"exp_at" json:"expires_at"`
-	FinalizedAt      time.Time   `bson:"final_at" json:"finalized_at"`
+	ExpiresAt        *time.Time  `bson:"exp_at" json:"expires_at"`
+	FinalizedAt      *time.Time  `bson:"final_at" json:"finalized_at"`
 	BetStatus        BetStatus   `bson:"status" json:"bet_status"`
 	BetResult        *BetResult  `bson:"rslt" json:"result"`
+}
+
+func (b *Bet) AcceptBy(idStr, replyFk string) {
+	if b.BetStatus.String() != "Pending Approval" {
+		return
+	}
+
+	if b.ProposerReplyFk == nil && b.Proposer.IdStr == idStr {
+		b.ProposerReplyFk = &replyFk
+	} else if b.RecipientReplyFk == nil && b.Recipient.IdStr == idStr {
+		b.RecipientReplyFk = &replyFk
+	}
+
+	if b.RecipientReplyFk != nil && b.ProposerReplyFk != nil {
+		b.BetStatus = BetStatusAccepted
+	}
+}
+
+func (b *Bet) CancelBy(idStr, replyFk string) {
+	if b.BetStatus.String() != "Pending Approval" {
+		return
+	}
+
+	if b.ProposerReplyFk == nil && b.Proposer.IdStr == idStr {
+		b.ProposerReplyFk = &replyFk
+		b.BetStatus = BetStatusCancelled
+	} else if b.RecipientReplyFk == nil && b.Recipient.IdStr == idStr {
+		b.RecipientReplyFk = &replyFk
+		b.BetStatus = BetStatusCancelled
+	}
 }
 
 func (b Bet) Response() (txt string) {
@@ -106,11 +136,84 @@ func (b Bet) Description() (result string) {
 	return result
 }
 
+func (b Bet) MinGameTime() time.Time {
+	var minTime *time.Time
+	for _, eq := range b.Equations {
+		allExprs := [][]*PlayerExpression{eq.LeftExpressions, eq.RightExpressions}
+		for _, exprs := range allExprs {
+			for _, expr := range exprs {
+				// Toggle for expiration testing
+				// if !expr.Game.Final && (minTime == nil || expr.Game.GameTime.Before(*minTime)) {
+				if minTime == nil || expr.Game.GameTime.Before(*minTime) {
+					minTime = &expr.Game.GameTime
+				}
+			}
+		}
+	}
+
+	return *minTime
+}
+
+func (b Bet) MaxGameTime() time.Time {
+	var maxTime *time.Time
+	for _, eq := range b.Equations {
+		allExprs := [][]*PlayerExpression{eq.LeftExpressions, eq.RightExpressions}
+		for _, exprs := range allExprs {
+			for _, expr := range exprs {
+				// Toggle for expiration testing
+				// if !expr.Game.Final && (maxTime == nil || expr.Game.GameTime.After(*maxTime)) {
+				if maxTime == nil || expr.Game.GameTime.After(*maxTime) {
+					maxTime = &expr.Game.GameTime
+				}
+			}
+		}
+	}
+
+	return *maxTime
+}
+
+func (b *Bet) PostProcess() error {
+	if b.ExpiresAt == nil {
+		eTime := b.MinGameTime()
+		b.ExpiresAt = &eTime
+	}
+	if b.FinalizedAt == nil {
+		fTime := b.MaxGameTime()
+		b.FinalizedAt = &fTime
+	}
+	// Toggle for expiration testing
+	// if b.BetStatus.String() == "Pending Approval" && time.Now().After(*b.ExpiresAt) {
+	// 	b.BetStatus = BetStatusFromString("Expired")
+	// }
+
+	return nil
+}
+
+func (b Bet) Valid() error {
+	if len(b.Equations) == 0 {
+		return fmt.Errorf("Invalid bet syntax, no equations found.")
+	}
+
+	errs := []string{}
+	for _, eq := range b.Equations {
+		err := eq.Valid()
+		if err != nil {
+			errs = append(errs, err.Error())
+		}
+	}
+	if len(errs) > 0 {
+		return fmt.Errorf(strings.Join(errs, " "))
+	} else {
+		return nil
+	}
+
+}
+
 // Equation
 
 type Equation struct {
-	LeftExpressions  []*PlayerExpression `bson:"l_expr" json:"left_expressions"`
-	RightExpressions []*PlayerExpression `bson:"l_expr" json:"left_expressions"`
+	LeftExpressions  []*PlayerExpression `bson:"l_exprs" json:"left_expressions"`
+	RightExpressions []*PlayerExpression `bson:"r_exprs" json:"right_expressions"`
 	Metric           *Metric             `bson:"metric" json:"metric"`
 	Action           *Word               `bson:"a_word" json:"action_word"`
 	Operator         *Word               `bson:"op_word" json:"operator_word"`
@@ -164,14 +267,15 @@ func (e Equation) Description() (result string) {
 
 func (e Equation) ResultDescription() (result string) {
 	for i, e := range e.LeftExpressions {
-		str := "n/a"
+		str := fmt.Sprintf(
+			"%s. %s ",
+			e.Player.FirstName[:1],
+			e.Player.LastName,
+		)
 		if e.Value != nil {
-			str += fmt.Sprintf(
-				"%s. %s (%f)",
-				e.Player.FirstName[:1],
-				e.Player.LastName,
-				*e.Value,
-			)
+			str += fmt.Sprintf("(%.2f)", *e.Value)
+		} else {
+			str += "(n/a)"
 		}
 		if i > 0 {
 			str = " + " + str
@@ -186,14 +290,15 @@ func (e Equation) ResultDescription() (result string) {
 	}
 
 	for i, e := range e.RightExpressions {
-		str := "n/a"
+		str := fmt.Sprintf(
+			"%s. %s ",
+			e.Player.FirstName[:1],
+			e.Player.LastName,
+		)
 		if e.Value != nil {
-			str += fmt.Sprintf(
-				"%s. %s (%f)",
-				e.Player.FirstName[:1],
-				e.Player.LastName,
-				*e.Value,
-			)
+			str += fmt.Sprintf("(%.2f)", *e.Value)
+		} else {
+			str += "(n/a)"
 		}
 		if i > 0 {
 			str = " + " + str
@@ -287,6 +392,16 @@ func (m Metric) PPR() float64 {
 		}
 	}
 	return 0.0
+}
+
+func (m Metric) FixedValueMod() *float64 {
+	for _, m := range m.Modifiers {
+		f, err := strconv.ParseFloat(m.Text, 64)
+		if err == nil {
+			return &f
+		}
+	}
+	return nil
 }
 
 // Player

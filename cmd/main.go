@@ -1,7 +1,7 @@
 package main
 
 import (
-	// "bet-hound/cmd/db"
+	"bet-hound/cmd/db"
 	"fmt"
 	"log"
 	"os"
@@ -41,24 +41,27 @@ func main() {
 	// num_mod_txt4 := "@bettybetbot @richayelfuego bet you that Alshon Jeffery and Adrian Peterson score 5.6 more ppr points than Alvin Kamara this week?"
 	num_mod_txt5 := "@bettybetbot @richayelfuego bet you that Alshon Jeffery and Carson Wentz score 5.6 more ppr points than Alvin Kamara, James Washington, and Christian Kirk?"
 
-	// tweet, nil := db.FindTweet("1204576588387373056")
-	// tweet.FullText = &num_mod_txt
-	// err, bet := b.BuildBetFromTweet(tweet)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
-	// lMetric, rMetric := bet.Equation.MetricString()
-	// fmt.Println("bet", bet.Equation.Operator, lMetric, rMetric)
-
-	fmt.Println("start")
-	eqs, err := b.BuildEquationsFromText(num_mod_txt5)
+	tweet, nil := db.FindTweet("1204576588387373056")
+	tweet.FullText = &num_mod_txt5
+	err, bet := b.BuildBetFromTweet(tweet)
 	if err != nil {
-		fmt.Println(err.Error())
-		return
+		fmt.Println(err)
 	}
-	for _, q := range eqs {
-		fmt.Printf("%s\n", q.Description())
-	}
+	bet.Id = "test"
+	bet.PostProcess()
+	fmt.Println("bet ", bet.Description(), bet.ExpiresAt.String(), bet.FinalizedAt.String())
+	bet.AcceptBy(bet.Proposer.IdStr, "proposer_reply_fk")
+	fmt.Println("bet ", bet.Description(), bet.ProposerReplyFk)
+	db.UpsertBet(bet)
+
+	// eqs, err := b.BuildEquationsFromText(num_mod_txt5)
+	// if err != nil {
+	// 	fmt.Println(err.Error())
+	// 	return
+	// }
+	// for _, q := range eqs {
+	// 	fmt.Printf("%s\n", q.Description())
+	// }
 }
 
 func setUpLogger(logPath, defaultPath string) *log.Logger {

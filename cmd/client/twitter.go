@@ -103,7 +103,7 @@ func WebhookHandlerWrapper(httpClient *http.Client) func(writer http.ResponseWri
 
 		// Reply to proposer check
 		if bet != nil {
-			logger.Println("processing reply to bet", bet.Id, bet.Text())
+			logger.Println("processing reply to bet", bet.Id, bet.Description())
 			err = twitter.ProcessReplyTweet(httpClient, &newTweet, bet)
 			if err != nil {
 				logger.Println("err processing reply tweet", err)

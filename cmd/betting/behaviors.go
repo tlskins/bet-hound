@@ -6,55 +6,38 @@ import (
 	"bet-hound/cmd/scraper"
 	t "bet-hound/cmd/types"
 	"fmt"
+	"github.com/satori/go.uuid"
 	"math"
 	"strings"
 	"time"
 )
 
-// func BuildBetFromTweet(tweet *t.Tweet) (err error, bet *t.Bet) {
-// 	txt := strings.TrimSpace(nlp.RemoveReservedTwitterWords(tweet.GetText()))
-// 	err, eq := BuildEquationFromText(txt)
-// 	if err != nil {
-// 		return err, nil
-// 	}
-// 	if len(tweet.Recipients()) == 0 {
-// 		return fmt.Errorf("Not enough recipients!"), nil
-// 	}
-// 	recipient := tweet.Recipients()[0]
-// 	var maxGmTime, minGmTime time.Time
-// 	if eq.RightExpression.Game.GameTime.After(eq.LeftExpression.Game.GameTime) {
-// 		maxGmTime = eq.RightExpression.Game.GameTime
-// 		minGmTime = eq.LeftExpression.Game.GameTime
-// 	} else {
-// 		maxGmTime = eq.LeftExpression.Game.GameTime
-// 		minGmTime = eq.RightExpression.Game.GameTime
-// 	}
+func BuildBetFromTweet(tweet *t.Tweet) (err error, bet *t.Bet) {
+	text := strings.TrimSpace(nlp.RemoveReservedTwitterWords(tweet.GetText()))
+	eqs, err := BuildEquationsFromText(text)
+	if err != nil {
+		return err, nil
+	}
+	if len(tweet.Recipients()) == 0 {
+		return fmt.Errorf("Not enough recipients!"), nil
+	}
+	recipient := tweet.Recipients()[0]
 
-// 	loc, _ := time.LoadLocation("America/New_York")
-// 	yrM, mthM, dayM := maxGmTime.Date()
-// 	expiresAt := minGmTime.In(loc)
-// 	// Toggle Expiration Here
-// 	// if expiresAt.Before(time.Now()) {
-// 	// 	return fmt.Errorf("Those games have already started."), nil
-// 	// }
-// 	// Toggle Expiration Here
-
-// 	bet = &t.Bet{
-// 		Id:          uuid.NewV4().String(),
-// 		SourceFk:    tweet.IdStr,
-// 		Proposer:    tweet.User,
-// 		Recipient:   recipient,
-// 		BetStatus:   t.BetStatusFromString("Pending Proposer"),
-// 		Equation:    *eq,
-// 		ExpiresAt:   expiresAt,
-// 		FinalizedAt: time.Date(yrM, mthM, dayM, 9, 0, 0, 0, loc),
-// 	}
-// 	return nil, bet
-// }
+	bet = &t.Bet{
+		Id:        uuid.NewV4().String(),
+		SourceFk:  tweet.IdStr,
+		Proposer:  tweet.User,
+		Recipient: recipient,
+		BetStatus: t.BetStatusFromString("Pending Proposer"),
+		Equations: eqs,
+	}
+	bet.PostProcess()
+	valid := bet.Valid()
+	return valid, bet
+}
 
 func BuildEquationsFromText(text string) (eqs []*t.Equation, err error) {
-	cleanedText := strings.TrimSpace(nlp.RemoveReservedTwitterWords(text))
-	allWords := nlp.ParseText(cleanedText)
+	allWords := nlp.ParseText(text)
 	playerWords := nlp.FindPlayerWords(&allWords)
 	currentGames := scraper.ScrapeThisWeeksGames()
 
@@ -145,7 +128,7 @@ func BuildEquationsFromText(text string) (eqs []*t.Equation, err error) {
 	return eqs, nil
 }
 
-func CalcBetResult(bet *t.Bet) (betRes *t.BetResult, err error) {
+func CalcBetResult(bet *t.Bet) (err error) {
 	fmt.Println("calc bet result ", bet.Id, bet.Description())
 	games := scraper.ScrapeThisWeeksGames()
 
@@ -154,7 +137,7 @@ func CalcBetResult(bet *t.Bet) (betRes *t.BetResult, err error) {
 	for _, eq := range bet.Equations {
 		eqResult, err := calcEquationResult(eq, &games)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		responses = append(responses, fmt.Sprintf("%s (%t)", eq.ResultDescription(), *eqResult))
 		proposerWins = proposerWins && *eqResult
@@ -168,7 +151,7 @@ func CalcBetResult(bet *t.Bet) (betRes *t.BetResult, err error) {
 		wUsr = bet.Recipient
 		lUsr = bet.Proposer
 	}
-	betRes = &t.BetResult{
+	bet.BetResult = &t.BetResult{
 		Winner: wUsr,
 		Loser:  lUsr,
 		Response: fmt.Sprintf("Congrats @%s you beat @%s! '%s'",
@@ -178,7 +161,8 @@ func CalcBetResult(bet *t.Bet) (betRes *t.BetResult, err error) {
 		),
 		DecidedAt: time.Now(),
 	}
-	return betRes, nil
+	bet.BetStatus = t.BetStatusFromString("Final")
+	return nil
 }
 
 // helpers
@@ -211,10 +195,18 @@ func calcEquationResult(eq *t.Equation, games *[]*t.Game) (*bool, error) {
 	// Record result
 	lTtl := calcExpressionsTotal(&eq.LeftExpressions)
 	rTtl := calcExpressionsTotal(&eq.RightExpressions)
+	fixedMod := eq.Metric.FixedValueMod()
 	var result bool
 	if eq.Operator.Lemma == "more" {
+		// Add fixed mods to equation
+		if fixedMod != nil {
+			*lTtl += *fixedMod
+		}
 		result = *lTtl > *rTtl
 	} else if eq.Operator.Lemma == "less" || eq.Operator.Lemma == "few" {
+		if fixedMod != nil {
+			*lTtl -= *fixedMod
+		}
 		result = *lTtl < *rTtl
 	}
 	eq.Result = &result
