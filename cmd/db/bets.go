@@ -10,6 +10,15 @@ import (
 	m "bet-hound/pkg/mongo"
 )
 
+func AllBets() (bets []*t.Bet) {
+	conn := env.MGOSession().Copy()
+	defer conn.Close()
+	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
+
+	m.Find(c, &bets, nil)
+	return
+}
+
 func UpsertBet(bet *t.Bet) error {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()

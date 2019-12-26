@@ -1,0 +1,33 @@
+# GraphQL schema example
+#
+# https://gqlgen.com/getting-started/
+
+type Bet {
+  id: ID!
+  sourceFk: String!
+  proposer: User
+  recipient: User
+  acceptFk: String
+  proposerReplyFk: String
+  recipientReplyFk: String
+  expiresAt: Timestamp
+  finalizedAt: Timestamp
+  betStatus: BetStatus
+}
+
+type User {
+  id: Int!
+  screenName: String!
+  name: String!
+  idStr: String!
+  indices: [Int]
+}
+
+type Query {
+  bets: [Bet!]!
+  bet(id: ID!): Bet
+}
+
+scalar Timestamp
+
+scalar BetStatus

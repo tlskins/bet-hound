@@ -1,0 +1,22 @@
+# .gqlgen.yml example
+#
+# Refer to https://gqlgen.com/config/
+# for detailed .gqlgen.yml documentation.
+
+schema:
+  - schema.graphql
+exec:
+  filename: generated.go
+models:
+  Timestamp:
+    model: bet-hound/cmd/gql.Timestamp
+  BetStatus:
+    model: bet-hound/cmd/gql.BetStatus
+  Bet:
+    model: bet-hound/cmd/types.Bet
+  User:
+    model: bet-hound/cmd/types.User
+resolver:
+  filename: resolver.go
+  type: Resolver
+autobind: []
