@@ -16,6 +16,20 @@ models:
     model: bet-hound/cmd/types.Bet
   User:
     model: bet-hound/cmd/types.User
+  BetResult:
+    model: bet-hound/cmd/types.BetResult
+  Equation:
+    model: bet-hound/cmd/types.Equation
+  Word:
+    model: bet-hound/cmd/types.Word
+  Metric:
+    model: bet-hound/cmd/types.Metric
+  PlayerExpression:
+    model: bet-hound/cmd/types.PlayerExpression
+  Player:
+    model: bet-hound/cmd/types.Player
+  Game:
+    model: bet-hound/cmd/types.Game
 resolver:
   filename: resolver.go
   type: Resolver

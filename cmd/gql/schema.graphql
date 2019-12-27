@@ -12,7 +12,70 @@ type Bet {
   recipientReplyFk: String
   expiresAt: Timestamp
   finalizedAt: Timestamp
+  equations: [Equation]!
   betStatus: BetStatus
+  betResult: BetResult
+}
+
+type Equation {
+  leftExpressions: [PlayerExpression]
+  rightExpressions: [PlayerExpression]
+  metric: Metric
+  action: Word
+  operator: Word
+  delimiter: Word
+  result: Boolean
+}
+
+type PlayerExpression {
+  player: Player!
+  game: Game!
+  value: Float
+}
+
+type Metric {
+  word: Word!
+  modifiers: [Word]
+}
+
+type Word {
+  text: String!
+  lemma: String
+}
+
+type Player {
+  id: ID!
+  name: String!
+  firstName: String!
+  lastName: String!
+  fk: String!
+  teamFk: String
+  teamName: String
+  teamShort: String
+  position: String
+  url: String
+}
+
+type Game {
+  id: ID!
+  name: String!
+  fk: String
+  url: String
+  awayTeamFk: String
+  awayTeamName: String
+  homeTeamFk: String
+  homeTeamName: String
+  gameTime: Timestamp
+  gameResultsAt: Timestamp
+  final: Boolean
+}
+
+type BetResult {
+  winner: User!
+  loser: User!
+  response: String!
+  responseFk: String
+  decidedAt: Timestamp!
 }
 
 type User {

@@ -3,7 +3,7 @@ package gql
 import (
 	"errors"
 	"io"
-	"strconv"
+	// "strconv"
 	"time"
 
 	"github.com/99designs/gqlgen/graphql"
@@ -25,12 +25,15 @@ func UnmarshalBetStatus(v interface{}) (types.BetStatus, error) {
 }
 
 func MarshalTimestamp(t time.Time) graphql.Marshaler {
-	timestamp := t.Unix()
-	if timestamp < 0 {
-		timestamp = 0
-	}
+	// timestamp := t.Unix()
+	// if timestamp < 0 {
+	// 	timestamp = 0
+	// }
+	// return graphql.WriterFunc(func(w io.Writer) {
+	// 	io.WriteString(w, strconv.FormatInt(timestamp, 10))
+	// })
 	return graphql.WriterFunc(func(w io.Writer) {
-		io.WriteString(w, strconv.FormatInt(timestamp, 10))
+		io.WriteString(w, "\""+t.String()+"\"")
 	})
 }
 
