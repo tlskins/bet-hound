@@ -9,7 +9,11 @@ import (
 	"bet-hound/cmd/gql"
 	m "bet-hound/pkg/mongo"
 
+	// "github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/handler"
+	// "github.com/go-chi/chi"
+	"github.com/gorilla/websocket"
+	"github.com/rs/cors"
 )
 
 const defaultPort = "8080"
@@ -20,22 +24,48 @@ const appConfigName = "config"
 var logger *log.Logger
 
 func main() {
+	// Initialize
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = defaultPort
 	}
 	logger = setUpLogger("", "logs.log")
-	err := env.Init(appConfigName, appConfigPath)
-	if err != nil {
+	if err := env.Init(appConfigName, appConfigPath); err != nil {
 		logger.Fatalf("Error loading db config: %s \n", err)
 	}
 	defer env.Cleanup()
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
 
-	http.Handle("/", handler.Playground("GraphQL playground", "/query"))
-	http.Handle("/query", handler.GraphQL(gql.NewExecutableSchema(gql.Config{Resolvers: &gql.Resolver{}})))
+	mux := http.NewServeMux()
+
+	corsOptions := cors.Options{
+		AllowedHeaders: []string{
+			"content-type",
+			"authorization",
+			"client-name",
+			"client-version",
+			"content-type",
+		},
+		AllowCredentials: true,
+		// Enable Debugging for testing, consider disabling in production
+		Debug:          false,
+		AllowedOrigins: []string{"*"},
+	}
+
+	httpHandler := cors.New(corsOptions).Handler(mux)
+	gqlConfig := gql.Config{Resolvers: &gql.Resolver{}}
+	gqlOption := handler.WebsocketUpgrader(websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	})
+	gqlHandler := handler.GraphQL(gql.NewExecutableSchema(gqlConfig), gqlOption)
+
+	mux.Handle("/", handler.Playground("GraphQL playground", "/query"))
+	mux.Handle("/query", gqlHandler)
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
+	http.ListenAndServe(":"+port, httpHandler)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
