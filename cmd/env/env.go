@@ -26,6 +26,7 @@ type environment struct {
 	betsCollection    string
 	playersCollection string
 	tweetsCollection  string
+	gamesCollection   string
 	logPath           string
 	botHandle         string
 }
@@ -80,6 +81,9 @@ func PlayersCollection() string {
 func TweetsCollection() string {
 	return e.tweetsCollection
 }
+func GamesCollection() string {
+	return e.gamesCollection
+}
 func LogPath() string {
 	return e.logPath
 }
@@ -118,6 +122,7 @@ func Init(configFile, configPath string) error {
 	e.betsCollection = viper.GetString("bets_collection")
 	e.playersCollection = viper.GetString("players_collection")
 	e.tweetsCollection = viper.GetString("tweets_collection")
+	e.gamesCollection = viper.GetString("games_collection")
 	e.botHandle = viper.GetString("bot_handle")
 
 	return nil

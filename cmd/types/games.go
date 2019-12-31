@@ -39,6 +39,8 @@ type Game struct {
 	GameTime      time.Time `bson:"gm_time,omitempty" json:"game_time"`
 	GameResultsAt time.Time `bson:"gm_res_at,omitempty" json:"game_results_at"`
 	Final         bool      `bson:"fin" json:"final"`
+	Week          int       `bson:"wk" json:"week"`
+	Year          int       `bson:"yr" json:"year"`
 }
 
 func (g Game) VsTeamFk(playerTmFk string) string {

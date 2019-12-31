@@ -1,17 +1,17 @@
 package main
 
 import (
-	"bet-hound/cmd/db"
-	"fmt"
+	// "bet-hound/cmd/db"
+	// "fmt"
 	"log"
 	"os"
 	// "strings"
 	// "time"
 
-	b "bet-hound/cmd/betting"
+	// b "bet-hound/cmd/betting"
 	"bet-hound/cmd/env"
 	// "bet-hound/cmd/nlp"
-	// "bet-hound/cmd/scraper"
+	"bet-hound/cmd/scraper"
 	// t "bet-hound/cmd/types"
 	// "bet-hound/cmd/twitter"
 	m "bet-hound/pkg/mongo"
@@ -32,6 +32,8 @@ func main() {
 	defer env.Cleanup()
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
 
+	scraper.ScrapePlayers()
+
 	// Text samples
 	// pt_to_vrb_txt := "@bettybetbot @richayelfuego yo richardo u wanna bet that Alshon Jeffery scores more ppr points that Saquon Barkley this week?"
 	// name_matching_txt := "@bettybetbot @richayelfuego bet you that juju scores more ppr points than AJ Brown this week?"
@@ -41,17 +43,17 @@ func main() {
 	// num_mod_txt4 := "@bettybetbot @richayelfuego bet you that Alshon Jeffery and Adrian Peterson score 5.6 more ppr points than Alvin Kamara this week?"
 	// num_mod_txt5 := "@bettybetbot @richayelfuego bet you that Alshon Jeffery and Carson Wentz score 5.6 more ppr points than Alvin Kamara, James Washington, and Christian Kirk?"
 
-	tweet, nil := db.FindTweet("1206273109411524609")
-	// tweet.FullText = &num_mod_txt5
-	err, bet := b.BuildBetFromTweet(tweet)
-	if err != nil {
-		fmt.Println(err)
-	}
-	bet.Id = "test"
-	bet.PostProcess()
-	valid := bet.Valid()
+	// tweet, nil := db.FindTweet("1206273109411524609")
+	// // tweet.FullText = &num_mod_txt5
+	// err, bet := b.BuildBetFromTweet(tweet)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+	// bet.Id = "test"
+	// bet.PostProcess()
+	// valid := bet.Valid()
+
 	// fmt.Println("bet ", bet.Description(), bet.ExpiresAt.String(), bet.FinalizedAt.String())
-	fmt.Println("valid ", valid.Error())
 	// bet.AcceptBy(bet.Proposer.IdStr, "proposer_reply_fk")
 	// fmt.Println("bet ", bet.Description(), bet.ProposerReplyFk)
 	// db.UpsertBet(bet)

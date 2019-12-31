@@ -5,7 +5,7 @@ import (
 	t "bet-hound/cmd/types"
 	m "bet-hound/pkg/mongo"
 	"github.com/globalsign/mgo"
-	"github.com/satori/go.uuid"
+	"github.com/globalsign/mgo/bson"
 )
 
 func UpsertPlayers(players *[]*t.Player) (err error) {
@@ -14,11 +14,7 @@ func UpsertPlayers(players *[]*t.Player) (err error) {
 	c := conn.DB(env.MongoDb()).C(env.PlayersCollection())
 
 	for _, player := range *players {
-		if player.Id == "" {
-			player.Id = uuid.NewV4().String()
-		}
-		err = m.Upsert(c, player, m.M{"_id": player.Id}, m.M{"$set": player})
-		// err = m.Upsert(c, nil, nil, m.M{"$set": player})
+		err = m.Upsert(c, nil, m.M{"_id": player.Id}, m.M{"$set": player})
 		if err != nil {
 			return err
 		}
@@ -26,7 +22,7 @@ func UpsertPlayers(players *[]*t.Player) (err error) {
 	return err
 }
 
-func SearchPlayerByName(search string) (player *t.Player) {
+func SearchPlayers(name, team, position *string, numResults int) (players []*t.Player, err error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.PlayersCollection())
@@ -35,15 +31,25 @@ func SearchPlayerByName(search string) (player *t.Player) {
 	index := mgo.Index{Key: []string{"$text:f_name", "$text:l_name", "$text:name"}}
 	m.CreateIndex(c, index)
 
-	// TODO : rewrite with pkg functions
-	result := make([]t.Player, 0, 1)
-	query := m.M{"$text": m.M{"$search": search}}
-	sel := m.M{"score": m.M{"$meta": "textScore"}}
-	c.Find(query).Select(sel).Sort("$textScore:score").All(&result)
-
-	if len(result) > 0 {
-		return &result[0]
-	} else {
-		return nil
+	query := m.M{}
+	if name != nil {
+		query["$text"] = m.M{"$search": *name}
 	}
+	if team != nil {
+		teamSrch := *team + "*"
+		query["$or"] = []m.M{
+			m.M{"team_fk": bson.RegEx{teamSrch, "i"}},
+			m.M{"team_name": bson.RegEx{teamSrch, "i"}},
+			m.M{"team_short": bson.RegEx{teamSrch, "i"}},
+		}
+	}
+	if position != nil {
+		query["pos"] = bson.RegEx{*position + "*", "i"}
+	}
+
+	players = make([]*t.Player, 0, numResults)
+	sel := m.M{"score": m.M{"$meta": "textScore"}}
+	err = c.Find(query).Select(sel).Sort("$textScore:score").All(&players)
+
+	return
 }

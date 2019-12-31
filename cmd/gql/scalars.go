@@ -37,9 +37,16 @@ func MarshalTimestamp(t time.Time) graphql.Marshaler {
 	})
 }
 
-func UnmarshalTimestamp(v interface{}) (time.Time, error) {
-	if tmpStr, ok := v.(int); ok {
-		return time.Unix(int64(tmpStr), 0), nil
+func UnmarshalTimestamp(v interface{}) (t time.Time, err error) {
+	// if tmpStr, ok := v.(int); ok {
+	// 	return time.Unix(int64(tmpStr), 0), nil
+	// }
+	// return time.Time{}, errors.New("time should be a unix timestamp")
+	if tmpStr, ok := v.(string); ok {
+		return time.Parse(
+			time.RFC3339,
+			tmpStr,
+		)
 	}
-	return time.Time{}, errors.New("time should be a unix timestamp")
+	return time.Time{}, errors.New("time should be in RFC3339 format")
 }

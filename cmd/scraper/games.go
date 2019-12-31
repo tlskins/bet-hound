@@ -2,14 +2,16 @@ package scraper
 
 import (
 	"fmt"
-	gq "github.com/PuerkitoBio/goquery"
 	"log"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
-	// "bet-hound/cmd/db"
+
+	gq "github.com/PuerkitoBio/goquery"
+
+	"bet-hound/cmd/db"
 	t "bet-hound/cmd/types"
 )
 
@@ -87,12 +89,13 @@ func ScrapeGameLog(game *t.Game) (gameLog map[string]*t.GameStat) {
 	return gameLog
 }
 
-func ScrapeThisWeeksGames() (games []*t.Game) {
-	doc, err := getThisWeeksGames()
+func ScrapeThisWeeksGames() {
+	doc, gmYr, gmWk, err := getThisWeeksGames()
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	games := []*t.Game{}
 	pfrRoot := "https://www.pro-football-reference.com"
 	gameUrls := make(map[string]string)
 
@@ -180,40 +183,48 @@ func ScrapeThisWeeksGames() (games []*t.Game) {
 		} else {
 			gm.Final = false
 		}
+		gm.Week = gmWk
+		gm.Year = gmYr
 	}
 
-	return games
+	// Upsert games
+	for _, game := range games {
+		fmt.Println("game: ", *game)
+	}
+	if err = db.UpsertGames(&games); err != nil {
+		log.Fatal(err)
+	}
 }
 
-func getThisWeeksGames() (*gq.Document, error) {
+func getThisWeeksGames() (doc *gq.Document, gmYr int, gmWk int, err error) {
 	// Request this weeks games
 	res, err := http.Get("https://www.pro-football-reference.com/boxscores/")
 	if err != nil {
 		log.Fatal(err)
-		return nil, err
+		return nil, 0, 0, err
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
 		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
-		return nil, err
+		return nil, 0, 0, err
 	}
-	doc, err := gq.NewDocumentFromReader(res.Body)
+	doc, err = gq.NewDocumentFromReader(res.Body)
 	if err != nil {
 		log.Fatal(err)
-		return nil, err
+		return nil, 0, 0, err
 	}
 
 	// Toggle Expiration Here
 	// return doc, err
 	// Get week date
-	var gmYr, gmWk string
 	gameDate := doc.Find("#content > div.section_heading > h2").Text()
 	re := regexp.MustCompile(`^(?P<yr>\d+) Week (?P<wk>\d+)$`)
 	match := re.FindStringSubmatch(gameDate)
-	gmYr = match[1]
-	gmWkInt, _ := strconv.ParseInt(match[2], 0, 64)
-	gmWkInt += 1
-	gmWk = strconv.FormatInt(gmWkInt, 10)
+	gmYrStr := match[1]
+	gmYr, _ = strconv.Atoi(match[1])
+	gmWk, _ = strconv.Atoi(match[2])
+	nextGmWk := gmWk + 1
+	gmWkStr := strconv.Itoa(nextGmWk)
 
 	// Check if all games finalized
 	notFinal := false
@@ -225,25 +236,25 @@ func getThisWeeksGames() (*gq.Document, error) {
 		}
 	})
 	if notFinal {
-		return doc, nil
+		return doc, 0, 0, nil
 	}
 
 	// Pull next week if games final
-	res, err = http.Get(fmt.Sprintf("https://www.pro-football-reference.com/years/%s/week_%s.htm", gmYr, gmWk))
+	res, err = http.Get(fmt.Sprintf("https://www.pro-football-reference.com/years/%s/week_%s.htm", gmYrStr, gmWkStr))
 	if err != nil {
 		log.Fatal(err)
-		return nil, err
+		return nil, 0, 0, err
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
 		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
-		return nil, err
+		return nil, 0, 0, err
 	}
 	doc, err = gq.NewDocumentFromReader(res.Body)
 	if err != nil {
 		log.Fatal(err)
-		return nil, err
+		return nil, 0, 0, err
 	}
-	return doc, err
+	return doc, gmYr, gmWk, err
 	// Toggle Expiration Here
 }

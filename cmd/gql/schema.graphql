@@ -68,6 +68,8 @@ type Game {
   gameTime: Timestamp
   gameResultsAt: Timestamp
   final: Boolean
+  week: Int
+  year: Int
 }
 
 type BetResult {
@@ -89,6 +91,8 @@ type User {
 type Query {
   bets: [Bet!]!
   bet(id: ID!): Bet
+  findGames(team: String, gameTime: Timestamp, week: Int, year: Int): [Game]!
+  findPlayers(name: String, team: String, position: String): [Player]!
 }
 
 scalar Timestamp
