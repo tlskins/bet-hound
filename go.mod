@@ -7,6 +7,8 @@ require (
 	github.com/99designs/gqlgen v0.10.2
 	github.com/PuerkitoBio/goquery v1.5.0
 	github.com/agnivade/levenshtein v1.0.3 // indirect
+	github.com/chromedp/cdproto v0.0.0-20191114225735-6626966fbae4
+	github.com/chromedp/chromedp v0.5.2
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/creack/pty v1.1.9 // indirect
 	github.com/dghubble/go-twitter v0.0.0-20190719072343-39e5462e111f

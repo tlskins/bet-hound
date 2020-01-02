@@ -33,7 +33,8 @@ func SearchPlayers(name, team, position *string, numResults int) (players []*t.P
 
 	query := m.M{}
 	if name != nil {
-		query["$text"] = m.M{"$search": *name}
+		// query["$text"] = m.M{"$search": *name}
+		query["name"] = bson.RegEx{*name, "i"}
 	}
 	if team != nil {
 		teamSrch := *team + "*"

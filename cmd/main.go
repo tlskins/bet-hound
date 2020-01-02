@@ -3,6 +3,7 @@ package main
 import (
 	// "bet-hound/cmd/db"
 	// "fmt"
+	"fmt"
 	"log"
 	"os"
 	// "strings"
@@ -32,7 +33,8 @@ func main() {
 	defer env.Cleanup()
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
 
-	scraper.ScrapePlayers()
+	articles := scraper.ScrapeNFL()
+	fmt.Println(articles)
 
 	// Text samples
 	// pt_to_vrb_txt := "@bettybetbot @richayelfuego yo richardo u wanna bet that Alshon Jeffery scores more ppr points that Saquon Barkley this week?"
