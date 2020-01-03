@@ -1,22 +1,100 @@
 package gql
 
 import (
+	"context"
+	"github.com/99designs/gqlgen/graphql"
+	"math/rand"
+	"sync"
+	"time"
+
 	"bet-hound/cmd/db"
 	"bet-hound/cmd/types"
-
-	"context"
-	"time"
 )
 
 // THIS CODE IS A STARTING POINT ONLY. IT WILL NOT BE UPDATED WITH SCHEMA CHANGES.
 
-type Resolver struct{}
+type resolver struct {
+	Rooms map[string]*Chatroom
+	mu    sync.Mutex
+}
 
-func (r *Resolver) Query() QueryResolver {
+func (r *resolver) Mutation() MutationResolver {
+	return &mutationResolver{r}
+}
+
+func (r *resolver) Query() QueryResolver {
 	return &queryResolver{r}
 }
 
-type queryResolver struct{ *Resolver }
+func (r *resolver) Subscription() SubscriptionResolver {
+	return &subscriptionResolver{r}
+}
+
+func New() Config {
+	return Config{
+		Resolvers: &resolver{
+			Rooms: map[string]*Chatroom{},
+		},
+		Directives: DirectiveRoot{
+			User: func(ctx context.Context, obj interface{}, next graphql.Resolver, username string) (res interface{}, err error) {
+				return next(context.WithValue(ctx, "username", username))
+			},
+		},
+	}
+}
+
+func getUsername(ctx context.Context) string {
+	if username, ok := ctx.Value("username").(string); ok {
+		return username
+	}
+	return ""
+}
+
+type Chatroom struct {
+	Name      string
+	Messages  []Message
+	Observers map[string]struct {
+		Username string
+		Message  chan *Message
+	}
+}
+
+type mutationResolver struct{ *resolver }
+
+func (r *mutationResolver) Post(ctx context.Context, text string, username string, roomName string) (*Message, error) {
+	r.mu.Lock()
+	room := r.Rooms[roomName]
+	if room == nil {
+		room = &Chatroom{
+			Name: roomName,
+			Observers: map[string]struct {
+				Username string
+				Message  chan *Message
+			}{},
+		}
+		r.Rooms[roomName] = room
+	}
+	r.mu.Unlock()
+
+	message := Message{
+		ID:        randString(8),
+		CreatedAt: time.Now(),
+		Text:      text,
+		CreatedBy: username,
+	}
+
+	room.Messages = append(room.Messages, message)
+	r.mu.Lock()
+	for _, observer := range room.Observers {
+		if observer.Username == "" || observer.Username == message.CreatedBy {
+			observer.Message <- &message
+		}
+	}
+	r.mu.Unlock()
+	return &message, nil
+}
+
+type queryResolver struct{ *resolver }
 
 func (r *queryResolver) Bets(ctx context.Context) ([]*types.Bet, error) {
 	return db.AllBets(), nil
@@ -29,4 +107,68 @@ func (r *queryResolver) FindGames(ctx context.Context, team *string, gameTime *t
 }
 func (r *queryResolver) FindPlayers(ctx context.Context, name *string, team *string, position *string) ([]*types.Player, error) {
 	return db.SearchPlayers(name, team, position, 10)
+}
+func (r *queryResolver) Room(ctx context.Context, name string) (*Chatroom, error) {
+	r.mu.Lock()
+	room := r.Rooms[name]
+	if room == nil {
+		room = &Chatroom{
+			Name: name,
+			Observers: map[string]struct {
+				Username string
+				Message  chan *Message
+			}{},
+		}
+		r.Rooms[name] = room
+	}
+	r.mu.Unlock()
+
+	return room, nil
+}
+
+type subscriptionResolver struct{ *resolver }
+
+func (r *subscriptionResolver) MessageAdded(ctx context.Context, roomName string) (<-chan *Message, error) {
+	r.mu.Lock()
+	room := r.Rooms[roomName]
+	if room == nil {
+		room = &Chatroom{
+			Name: roomName,
+			Observers: map[string]struct {
+				Username string
+				Message  chan *Message
+			}{},
+		}
+		r.Rooms[roomName] = room
+	}
+	r.mu.Unlock()
+
+	id := randString(8)
+	events := make(chan *Message, 1)
+
+	go func() {
+		<-ctx.Done()
+		r.mu.Lock()
+		delete(room.Observers, id)
+		r.mu.Unlock()
+	}()
+
+	r.mu.Lock()
+	room.Observers[id] = struct {
+		Username string
+		Message  chan *Message
+	}{Username: getUsername(ctx), Message: events}
+	r.mu.Unlock()
+
+	return events, nil
+}
+
+var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func randString(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return string(b)
 }

@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	cloud.google.com/go v0.47.0
-	github.com/99designs/gqlgen v0.10.2
+	github.com/99designs/gqlgen v0.10.3-0.20191128123652-f869f5a85385
 	github.com/PuerkitoBio/goquery v1.5.0
 	github.com/agnivade/levenshtein v1.0.3 // indirect
 	github.com/chromedp/cdproto v0.0.0-20191114225735-6626966fbae4
@@ -23,6 +23,7 @@ require (
 	github.com/gorilla/websocket v1.4.1
 	github.com/hashicorp/golang-lru v0.5.3 // indirect
 	github.com/joho/godotenv v1.3.0
+	github.com/kr/pretty v0.2.0 // indirect
 	github.com/kr/pty v1.1.8 // indirect
 	github.com/lib/pq v1.3.0 // indirect
 	github.com/matryer/moq v0.0.0-20191223155252-4203548722f8 // indirect
@@ -44,8 +45,8 @@ require (
 	golang.org/x/crypto v0.0.0-20191227163750-53104e6ec876 // indirect
 	golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553 // indirect
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect
-	golang.org/x/sys v0.0.0-20191228213918-04cbcbbfeed8 // indirect
-	golang.org/x/tools v0.0.0-20191230220329-2aa90c603ae3 // indirect
+	golang.org/x/sys v0.0.0-20200102141924-c96a22e43c9c // indirect
+	golang.org/x/tools v0.0.0-20200102200121-6de373a2766c // indirect
 	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 // indirect
 	google.golang.org/genproto v0.0.0-20191028173616-919d9bdd9fe6
 	gopkg.in/confluentinc/confluent-kafka-go.v1 v1.1.0 // indirect

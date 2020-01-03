@@ -88,13 +88,40 @@ type User {
   indices: [Int]
 }
 
+# chatting
+
+type Chatroom {
+  name: String!
+  messages: [Message!]!
+}
+
+type Message {
+  id: ID!
+  text: String!
+  createdBy: String!
+  createdAt: Timestamp!
+}
+
+# graphql
+
 type Query {
   bets: [Bet!]!
   bet(id: ID!): Bet
   findGames(team: String, gameTime: Timestamp, week: Int, year: Int): [Game]!
   findPlayers(name: String, team: String, position: String): [Player]!
+  room(name: String!): Chatroom
+}
+
+type Mutation {
+  post(text: String!, username: String!, roomName: String!): Message!
+}
+
+type Subscription {
+  messageAdded(roomName: String!): Message!
 }
 
 scalar Timestamp
 
 scalar BetStatus
+
+directive @user(username: String!) on SUBSCRIPTION
