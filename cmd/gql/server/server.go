@@ -66,16 +66,15 @@ func main() {
 	mux.Handle("/", handler.Playground("GraphQL playground", "/query"))
 	mux.Handle("/query", gqlHandler)
 
-	// alert test
-	ticker := time.NewTicker(15 * time.Second)
+	// timed processes
+	ticker := time.NewTicker(10 * time.Minute)
 	go func() {
-		fmt.Println("Starting test...")
 		for {
 			select {
 			case t := <-ticker.C:
+				fmt.Println("Timed processes at ", t)
 				r := gqlConfig.Resolvers.Mutation()
 				r.PostRotoArticle(context.Background())
-				fmt.Println("tried at ", t)
 			}
 		}
 	}()
