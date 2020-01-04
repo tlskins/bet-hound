@@ -33,8 +33,12 @@ func main() {
 	defer env.Cleanup()
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
 
-	articles := scraper.ScrapeNFL()
-	fmt.Println(articles)
+	// gameLog, err := scraper.ScrapeGameLog("https://www.pro-football-reference.com/boxscores/202001040htx.htm")
+	gameLog, err := scraper.ScrapeGameLog("https://www.pro-football-reference.com/boxscores/201912290car.htm")
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(*gameLog)
 
 	// Text samples
 	// pt_to_vrb_txt := "@bettybetbot @richayelfuego yo richardo u wanna bet that Alshon Jeffery scores more ppr points that Saquon Barkley this week?"

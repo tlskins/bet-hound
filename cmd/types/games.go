@@ -1,10 +1,46 @@
 package types
 
-import "time"
+import (
+	"math"
+	"time"
+)
 
-type GameStat struct {
-	Id           string  `bson:"_id,omitempty" json:"id"`
-	PlayerFk     string  `bson:"player_fk" json:"player_fk"`
+type Game struct {
+	Id            string    `bson:"_id,omitempty" json:"id"`
+	Name          string    `bson:"name,omitempty" json:"name"`
+	Fk            string    `bson:"fk,omitempty" json:"fk"`
+	Url           string    `bson:"url,omitempty" json:"url"`
+	AwayTeamFk    string    `bson:"a_team_fk,omitempty" json:"away_team_fk"`
+	AwayTeamName  string    `bson:"a_team_name,omitempty" json:"away_team_name"`
+	HomeTeamFk    string    `bson:"h_team_fk,omitempty" json:"home_team_fk"`
+	HomeTeamName  string    `bson:"h_team_name,omitempty" json:"home_team_name"`
+	GameTime      time.Time `bson:"gm_time,omitempty" json:"game_time"`
+	GameResultsAt time.Time `bson:"gm_res_at,omitempty" json:"game_results_at"`
+	Final         bool      `bson:"fin" json:"final"`
+	Week          int       `bson:"wk" json:"week"`
+	Year          int       `bson:"yr" json:"year"`
+	GameLog       *GameLog  `bson:"log" json:"game_log"`
+}
+
+func (g Game) VsTeamFk(playerTmFk string) string {
+	if g.AwayTeamFk == playerTmFk {
+		return g.HomeTeamName
+	} else if g.HomeTeamFk == playerTmFk {
+		return g.AwayTeamName
+	}
+	return ""
+}
+
+type GameLog struct {
+	HomeTeamScore      int                  `bson:"h_scr" json:"home_team_score"`
+	HomeTeamScoreByQtr []int                `bson:"h_scr_q" json:"home_team_score_by_qtr"`
+	AwayTeamScore      int                  `bson:"a_scr" json:"away_team_score"`
+	AwayTeamScoreByQtr []int                `bson:"a_scr_q" json:"away_team_score_by_qtr"`
+	PlayerLogs         map[string]PlayerLog `bson:"p_logs" json:"player_logs"`
+}
+
+type PlayerLog struct {
+	// PlayerFk     string  `bson:"player_fk" json:"player_fk"`
 	PassCmp      int64   `bson:"p_cmp" json:"pass_cmp"`
 	PassAtt      int64   `bson:"p_att" json:"pass_att"`
 	PassYd       int64   `bson:"p_yd" json:"pass_yd"`
@@ -25,29 +61,28 @@ type GameStat struct {
 	RecLong      int64   `bson:"rec_lng" json:"rec_long"`
 	Fumble       int64   `bson:"fmbl" json:"fumble"`
 	FumbleLost   int64   `bson:"fmbl_lst" json:"fumble_lost"`
+	Fantasy00PPR float64 `bson:"f_00_ppr" json:"fantasy_00_ppr"`
+	Fantasy05PPR float64 `bson:"f_05_ppr" json:"fantasy_05_ppr"`
+	Fantasy10PPR float64 `bson:"f_10_ppr" json:"fantasy_10_ppr"`
 }
 
-type Game struct {
-	Id            string    `bson:"_id,omitempty" json:"id"`
-	Name          string    `bson:"name,omitempty" json:"name"`
-	Fk            string    `bson:"fk,omitempty" json:"fk"`
-	Url           string    `bson:"url,omitempty" json:"url"`
-	AwayTeamFk    string    `bson:"a_team_fk,omitempty" json:"away_team_fk"`
-	AwayTeamName  string    `bson:"a_team_name,omitempty" json:"away_team_name"`
-	HomeTeamFk    string    `bson:"h_team_fk,omitempty" json:"home_team_fk"`
-	HomeTeamName  string    `bson:"h_team_name,omitempty" json:"home_team_name"`
-	GameTime      time.Time `bson:"gm_time,omitempty" json:"game_time"`
-	GameResultsAt time.Time `bson:"gm_res_at,omitempty" json:"game_results_at"`
-	Final         bool      `bson:"fin" json:"final"`
-	Week          int       `bson:"wk" json:"week"`
-	Year          int       `bson:"yr" json:"year"`
+func (s *PlayerLog) CalcFantasyScores() {
+	s.Fantasy00PPR = s.calcFantasyScore(0.0)
+	s.Fantasy05PPR = s.calcFantasyScore(0.5)
+	s.Fantasy10PPR = s.calcFantasyScore(1.0)
 }
 
-func (g Game) VsTeamFk(playerTmFk string) string {
-	if g.AwayTeamFk == playerTmFk {
-		return g.HomeTeamName
-	} else if g.HomeTeamFk == playerTmFk {
-		return g.AwayTeamName
-	}
-	return ""
+func (s PlayerLog) calcFantasyScore(ppr float64) float64 {
+	score := 0.0
+	score += float64(s.PassYd) * 0.04
+	score += float64(s.PassTd) * 4.0
+	score -= float64(s.PassInt) * 2.0
+	// score -= float64(s.PassSackedYd) / 10.0
+	score += float64(s.RushYd) * 0.1
+	score += float64(s.RushTd) * 6.0
+	score += float64(s.Rec) * ppr
+	score += float64(s.RecYd) * 0.1
+	score += float64(s.RecTd) * 6.0
+	score -= float64(s.FumbleLost) * 2.0
+	return math.Ceil(score*10) / 10
 }
