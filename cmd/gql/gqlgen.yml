@@ -30,6 +30,12 @@ models:
     model: bet-hound/cmd/types.Player
   Game:
     model: bet-hound/cmd/types.Game
+  RotoArticle:
+    model: bet-hound/cmd/types.RotoArticle
+  Chatroom:
+    model: bet-hound/cmd/types.Chatroom
+  Message:
+    model: bet-hound/cmd/types.Message
 resolver:
   filename: resolver.go
   type: Resolver

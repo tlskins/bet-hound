@@ -15,7 +15,7 @@ import (
 	"github.com/satori/go.uuid"
 )
 
-func ScrapeNFLArticles() (html string, err error) {
+func getRotoNflHtml() (html string, err error) {
 	ctx, cancel := chromedp.NewContext(context.Background())
 	defer cancel()
 
@@ -36,19 +36,24 @@ func ScrapeNFLArticles() (html string, err error) {
 	return html, err
 }
 
-func ScrapeNFL() (articles []*t.RotoArticle) {
+func RotoNflArticles(numResults int) (articles []*t.RotoArticle, err error) {
 	fmt.Println("scrape rotowoorld nfl")
-	html, err := ScrapeNFLArticles()
+	html, err := getRotoNflHtml()
 	if err != nil {
-		fmt.Println(err)
+		return
 	}
 	doc, err := gq.NewDocumentFromReader(strings.NewReader(html))
 	if err != nil {
-		fmt.Println(err)
+		return
 	}
 
-	// articles := []*t.RotoArticle{}
+	articles = make([]*t.RotoArticle, numResults)
+
 	doc.Find("#player-news-page-wrapper > div > div > div.player-news.default > ul > li").Each(func(i int, s *gq.Selection) {
+		if i >= numResults {
+			return
+		}
+
 		imgSrc, _ := s.Find(".player-news-article .player-news-article__header .player-news-article__logo").Attr("src")
 		name := s.Find(".player-news-article .player-news-article__header .player-news-article__profile__name a").Text()
 		posRaw := s.Find(".player-news-article .player-news-article__header .player-news-article__profile__position").Text()
@@ -58,8 +63,7 @@ func ScrapeNFL() (articles []*t.RotoArticle) {
 		title := s.Find(".player-news-article .player-news-article__body .player-news-article__title h3").Text()
 		article := s.Find(".player-news-article .player-news-article__body .player-news-article__summary p").Text()
 
-		fmt.Println("article", pos, imgSrc, name, team, title, article)
-		articles = append(articles, &t.RotoArticle{
+		articles[i] = &t.RotoArticle{
 			Id:         uuid.NewV4().String(),
 			PlayerName: name,
 			ImgSrc:     imgSrc,
@@ -68,8 +72,8 @@ func ScrapeNFL() (articles []*t.RotoArticle) {
 			Title:      title,
 			Article:    article,
 			ScrapedAt:  time.Now(),
-		})
+		}
 	})
 
-	return articles
+	return articles, nil
 }

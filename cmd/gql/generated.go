@@ -114,7 +114,8 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		Post func(childComplexity int, text string, username string, roomName string) int
+		Post            func(childComplexity int, text string, username string, roomName string) int
+		PostRotoArticle func(childComplexity int) int
 	}
 
 	Player struct {
@@ -144,8 +145,20 @@ type ComplexityRoot struct {
 		Room        func(childComplexity int, name string) int
 	}
 
+	RotoArticle struct {
+		Article    func(childComplexity int) int
+		Id         func(childComplexity int) int
+		ImgSrc     func(childComplexity int) int
+		PlayerName func(childComplexity int) int
+		Position   func(childComplexity int) int
+		ScrapedAt  func(childComplexity int) int
+		Team       func(childComplexity int) int
+		Title      func(childComplexity int) int
+	}
+
 	Subscription struct {
-		MessageAdded func(childComplexity int, roomName string) int
+		MessageAdded     func(childComplexity int, roomName string) int
+		RotoArticleAdded func(childComplexity int) int
 	}
 
 	User struct {
@@ -163,17 +176,19 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	Post(ctx context.Context, text string, username string, roomName string) (*Message, error)
+	Post(ctx context.Context, text string, username string, roomName string) (*types.Message, error)
+	PostRotoArticle(ctx context.Context) (*types.RotoArticle, error)
 }
 type QueryResolver interface {
 	Bets(ctx context.Context) ([]*types.Bet, error)
 	Bet(ctx context.Context, id string) (*types.Bet, error)
 	FindGames(ctx context.Context, team *string, gameTime *time.Time, week *int, year *int) ([]*types.Game, error)
 	FindPlayers(ctx context.Context, name *string, team *string, position *string) ([]*types.Player, error)
-	Room(ctx context.Context, name string) (*Chatroom, error)
+	Room(ctx context.Context, name string) (*types.Chatroom, error)
 }
 type SubscriptionResolver interface {
-	MessageAdded(ctx context.Context, roomName string) (<-chan *Message, error)
+	MessageAdded(ctx context.Context, roomName string) (<-chan *types.Message, error)
+	RotoArticleAdded(ctx context.Context) (<-chan *types.RotoArticle, error)
 }
 
 type executableSchema struct {
@@ -518,6 +533,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.Post(childComplexity, args["text"].(string), args["username"].(string), args["roomName"].(string)), true
 
+	case "Mutation.postRotoArticle":
+		if e.complexity.Mutation.PostRotoArticle == nil {
+			break
+		}
+
+		return e.complexity.Mutation.PostRotoArticle(childComplexity), true
+
 	case "Player.firstName":
 		if e.complexity.Player.FirstName == nil {
 			break
@@ -664,6 +686,62 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Room(childComplexity, args["name"].(string)), true
 
+	case "RotoArticle.article":
+		if e.complexity.RotoArticle.Article == nil {
+			break
+		}
+
+		return e.complexity.RotoArticle.Article(childComplexity), true
+
+	case "RotoArticle.id":
+		if e.complexity.RotoArticle.Id == nil {
+			break
+		}
+
+		return e.complexity.RotoArticle.Id(childComplexity), true
+
+	case "RotoArticle.imgSrc":
+		if e.complexity.RotoArticle.ImgSrc == nil {
+			break
+		}
+
+		return e.complexity.RotoArticle.ImgSrc(childComplexity), true
+
+	case "RotoArticle.playerName":
+		if e.complexity.RotoArticle.PlayerName == nil {
+			break
+		}
+
+		return e.complexity.RotoArticle.PlayerName(childComplexity), true
+
+	case "RotoArticle.position":
+		if e.complexity.RotoArticle.Position == nil {
+			break
+		}
+
+		return e.complexity.RotoArticle.Position(childComplexity), true
+
+	case "RotoArticle.scrapedAt":
+		if e.complexity.RotoArticle.ScrapedAt == nil {
+			break
+		}
+
+		return e.complexity.RotoArticle.ScrapedAt(childComplexity), true
+
+	case "RotoArticle.team":
+		if e.complexity.RotoArticle.Team == nil {
+			break
+		}
+
+		return e.complexity.RotoArticle.Team(childComplexity), true
+
+	case "RotoArticle.title":
+		if e.complexity.RotoArticle.Title == nil {
+			break
+		}
+
+		return e.complexity.RotoArticle.Title(childComplexity), true
+
 	case "Subscription.messageAdded":
 		if e.complexity.Subscription.MessageAdded == nil {
 			break
@@ -675,6 +753,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Subscription.MessageAdded(childComplexity, args["roomName"].(string)), true
+
+	case "Subscription.rotoArticleAdded":
+		if e.complexity.Subscription.RotoArticleAdded == nil {
+			break
+		}
+
+		return e.complexity.Subscription.RotoArticleAdded(childComplexity), true
 
 	case "User.id":
 		if e.complexity.User.Id == nil {
@@ -912,6 +997,19 @@ type Message {
   createdAt: Timestamp!
 }
 
+# rotoworld
+
+type RotoArticle {
+  id: ID!
+  imgSrc: String
+  playerName: String!
+  position: String
+  team: String
+  title: String!
+  article: String!
+  scrapedAt: Timestamp
+}
+
 # graphql
 
 type Query {
@@ -924,10 +1022,12 @@ type Query {
 
 type Mutation {
   post(text: String!, username: String!, roomName: String!): Message!
+  postRotoArticle: RotoArticle!
 }
 
 type Subscription {
   messageAdded(roomName: String!): Message!
+  rotoArticleAdded: RotoArticle!
 }
 
 scalar Timestamp
@@ -1731,7 +1831,7 @@ func (ec *executionContext) _BetResult_decidedAt(ctx context.Context, field grap
 	return ec.marshalNTimestamp2timeᚐTime(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Chatroom_name(ctx context.Context, field graphql.CollectedField, obj *Chatroom) (ret graphql.Marshaler) {
+func (ec *executionContext) _Chatroom_name(ctx context.Context, field graphql.CollectedField, obj *types.Chatroom) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1765,7 +1865,7 @@ func (ec *executionContext) _Chatroom_name(ctx context.Context, field graphql.Co
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Chatroom_messages(ctx context.Context, field graphql.CollectedField, obj *Chatroom) (ret graphql.Marshaler) {
+func (ec *executionContext) _Chatroom_messages(ctx context.Context, field graphql.CollectedField, obj *types.Chatroom) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1794,9 +1894,9 @@ func (ec *executionContext) _Chatroom_messages(ctx context.Context, field graphq
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*Message)
+	res := resTmp.([]types.Message)
 	fc.Result = res
-	return ec.marshalNMessage2ᚕᚖbetᚑhoundᚋcmdᚋgqlᚐMessageᚄ(ctx, field.Selections, res)
+	return ec.marshalNMessage2ᚕbetᚑhoundᚋcmdᚋtypesᚐMessageᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Equation_leftExpressions(ctx context.Context, field graphql.CollectedField, obj *types.Equation) (ret graphql.Marshaler) {
@@ -2425,7 +2525,7 @@ func (ec *executionContext) _Game_year(ctx context.Context, field graphql.Collec
 	return ec.marshalOInt2int(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Message_id(ctx context.Context, field graphql.CollectedField, obj *Message) (ret graphql.Marshaler) {
+func (ec *executionContext) _Message_id(ctx context.Context, field graphql.CollectedField, obj *types.Message) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2459,7 +2559,7 @@ func (ec *executionContext) _Message_id(ctx context.Context, field graphql.Colle
 	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Message_text(ctx context.Context, field graphql.CollectedField, obj *Message) (ret graphql.Marshaler) {
+func (ec *executionContext) _Message_text(ctx context.Context, field graphql.CollectedField, obj *types.Message) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2493,7 +2593,7 @@ func (ec *executionContext) _Message_text(ctx context.Context, field graphql.Col
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Message_createdBy(ctx context.Context, field graphql.CollectedField, obj *Message) (ret graphql.Marshaler) {
+func (ec *executionContext) _Message_createdBy(ctx context.Context, field graphql.CollectedField, obj *types.Message) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2527,7 +2627,7 @@ func (ec *executionContext) _Message_createdBy(ctx context.Context, field graphq
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Message_createdAt(ctx context.Context, field graphql.CollectedField, obj *Message) (ret graphql.Marshaler) {
+func (ec *executionContext) _Message_createdAt(ctx context.Context, field graphql.CollectedField, obj *types.Message) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2662,9 +2762,43 @@ func (ec *executionContext) _Mutation_post(ctx context.Context, field graphql.Co
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*Message)
+	res := resTmp.(*types.Message)
 	fc.Result = res
-	return ec.marshalNMessage2ᚖbetᚑhoundᚋcmdᚋgqlᚐMessage(ctx, field.Selections, res)
+	return ec.marshalNMessage2ᚖbetᚑhoundᚋcmdᚋtypesᚐMessage(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_postRotoArticle(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().PostRotoArticle(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*types.RotoArticle)
+	fc.Result = res
+	return ec.marshalNRotoArticle2ᚖbetᚑhoundᚋcmdᚋtypesᚐRotoArticle(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Player_id(ctx context.Context, field graphql.CollectedField, obj *types.Player) (ret graphql.Marshaler) {
@@ -3278,9 +3412,9 @@ func (ec *executionContext) _Query_room(ctx context.Context, field graphql.Colle
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*Chatroom)
+	res := resTmp.(*types.Chatroom)
 	fc.Result = res
-	return ec.marshalOChatroom2ᚖbetᚑhoundᚋcmdᚋgqlᚐChatroom(ctx, field.Selections, res)
+	return ec.marshalOChatroom2ᚖbetᚑhoundᚋcmdᚋtypesᚐChatroom(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3352,6 +3486,266 @@ func (ec *executionContext) _Query___schema(ctx context.Context, field graphql.C
 	return ec.marshalO__Schema2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐSchema(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _RotoArticle_id(ctx context.Context, field graphql.CollectedField, obj *types.RotoArticle) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "RotoArticle",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Id, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RotoArticle_imgSrc(ctx context.Context, field graphql.CollectedField, obj *types.RotoArticle) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "RotoArticle",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ImgSrc, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RotoArticle_playerName(ctx context.Context, field graphql.CollectedField, obj *types.RotoArticle) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "RotoArticle",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PlayerName, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RotoArticle_position(ctx context.Context, field graphql.CollectedField, obj *types.RotoArticle) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "RotoArticle",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Position, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RotoArticle_team(ctx context.Context, field graphql.CollectedField, obj *types.RotoArticle) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "RotoArticle",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Team, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RotoArticle_title(ctx context.Context, field graphql.CollectedField, obj *types.RotoArticle) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "RotoArticle",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Title, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RotoArticle_article(ctx context.Context, field graphql.CollectedField, obj *types.RotoArticle) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "RotoArticle",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Article, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RotoArticle_scrapedAt(ctx context.Context, field graphql.CollectedField, obj *types.RotoArticle) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "RotoArticle",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ScrapedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalOTimestamp2timeᚐTime(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Subscription_messageAdded(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3389,7 +3783,7 @@ func (ec *executionContext) _Subscription_messageAdded(ctx context.Context, fiel
 		return nil
 	}
 	return func() graphql.Marshaler {
-		res, ok := <-resTmp.(<-chan *Message)
+		res, ok := <-resTmp.(<-chan *types.Message)
 		if !ok {
 			return nil
 		}
@@ -3397,7 +3791,51 @@ func (ec *executionContext) _Subscription_messageAdded(ctx context.Context, fiel
 			w.Write([]byte{'{'})
 			graphql.MarshalString(field.Alias).MarshalGQL(w)
 			w.Write([]byte{':'})
-			ec.marshalNMessage2ᚖbetᚑhoundᚋcmdᚋgqlᚐMessage(ctx, field.Selections, res).MarshalGQL(w)
+			ec.marshalNMessage2ᚖbetᚑhoundᚋcmdᚋtypesᚐMessage(ctx, field.Selections, res).MarshalGQL(w)
+			w.Write([]byte{'}'})
+		})
+	}
+}
+
+func (ec *executionContext) _Subscription_rotoArticleAdded(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = nil
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Subscription",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Subscription().RotoArticleAdded(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return nil
+	}
+	return func() graphql.Marshaler {
+		res, ok := <-resTmp.(<-chan *types.RotoArticle)
+		if !ok {
+			return nil
+		}
+		return graphql.WriterFunc(func(w io.Writer) {
+			w.Write([]byte{'{'})
+			graphql.MarshalString(field.Alias).MarshalGQL(w)
+			w.Write([]byte{':'})
+			ec.marshalNRotoArticle2ᚖbetᚑhoundᚋcmdᚋtypesᚐRotoArticle(ctx, field.Selections, res).MarshalGQL(w)
 			w.Write([]byte{'}'})
 		})
 	}
@@ -4799,7 +5237,7 @@ func (ec *executionContext) _BetResult(ctx context.Context, sel ast.SelectionSet
 
 var chatroomImplementors = []string{"Chatroom"}
 
-func (ec *executionContext) _Chatroom(ctx context.Context, sel ast.SelectionSet, obj *Chatroom) graphql.Marshaler {
+func (ec *executionContext) _Chatroom(ctx context.Context, sel ast.SelectionSet, obj *types.Chatroom) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, chatroomImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -4921,7 +5359,7 @@ func (ec *executionContext) _Game(ctx context.Context, sel ast.SelectionSet, obj
 
 var messageImplementors = []string{"Message"}
 
-func (ec *executionContext) _Message(ctx context.Context, sel ast.SelectionSet, obj *Message) graphql.Marshaler {
+func (ec *executionContext) _Message(ctx context.Context, sel ast.SelectionSet, obj *types.Message) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, messageImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -5007,6 +5445,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = graphql.MarshalString("Mutation")
 		case "post":
 			out.Values[i] = ec._Mutation_post(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "postRotoArticle":
+			out.Values[i] = ec._Mutation_postRotoArticle(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -5206,6 +5649,56 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 	return out
 }
 
+var rotoArticleImplementors = []string{"RotoArticle"}
+
+func (ec *executionContext) _RotoArticle(ctx context.Context, sel ast.SelectionSet, obj *types.RotoArticle) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, rotoArticleImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RotoArticle")
+		case "id":
+			out.Values[i] = ec._RotoArticle_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "imgSrc":
+			out.Values[i] = ec._RotoArticle_imgSrc(ctx, field, obj)
+		case "playerName":
+			out.Values[i] = ec._RotoArticle_playerName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "position":
+			out.Values[i] = ec._RotoArticle_position(ctx, field, obj)
+		case "team":
+			out.Values[i] = ec._RotoArticle_team(ctx, field, obj)
+		case "title":
+			out.Values[i] = ec._RotoArticle_title(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "article":
+			out.Values[i] = ec._RotoArticle_article(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "scrapedAt":
+			out.Values[i] = ec._RotoArticle_scrapedAt(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var subscriptionImplementors = []string{"Subscription"}
 
 func (ec *executionContext) _Subscription(ctx context.Context, sel ast.SelectionSet) func() graphql.Marshaler {
@@ -5221,6 +5714,8 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 	switch fields[0].Name {
 	case "messageAdded":
 		return ec._Subscription_messageAdded(ctx, fields[0])
+	case "rotoArticleAdded":
+		return ec._Subscription_rotoArticleAdded(ctx, fields[0])
 	default:
 		panic("unknown field " + strconv.Quote(fields[0].Name))
 	}
@@ -5725,11 +6220,11 @@ func (ec *executionContext) marshalNInt2int64(ctx context.Context, sel ast.Selec
 	return res
 }
 
-func (ec *executionContext) marshalNMessage2betᚑhoundᚋcmdᚋgqlᚐMessage(ctx context.Context, sel ast.SelectionSet, v Message) graphql.Marshaler {
+func (ec *executionContext) marshalNMessage2betᚑhoundᚋcmdᚋtypesᚐMessage(ctx context.Context, sel ast.SelectionSet, v types.Message) graphql.Marshaler {
 	return ec._Message(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNMessage2ᚕᚖbetᚑhoundᚋcmdᚋgqlᚐMessageᚄ(ctx context.Context, sel ast.SelectionSet, v []*Message) graphql.Marshaler {
+func (ec *executionContext) marshalNMessage2ᚕbetᚑhoundᚋcmdᚋtypesᚐMessageᚄ(ctx context.Context, sel ast.SelectionSet, v []types.Message) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -5753,7 +6248,7 @@ func (ec *executionContext) marshalNMessage2ᚕᚖbetᚑhoundᚋcmdᚋgqlᚐMess
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNMessage2ᚖbetᚑhoundᚋcmdᚋgqlᚐMessage(ctx, sel, v[i])
+			ret[i] = ec.marshalNMessage2betᚑhoundᚋcmdᚋtypesᚐMessage(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -5766,7 +6261,7 @@ func (ec *executionContext) marshalNMessage2ᚕᚖbetᚑhoundᚋcmdᚋgqlᚐMess
 	return ret
 }
 
-func (ec *executionContext) marshalNMessage2ᚖbetᚑhoundᚋcmdᚋgqlᚐMessage(ctx context.Context, sel ast.SelectionSet, v *Message) graphql.Marshaler {
+func (ec *executionContext) marshalNMessage2ᚖbetᚑhoundᚋcmdᚋtypesᚐMessage(ctx context.Context, sel ast.SelectionSet, v *types.Message) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -5825,6 +6320,20 @@ func (ec *executionContext) marshalNPlayer2ᚖbetᚑhoundᚋcmdᚋtypesᚐPlayer
 		return graphql.Null
 	}
 	return ec._Player(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNRotoArticle2betᚑhoundᚋcmdᚋtypesᚐRotoArticle(ctx context.Context, sel ast.SelectionSet, v types.RotoArticle) graphql.Marshaler {
+	return ec._RotoArticle(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNRotoArticle2ᚖbetᚑhoundᚋcmdᚋtypesᚐRotoArticle(ctx context.Context, sel ast.SelectionSet, v *types.RotoArticle) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._RotoArticle(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
@@ -6152,11 +6661,11 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return ec.marshalOBoolean2bool(ctx, sel, *v)
 }
 
-func (ec *executionContext) marshalOChatroom2betᚑhoundᚋcmdᚋgqlᚐChatroom(ctx context.Context, sel ast.SelectionSet, v Chatroom) graphql.Marshaler {
+func (ec *executionContext) marshalOChatroom2betᚑhoundᚋcmdᚋtypesᚐChatroom(ctx context.Context, sel ast.SelectionSet, v types.Chatroom) graphql.Marshaler {
 	return ec._Chatroom(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalOChatroom2ᚖbetᚑhoundᚋcmdᚋgqlᚐChatroom(ctx context.Context, sel ast.SelectionSet, v *Chatroom) graphql.Marshaler {
+func (ec *executionContext) marshalOChatroom2ᚖbetᚑhoundᚋcmdᚋtypesᚐChatroom(ctx context.Context, sel ast.SelectionSet, v *types.Chatroom) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}

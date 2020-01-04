@@ -102,6 +102,19 @@ type Message {
   createdAt: Timestamp!
 }
 
+# rotoworld
+
+type RotoArticle {
+  id: ID!
+  imgSrc: String
+  playerName: String!
+  position: String
+  team: String
+  title: String!
+  article: String!
+  scrapedAt: Timestamp
+}
+
 # graphql
 
 type Query {
@@ -114,10 +127,12 @@ type Query {
 
 type Mutation {
   post(text: String!, username: String!, roomName: String!): Message!
+  postRotoArticle: RotoArticle!
 }
 
 type Subscription {
   messageAdded(roomName: String!): Message!
+  rotoArticleAdded: RotoArticle!
 }
 
 scalar Timestamp

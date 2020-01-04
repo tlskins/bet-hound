@@ -8,14 +8,16 @@ import (
 	"time"
 
 	"bet-hound/cmd/db"
+	"bet-hound/cmd/scraper"
 	"bet-hound/cmd/types"
 )
 
 // THIS CODE IS A STARTING POINT ONLY. IT WILL NOT BE UPDATED WITH SCHEMA CHANGES.
 
 type resolver struct {
-	Rooms map[string]*Chatroom
-	mu    sync.Mutex
+	Rooms        map[string]*types.Chatroom
+	RotoObserver *types.RotoObserver
+	mu           sync.Mutex
 }
 
 func (r *resolver) Mutation() MutationResolver {
@@ -33,7 +35,8 @@ func (r *resolver) Subscription() SubscriptionResolver {
 func New() Config {
 	return Config{
 		Resolvers: &resolver{
-			Rooms: map[string]*Chatroom{},
+			Rooms:        map[string]*types.Chatroom{},
+			RotoObserver: &types.RotoObserver{},
 		},
 		Directives: DirectiveRoot{
 			User: func(ctx context.Context, obj interface{}, next graphql.Resolver, username string) (res interface{}, err error) {
@@ -50,33 +53,24 @@ func getUsername(ctx context.Context) string {
 	return ""
 }
 
-type Chatroom struct {
-	Name      string
-	Messages  []Message
-	Observers map[string]struct {
-		Username string
-		Message  chan *Message
-	}
-}
-
 type mutationResolver struct{ *resolver }
 
-func (r *mutationResolver) Post(ctx context.Context, text string, username string, roomName string) (*Message, error) {
+func (r *mutationResolver) Post(ctx context.Context, text string, username string, roomName string) (*types.Message, error) {
 	r.mu.Lock()
 	room := r.Rooms[roomName]
 	if room == nil {
-		room = &Chatroom{
+		room = &types.Chatroom{
 			Name: roomName,
 			Observers: map[string]struct {
 				Username string
-				Message  chan *Message
+				Message  chan *types.Message
 			}{},
 		}
 		r.Rooms[roomName] = room
 	}
 	r.mu.Unlock()
 
-	message := Message{
+	message := types.Message{
 		ID:        randString(8),
 		CreatedAt: time.Now(),
 		Text:      text,
@@ -94,6 +88,29 @@ func (r *mutationResolver) Post(ctx context.Context, text string, username strin
 	return &message, nil
 }
 
+func (r *mutationResolver) PostRotoArticle(ctx context.Context) (*types.RotoArticle, error) {
+	if len(r.RotoObserver.Observers) == 0 {
+		return nil, nil
+	}
+	articles, err := scraper.RotoNflArticles(1)
+	if err != nil {
+		return nil, err
+	}
+	a := articles[0]
+	if a == nil || a.Title == r.RotoObserver.Title {
+		return nil, nil
+	}
+
+	r.mu.Lock()
+	r.RotoObserver.Title = a.Title
+	for _, observer := range r.RotoObserver.Observers {
+		observer <- a
+	}
+	r.mu.Unlock()
+
+	return a, nil
+}
+
 type queryResolver struct{ *resolver }
 
 func (r *queryResolver) Bets(ctx context.Context) ([]*types.Bet, error) {
@@ -108,15 +125,15 @@ func (r *queryResolver) FindGames(ctx context.Context, team *string, gameTime *t
 func (r *queryResolver) FindPlayers(ctx context.Context, name *string, team *string, position *string) ([]*types.Player, error) {
 	return db.SearchPlayers(name, team, position, 10)
 }
-func (r *queryResolver) Room(ctx context.Context, name string) (*Chatroom, error) {
+func (r *queryResolver) Room(ctx context.Context, name string) (*types.Chatroom, error) {
 	r.mu.Lock()
 	room := r.Rooms[name]
 	if room == nil {
-		room = &Chatroom{
+		room = &types.Chatroom{
 			Name: name,
 			Observers: map[string]struct {
 				Username string
-				Message  chan *Message
+				Message  chan *types.Message
 			}{},
 		}
 		r.Rooms[name] = room
@@ -128,15 +145,15 @@ func (r *queryResolver) Room(ctx context.Context, name string) (*Chatroom, error
 
 type subscriptionResolver struct{ *resolver }
 
-func (r *subscriptionResolver) MessageAdded(ctx context.Context, roomName string) (<-chan *Message, error) {
+func (r *subscriptionResolver) MessageAdded(ctx context.Context, roomName string) (<-chan *types.Message, error) {
 	r.mu.Lock()
 	room := r.Rooms[roomName]
 	if room == nil {
-		room = &Chatroom{
+		room = &types.Chatroom{
 			Name: roomName,
 			Observers: map[string]struct {
 				Username string
-				Message  chan *Message
+				Message  chan *types.Message
 			}{},
 		}
 		r.Rooms[roomName] = room
@@ -144,7 +161,7 @@ func (r *subscriptionResolver) MessageAdded(ctx context.Context, roomName string
 	r.mu.Unlock()
 
 	id := randString(8)
-	events := make(chan *Message, 1)
+	events := make(chan *types.Message, 1)
 
 	go func() {
 		<-ctx.Done()
@@ -156,8 +173,18 @@ func (r *subscriptionResolver) MessageAdded(ctx context.Context, roomName string
 	r.mu.Lock()
 	room.Observers[id] = struct {
 		Username string
-		Message  chan *Message
+		Message  chan *types.Message
 	}{Username: getUsername(ctx), Message: events}
+	r.mu.Unlock()
+
+	return events, nil
+}
+
+func (r *subscriptionResolver) RotoArticleAdded(ctx context.Context) (<-chan *types.RotoArticle, error) {
+	events := make(chan *types.RotoArticle, 1)
+
+	r.mu.Lock()
+	r.RotoObserver.Observers = append(r.RotoObserver.Observers, events)
 	r.mu.Unlock()
 
 	return events, nil

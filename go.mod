@@ -49,6 +49,7 @@ require (
 	golang.org/x/tools v0.0.0-20200102200121-6de373a2766c // indirect
 	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 // indirect
 	google.golang.org/genproto v0.0.0-20191028173616-919d9bdd9fe6
+	google.golang.org/grpc v1.21.1
 	gopkg.in/confluentinc/confluent-kafka-go.v1 v1.1.0 // indirect
 	gopkg.in/yaml.v2 v2.2.7 // indirect
 	sourcegraph.com/sourcegraph/appdash v0.0.0-20190731080439-ebfcffb1b5c0 // indirect
