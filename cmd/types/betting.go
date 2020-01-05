@@ -7,6 +7,27 @@ import (
 	"time"
 )
 
+type BetMap struct {
+	Name       string `bson:"n" json:"name"`
+	Field      string `bson:"f" json:"field"`
+	FieldType  string `bson:"ft" json:"field_type"`
+	ResultType string `bson:"rt" json:"result_type"`
+}
+
+type BetCalc struct{}
+
+func (b BetCalc) GreaterThan(v1, v2 float64) bool {
+	return v1 > v2
+}
+
+func (b BetCalc) LesserThan(v1, v2 float64) bool {
+	return v1 < v2
+}
+
+func (b BetCalc) EqualTo(v1, v2 float64) bool {
+	return v1 == v2
+}
+
 // Bet status
 
 type BetStatus int
@@ -426,4 +447,5 @@ type Player struct {
 	TeamShort string `bson:"team_short,omitempty" json:"team_short"`
 	Position  string `bson:"pos,omitempty" json:"position"`
 	Url       string `bson:"url,omitempty" json:"url"`
+	Game      *Game  `bson:"gm,omitempty" json:"game,omitempty"` // should only be aggregated
 }

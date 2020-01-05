@@ -1,8 +1,7 @@
 package main
 
 import (
-	// "bet-hound/cmd/db"
-	// "fmt"
+	"bet-hound/cmd/db"
 	"fmt"
 	"log"
 	"os"
@@ -12,7 +11,7 @@ import (
 	// b "bet-hound/cmd/betting"
 	"bet-hound/cmd/env"
 	// "bet-hound/cmd/nlp"
-	"bet-hound/cmd/scraper"
+	// "bet-hound/cmd/scraper"
 	// t "bet-hound/cmd/types"
 	// "bet-hound/cmd/twitter"
 	m "bet-hound/pkg/mongo"
@@ -34,11 +33,27 @@ func main() {
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
 
 	// gameLog, err := scraper.ScrapeGameLog("https://www.pro-football-reference.com/boxscores/202001040htx.htm")
-	gameLog, err := scraper.ScrapeGameLog("https://www.pro-football-reference.com/boxscores/201912290car.htm")
+	// gameLog, err := scraper.ScrapeGameLog("https://www.pro-football-reference.com/boxscores/201912290car.htm")
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+	// fmt.Println(*gameLog)
+
+	// scraper.ScrapeCurrentGames()
+	// settings, err := db.GetLeagueSettings("nfl")
+	// fmt.Println(*settings)
+
+	name := "henry"
+	players, err := db.SearchPlayersWithGame(&name, nil, nil, 5)
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(*gameLog)
+	for _, p := range players {
+		fmt.Println(*p)
+		if p.Game != nil {
+			fmt.Println(*p.Game)
+		}
+	}
 
 	// Text samples
 	// pt_to_vrb_txt := "@bettybetbot @richayelfuego yo richardo u wanna bet that Alshon Jeffery scores more ppr points that Saquon Barkley this week?"

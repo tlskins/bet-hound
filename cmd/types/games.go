@@ -32,35 +32,40 @@ func (g Game) VsTeamFk(playerTmFk string) string {
 }
 
 type GameLog struct {
-	HomeTeamScore      int                  `bson:"h_scr" json:"home_team_score"`
-	HomeTeamScoreByQtr []int                `bson:"h_scr_q" json:"home_team_score_by_qtr"`
-	AwayTeamScore      int                  `bson:"a_scr" json:"away_team_score"`
-	AwayTeamScoreByQtr []int                `bson:"a_scr_q" json:"away_team_score_by_qtr"`
-	PlayerLogs         map[string]PlayerLog `bson:"p_logs" json:"player_logs"`
+	HomeTeamLog TeamLog              `bson:"h_tm_lg" json:"home_team_log"`
+	AwayTeamLog TeamLog              `bson:"a_tm_lg" json:"away_team_log"`
+	PlayerLogs  map[string]PlayerLog `bson:"p_logs" json:"player_logs"`
+}
+
+type TeamLog struct {
+	Fk         string `bson:"fk" json:"fk"`
+	TeamName   string `bson:"tm_nm" json:"team_name"`
+	Score      int    `bson:"scr" json:"score"`
+	ScoreByQtr []int  `bson:"scr_q" json:"score_by_qtr"`
+	Win        int    `bson:"w" json:"win"` // -1 lose, 0 tie, 1 win
 }
 
 type PlayerLog struct {
-	// PlayerFk     string  `bson:"player_fk" json:"player_fk"`
-	PassCmp      int64   `bson:"p_cmp" json:"pass_cmp"`
-	PassAtt      int64   `bson:"p_att" json:"pass_att"`
-	PassYd       int64   `bson:"p_yd" json:"pass_yd"`
-	PassTd       int64   `bson:"p_td" json:"pass_td"`
-	PassInt      int64   `bson:"p_int" json:"pass_int"`
-	PassSacked   int64   `bson:"p_skd" json:"pass_sacked"`
-	PassSackedYd int64   `bson:"p_skd_yd" json:"pass_sacked_yd"`
-	PassLong     int64   `bson:"p_lng" json:"pass_long"`
+	PassCmp      int     `bson:"p_cmp" json:"pass_cmp"`
+	PassAtt      int     `bson:"p_att" json:"pass_att"`
+	PassYd       int     `bson:"p_yd" json:"pass_yd"`
+	PassTd       int     `bson:"p_td" json:"pass_td"`
+	PassInt      int     `bson:"p_int" json:"pass_int"`
+	PassSacked   int     `bson:"p_skd" json:"pass_sacked"`
+	PassSackedYd int     `bson:"p_skd_yd" json:"pass_sacked_yd"`
+	PassLong     int     `bson:"p_lng" json:"pass_long"`
 	PassRating   float64 `bson:"p_rtg" json:"pass_rating"`
-	RushAtt      int64   `bson:"r_att" json:"rush_att"`
-	RushYd       int64   `bson:"r_yd" json:"rush_yd"`
-	RushTd       int64   `bson:"r_td" json:"rush_td"`
-	RushLong     int64   `bson:"r_lng" json:"rush_long"`
-	Target       int64   `bson:"tgt" json:"target"`
-	Rec          int64   `bson:"rec" json:"rec"`
-	RecYd        int64   `bson:"rec_yd" json:"rec_yd"`
-	RecTd        int64   `bson:"rec_td" json: "rec_td"`
-	RecLong      int64   `bson:"rec_lng" json:"rec_long"`
-	Fumble       int64   `bson:"fmbl" json:"fumble"`
-	FumbleLost   int64   `bson:"fmbl_lst" json:"fumble_lost"`
+	RushAtt      int     `bson:"r_att" json:"rush_att"`
+	RushYd       int     `bson:"r_yd" json:"rush_yd"`
+	RushTd       int     `bson:"r_td" json:"rush_td"`
+	RushLong     int     `bson:"r_lng" json:"rush_long"`
+	Target       int     `bson:"tgt" json:"target"`
+	Rec          int     `bson:"rec" json:"rec"`
+	RecYd        int     `bson:"rec_yd" json:"rec_yd"`
+	RecTd        int     `bson:"rec_td" json: "rec_td"`
+	RecLong      int     `bson:"rec_lng" json:"rec_long"`
+	Fumble       int     `bson:"fmbl" json:"fumble"`
+	FumbleLost   int     `bson:"fmbl_lst" json:"fumble_lost"`
 	Fantasy00PPR float64 `bson:"f_00_ppr" json:"fantasy_00_ppr"`
 	Fantasy05PPR float64 `bson:"f_05_ppr" json:"fantasy_05_ppr"`
 	Fantasy10PPR float64 `bson:"f_10_ppr" json:"fantasy_10_ppr"`

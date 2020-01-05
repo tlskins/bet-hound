@@ -36,6 +36,10 @@ models:
     model: bet-hound/cmd/types.Chatroom
   Message:
     model: bet-hound/cmd/types.Message
+  BetMap:
+    model: bet-hound/cmd/types.BetMap
+  LeagueSettings:
+    model: bet-hound/cmd/types.LeagueSettings
 resolver:
   filename: resolver.go
   type: Resolver

@@ -113,6 +113,9 @@ func (r *mutationResolver) PostRotoArticle(ctx context.Context) (*types.RotoArti
 
 type queryResolver struct{ *resolver }
 
+func (r *queryResolver) LeagueSettings(ctx context.Context, id string) (*types.LeagueSettings, error) {
+	return db.GetLeagueSettings(id)
+}
 func (r *queryResolver) Bets(ctx context.Context) ([]*types.Bet, error) {
 	return db.AllBets(), nil
 }
@@ -122,8 +125,12 @@ func (r *queryResolver) Bet(ctx context.Context, id string) (*types.Bet, error) 
 func (r *queryResolver) FindGames(ctx context.Context, team *string, gameTime *time.Time, week *int, year *int) ([]*types.Game, error) {
 	return db.SearchGames(team, gameTime, week, year, 10)
 }
-func (r *queryResolver) FindPlayers(ctx context.Context, name *string, team *string, position *string) ([]*types.Player, error) {
-	return db.SearchPlayers(name, team, position, 10)
+func (r *queryResolver) FindPlayers(ctx context.Context, name *string, team *string, position *string, withGame *bool) ([]*types.Player, error) {
+	if withGame != nil && *withGame {
+		return db.SearchPlayersWithGame(name, team, position, 10)
+	} else {
+		return db.SearchPlayers(name, team, position, 10)
+	}
 }
 func (r *queryResolver) Room(ctx context.Context, name string) (*types.Chatroom, error) {
 	r.mu.Lock()

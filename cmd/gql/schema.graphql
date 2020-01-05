@@ -2,6 +2,23 @@
 #
 # https://gqlgen.com/getting-started/
 
+# settings
+
+type BetMap {
+  name: String!
+}
+
+type LeagueSettings {
+  id: ID!
+  currentYear: Int!
+  currentWeek: Int!
+  playerBets: [BetMap]!
+  teamBets: [BetMap]!
+  betEquations: [BetMap]!
+}
+
+# betting
+
 type Bet {
   id: ID!
   sourceFk: String!
@@ -54,6 +71,7 @@ type Player {
   teamShort: String
   position: String
   url: String
+  game: Game
 }
 
 type Game {
@@ -118,10 +136,16 @@ type RotoArticle {
 # graphql
 
 type Query {
+  leagueSettings(id: ID!): LeagueSettings!
   bets: [Bet!]!
   bet(id: ID!): Bet
   findGames(team: String, gameTime: Timestamp, week: Int, year: Int): [Game]!
-  findPlayers(name: String, team: String, position: String): [Player]!
+  findPlayers(
+    name: String
+    team: String
+    position: String
+    withGame: Boolean
+  ): [Player]!
   room(name: String!): Chatroom
 }
 

@@ -237,23 +237,3 @@ func calcExpressionResult(expr *t.PlayerExpression, games *[]*t.Game, metric *t.
 		return nil
 	}
 }
-
-func calcPlayerGameValue(log *map[string]*t.GameStat, player *t.Player, metric *t.Metric) *float64 {
-	l := *log
-	score := 0.0
-	if l[player.Fk] == nil {
-		return &score
-	}
-	score += float64(l[player.Fk].PassYd) * 0.04
-	score += float64(l[player.Fk].PassTd) * 4.0
-	score -= float64(l[player.Fk].PassInt) * 2.0
-	// score -= float64(l[player.Fk].PassSackedYd) / 10.0
-	score += float64(l[player.Fk].RushYd) * 0.1
-	score += float64(l[player.Fk].RushTd) * 6.0
-	score += float64(l[player.Fk].Rec) * metric.PPR()
-	score += float64(l[player.Fk].RecYd) * 0.1
-	score += float64(l[player.Fk].RecTd) * 6.0
-	score -= float64(l[player.Fk].FumbleLost) * 2.0
-	score = math.Ceil(score*10) / 10
-	return &score
-}

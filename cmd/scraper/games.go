@@ -36,6 +36,10 @@ func ScrapeGameLog(url string) (gameLog *t.GameLog, err error) {
 	isFinal := false
 	doc.Find("#content > div.linescore_wrap > table > tbody > tr").Each(func(i int, s *gq.Selection) {
 		isFinal = true
+		url, _ := s.Find("td:nth-child(2) a").Attr("href")
+		fkMatch := teamFkRgx.FindStringSubmatch(url)
+		fk := strings.ToUpper(fkMatch[1])
+		name := s.Find("td:nth-child(2) a").Text()
 		q1, _ := strconv.Atoi(s.Find("td:nth-child(3)").Text())
 		q2, _ := strconv.Atoi(s.Find("td:nth-child(4)").Text())
 		q3, _ := strconv.Atoi(s.Find("td:nth-child(5)").Text())
@@ -43,17 +47,33 @@ func ScrapeGameLog(url string) (gameLog *t.GameLog, err error) {
 		scrByQ := []int{q1, q2, q3, q4}
 		qf, _ := strconv.Atoi(s.Find("td:nth-child(7)").Text())
 
+		tmLog := t.TeamLog{
+			Fk:         fk,
+			TeamName:   name,
+			Score:      qf,
+			ScoreByQtr: scrByQ,
+		}
+
 		if i == 0 {
-			gameLog.AwayTeamScore = qf
-			gameLog.AwayTeamScoreByQtr = scrByQ
+			gameLog.AwayTeamLog = tmLog
 		} else {
-			gameLog.HomeTeamScore = qf
-			gameLog.HomeTeamScoreByQtr = scrByQ
+			gameLog.HomeTeamLog = tmLog
 		}
 	})
 
 	if !isFinal {
 		return nil, fmt.Errorf("Game not final")
+	} else {
+		if gameLog.HomeTeamLog.Score == gameLog.AwayTeamLog.Score {
+			gameLog.HomeTeamLog.Win = 0
+			gameLog.AwayTeamLog.Win = 0
+		} else if gameLog.HomeTeamLog.Score > gameLog.AwayTeamLog.Score {
+			gameLog.HomeTeamLog.Win = 1
+			gameLog.AwayTeamLog.Win = -1
+		} else {
+			gameLog.HomeTeamLog.Win = -1
+			gameLog.AwayTeamLog.Win = 1
+		}
 	}
 
 	gameLog.PlayerLogs = scrapePlayerLogs(doc)
@@ -74,45 +94,45 @@ func scrapePlayerLogs(doc *gq.Document) (playerLogs map[string]t.PlayerLog) {
 					data, _ := s.Attr("data-stat")
 					switch data {
 					case "pass_cmp":
-						log.PassCmp, _ = strconv.ParseInt(s.Text(), 0, 64)
+						log.PassCmp, _ = strconv.Atoi(s.Text())
 					case "pass_att":
-						log.PassAtt, _ = strconv.ParseInt(s.Text(), 0, 64)
+						log.PassAtt, _ = strconv.Atoi(s.Text())
 					case "pass_yds":
-						log.PassYd, _ = strconv.ParseInt(s.Text(), 0, 64)
+						log.PassYd, _ = strconv.Atoi(s.Text())
 					case "pass_td":
-						log.PassTd, _ = strconv.ParseInt(s.Text(), 0, 64)
+						log.PassTd, _ = strconv.Atoi(s.Text())
 					case "pass_int":
-						log.PassInt, _ = strconv.ParseInt(s.Text(), 0, 64)
+						log.PassInt, _ = strconv.Atoi(s.Text())
 					case "pass_sacked":
-						log.PassSacked, _ = strconv.ParseInt(s.Text(), 0, 64)
+						log.PassSacked, _ = strconv.Atoi(s.Text())
 					case "pass_sacked_yds":
-						log.PassSackedYd, _ = strconv.ParseInt(s.Text(), 0, 64)
+						log.PassSackedYd, _ = strconv.Atoi(s.Text())
 					case "pass_long":
-						log.PassLong, _ = strconv.ParseInt(s.Text(), 0, 64)
+						log.PassLong, _ = strconv.Atoi(s.Text())
 					case "pass_rating":
 						log.PassRating, _ = strconv.ParseFloat(s.Text(), 64)
 					case "rush_att":
-						log.RushAtt, _ = strconv.ParseInt(s.Text(), 0, 64)
+						log.RushAtt, _ = strconv.Atoi(s.Text())
 					case "rush_yds":
-						log.RushYd, _ = strconv.ParseInt(s.Text(), 0, 64)
+						log.RushYd, _ = strconv.Atoi(s.Text())
 					case "rush_td":
-						log.RushTd, _ = strconv.ParseInt(s.Text(), 0, 64)
+						log.RushTd, _ = strconv.Atoi(s.Text())
 					case "rush_long":
-						log.RushLong, _ = strconv.ParseInt(s.Text(), 0, 64)
+						log.RushLong, _ = strconv.Atoi(s.Text())
 					case "target":
-						log.Target, _ = strconv.ParseInt(s.Text(), 0, 64)
+						log.Target, _ = strconv.Atoi(s.Text())
 					case "rec":
-						log.Rec, _ = strconv.ParseInt(s.Text(), 0, 64)
+						log.Rec, _ = strconv.Atoi(s.Text())
 					case "rec_yds":
-						log.RecYd, _ = strconv.ParseInt(s.Text(), 0, 64)
+						log.RecYd, _ = strconv.Atoi(s.Text())
 					case "rec_td":
-						log.RecTd, _ = strconv.ParseInt(s.Text(), 0, 64)
+						log.RecTd, _ = strconv.Atoi(s.Text())
 					case "rec_long":
-						log.RecLong, _ = strconv.ParseInt(s.Text(), 0, 64)
+						log.RecLong, _ = strconv.Atoi(s.Text())
 					case "fumbles":
-						log.Fumble, _ = strconv.ParseInt(s.Text(), 0, 64)
+						log.Fumble, _ = strconv.Atoi(s.Text())
 					case "fumbles_lost":
-						log.FumbleLost, _ = strconv.ParseInt(s.Text(), 0, 64)
+						log.FumbleLost, _ = strconv.Atoi(s.Text())
 					}
 				})
 				log.CalcFantasyScores()
@@ -124,7 +144,7 @@ func scrapePlayerLogs(doc *gq.Document) (playerLogs map[string]t.PlayerLog) {
 	return
 }
 
-func ScrapeThisWeeksGames() {
+func ScrapeCurrentGames() {
 	doc, gmYr, gmWk, err := getThisWeeksGames()
 	if err != nil {
 		log.Fatal(err)
@@ -141,7 +161,6 @@ func ScrapeThisWeeksGames() {
 		var fkRgx = regexp.MustCompile(`\/boxscores\/(.*)\.htm`)
 		fk := fkRgx.FindStringSubmatch(url)[1]
 
-		// var teamFkRgx = regexp.MustCompile(`\/teams\/(.*)\/\d{4}\.htm`)
 		// Away team fields
 		awayTeam := s.Find("tr:nth-child(2) td:nth-child(1) a").Text()
 		awayTeamUrl, _ := s.Find("tr:nth-child(2) td:nth-child(1) a").Attr("href")
@@ -160,6 +179,7 @@ func ScrapeThisWeeksGames() {
 		name := strings.Join([]string{awayTeam, homeTeam}, " at ")
 
 		games = append(games, &t.Game{
+			Id:           strconv.Itoa(gmYr) + strconv.Itoa(gmWk) + homeTeamFk + awayTeamFk,
 			Name:         name,
 			Fk:           fk,
 			Url:          url,
@@ -222,13 +242,24 @@ func ScrapeThisWeeksGames() {
 		gm.Year = gmYr
 	}
 
-	// Upsert games
 	for _, game := range games {
 		fmt.Println("game: ", *game)
+	}
+	// Add to current and game histories
+	if err = db.UpsertCurrentGames(&games); err != nil {
+		log.Fatal(err)
 	}
 	if err = db.UpsertGames(&games); err != nil {
 		log.Fatal(err)
 	}
+
+	// Update league settings
+	s := &t.LeagueSettings{
+		Id:          "nfl",
+		CurrentYear: gmYr,
+		CurrentWeek: gmWk,
+	}
+	db.UpsertLeagueSettings(s)
 }
 
 func getThisWeeksGames() (doc *gq.Document, gmYr int, gmWk int, err error) {
@@ -290,6 +321,6 @@ func getThisWeeksGames() (doc *gq.Document, gmYr int, gmWk int, err error) {
 		log.Fatal(err)
 		return nil, 0, 0, err
 	}
-	return doc, gmYr, gmWk, err
+	return doc, gmYr, nextGmWk, err
 	// Toggle Expiration Here
 }

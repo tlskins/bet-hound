@@ -12,23 +12,25 @@ import (
 type environment struct {
 	m *mgo.Session
 
-	consumerKey       string
-	consumerSecret    string
-	accessTokenKey    string
-	accessTokenSecret string
-	webhookEnv        string
-	appUrl            string
-	port              string
-	mongoHost         string
-	mongoUser         string
-	mongoPwd          string
-	mongoDb           string
-	betsCollection    string
-	playersCollection string
-	tweetsCollection  string
-	gamesCollection   string
-	logPath           string
-	botHandle         string
+	consumerKey              string
+	consumerSecret           string
+	accessTokenKey           string
+	accessTokenSecret        string
+	webhookEnv               string
+	appUrl                   string
+	port                     string
+	mongoHost                string
+	mongoUser                string
+	mongoPwd                 string
+	mongoDb                  string
+	betsCollection           string
+	playersCollection        string
+	tweetsCollection         string
+	gamesCollection          string
+	currentGamesCollection   string
+	leagueSettingsCollection string
+	logPath                  string
+	botHandle                string
 }
 
 var e = &environment{}
@@ -84,6 +86,12 @@ func TweetsCollection() string {
 func GamesCollection() string {
 	return e.gamesCollection
 }
+func CurrentGamesCollection() string {
+	return e.currentGamesCollection
+}
+func LeagueSettingsCollection() string {
+	return e.leagueSettingsCollection
+}
 func LogPath() string {
 	return e.logPath
 }
@@ -123,6 +131,8 @@ func Init(configFile, configPath string) error {
 	e.playersCollection = viper.GetString("players_collection")
 	e.tweetsCollection = viper.GetString("tweets_collection")
 	e.gamesCollection = viper.GetString("games_collection")
+	e.currentGamesCollection = viper.GetString("current_games_collection")
+	e.leagueSettingsCollection = viper.GetString("league_settings_collection")
 	e.botHandle = viper.GetString("bot_handle")
 
 	return nil

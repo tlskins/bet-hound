@@ -4,12 +4,50 @@ import (
 	"time"
 
 	"github.com/globalsign/mgo"
-	"github.com/satori/go.uuid"
 
 	"bet-hound/cmd/env"
 	t "bet-hound/cmd/types"
 	m "bet-hound/pkg/mongo"
 )
+
+func UpsertCurrentGames(games *[]*t.Game) (err error) {
+	conn := env.MGOSession().Copy()
+	defer conn.Close()
+	c := conn.DB(env.MongoDb()).C(env.CurrentGamesCollection())
+
+	for _, game := range *games {
+		err = m.Upsert(c, game, m.M{"_id": game.Id}, m.M{"$set": game})
+		if err != nil {
+			return err
+		}
+	}
+	return err
+}
+
+func GetCurrentGames() (games *[]*t.Game) {
+	conn := env.MGOSession().Copy()
+	defer conn.Close()
+	c := conn.DB(env.MongoDb()).C(env.CurrentGamesCollection())
+
+	games = &[]*t.Game{}
+	c.Find(m.M{}).All(games)
+	return
+}
+
+// func GetCurrentWeek() (yr, wk int) {
+// 	conn := env.MGOSession().Copy()
+// 	defer conn.Close()
+// 	c := conn.DB(env.MongoDb()).C(env.CurrentGamesCollection())
+
+// 	games := make([]*t.Game, 1)
+// 	c.Find(m.M{}).Limit(1).All(&games)
+// 	if len(games) == 1 {
+// 		return games[0].Year, games[0].Week
+// 	} else {
+// 		return 0, 0
+// 	}
+// 	return
+// }
 
 func UpsertGames(games *[]*t.Game) (err error) {
 	conn := env.MGOSession().Copy()
@@ -17,9 +55,6 @@ func UpsertGames(games *[]*t.Game) (err error) {
 	c := conn.DB(env.MongoDb()).C(env.GamesCollection())
 
 	for _, game := range *games {
-		if game.Id == "" {
-			game.Id = uuid.NewV4().String()
-		}
 		err = m.Upsert(c, game, m.M{"_id": game.Id}, m.M{"$set": game})
 		if err != nil {
 			return err
@@ -35,7 +70,7 @@ func GamesForWeek(week, year int) (games *[]*t.Game) {
 
 	games = &[]*t.Game{}
 	c.Find(m.M{"wk": week, "yr": year}).All(games)
-	return games
+	return
 }
 
 func SearchGames(team *string, gameTime *time.Time, week, year *int, numResults int) (games []*t.Game, err error) {
