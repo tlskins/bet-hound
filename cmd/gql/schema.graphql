@@ -9,7 +9,7 @@ type BetMap {
 }
 
 type LeagueSettings {
-  id: ID!
+  id: String!
   currentYear: Int!
   currentWeek: Int!
   playerBets: [BetMap]!
@@ -136,7 +136,7 @@ type RotoArticle {
 # graphql
 
 type Query {
-  leagueSettings(id: ID!): LeagueSettings!
+  leagueSettings(id: String!): LeagueSettings!
   bets: [Bet!]!
   bet(id: ID!): Bet
   findGames(team: String, gameTime: Timestamp, week: Int, year: Int): [Game]!

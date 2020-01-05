@@ -988,7 +988,7 @@ type BetMap {
 }
 
 type LeagueSettings {
-  id: ID!
+  id: String!
   currentYear: Int!
   currentWeek: Int!
   playerBets: [BetMap]!
@@ -1115,7 +1115,7 @@ type RotoArticle {
 # graphql
 
 type Query {
-  leagueSettings(id: ID!): LeagueSettings!
+  leagueSettings(id: String!): LeagueSettings!
   bets: [Bet!]!
   bet(id: ID!): Bet
   findGames(team: String, gameTime: Timestamp, week: Int, year: Int): [Game]!
@@ -1303,7 +1303,7 @@ func (ec *executionContext) field_Query_leagueSettings_args(ctx context.Context,
 	args := map[string]interface{}{}
 	var arg0 string
 	if tmp, ok := rawArgs["id"]; ok {
-		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2720,7 +2720,7 @@ func (ec *executionContext) _LeagueSettings_id(ctx context.Context, field graphq
 	}
 	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _LeagueSettings_currentYear(ctx context.Context, field graphql.CollectedField, obj *types.LeagueSettings) (ret graphql.Marshaler) {
