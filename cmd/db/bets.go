@@ -15,7 +15,7 @@ func AllBets() (bets []*t.Bet) {
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
 
-	m.Find(c, &bets, nil)
+	m.Find(c, &bets, m.M{"eqs": m.M{"$exists": true, "$ne": []m.M{}}})
 	return
 }
 

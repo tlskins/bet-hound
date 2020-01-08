@@ -123,7 +123,7 @@ func (b Bet) Response() (txt string) {
 			"@%s @%s Is this correct: \"%s\" ? Reply \"Yes\"",
 			b.Proposer.ScreenName,
 			b.Recipient.ScreenName,
-			b.Description(),
+			b.String(),
 		)
 	} else if b.BetStatus.String() == "Accepted" {
 		return fmt.Sprintf(
@@ -149,10 +149,10 @@ func (b Bet) Response() (txt string) {
 	return ""
 }
 
-func (b Bet) Description() (result string) {
+func (b Bet) String() (result string) {
 	result = fmt.Sprintf("%s bets", b.Proposer.Name)
 	for _, eq := range b.Equations {
-		result += fmt.Sprintf(" '%s'", eq.Description())
+		result += fmt.Sprintf(" '%s'", eq.String())
 	}
 	return result
 }
@@ -244,9 +244,8 @@ func (b Bet) Valid() error {
 type Equation struct {
 	LeftExpressions  []*PlayerExpression `bson:"l_exprs" json:"left_expressions"`
 	RightExpressions []*PlayerExpression `bson:"r_exprs" json:"right_expressions"`
-	Metric           *Metric             `bson:"metric" json:"metric"`
 	Action           *Word               `bson:"a_word" json:"action_word"`
-	Operator         *Word               `bson:"op_word" json:"operator_word"`
+	Operator         *BetMap             `bson:"op_word" json:"operator_word"`
 	Delimiter        *Word               `bson:"delim_word" json:"delimiter_word"`
 	Result           *bool               `bson:"res" json:"result"`
 }
@@ -256,16 +255,12 @@ func (e Equation) Valid() error {
 		return fmt.Errorf("No left expressions found.")
 	} else if len(e.RightExpressions) == 0 {
 		return fmt.Errorf("No right expressions found.")
-	} else if e.Metric == nil {
-		return fmt.Errorf("No metric found.")
-	} else if e.Metric.Valid() != nil {
-		return e.Metric.Valid()
-	} else if e.Action == nil {
-		return fmt.Errorf("No action found.")
+		// } else if e.Action == nil {
+		// 	return fmt.Errorf("No action found.")
 	} else if e.Operator == nil {
 		return fmt.Errorf("No operator found.")
-	} else if e.Delimiter == nil {
-		return fmt.Errorf("No delimiter found.")
+		// } else if e.Delimiter == nil {
+		// 	return fmt.Errorf("No delimiter found.")
 	} else {
 		for _, l := range e.LeftExpressions {
 			err := l.Valid()
@@ -283,15 +278,27 @@ func (e Equation) Valid() error {
 	}
 }
 
-func (e Equation) Description() (result string) {
+func (e Equation) String() (result string) {
+	left, right := "", ""
+	for i, e := range e.LeftExpressions {
+		if i > 0 {
+			left += " "
+		}
+		left += e.String()
+	}
+	for i, e := range e.RightExpressions {
+		if i > 0 {
+			right += " "
+		}
+		right += e.String()
+	}
 	return fmt.Sprintf(
-		"%s %s %s %s %s %s",
-		e.expressionSources(true),
+		"%s %s %s %s %s",
+		left,
 		e.Action.Text,
-		e.Operator.Text,
-		e.Metric.Description(),
+		e.Operator.Name,
 		e.Delimiter.Text,
-		e.expressionSources(false),
+		right,
 	)
 }
 
@@ -313,9 +320,9 @@ func (e Equation) ResultDescription() (result string) {
 		result += str
 	}
 
-	if e.Operator.Lemma == "more" {
+	if e.Operator.Name == ">" {
 		result += " > "
-	} else if e.Operator.Lemma == "less" || e.Operator.Lemma == "few" {
+	} else if e.Operator.Name == "<" {
 		result += " < "
 	}
 
@@ -338,24 +345,24 @@ func (e Equation) ResultDescription() (result string) {
 	return result
 }
 
-func (e Equation) expressionSources(left bool) (result string) {
-	exprs := e.LeftExpressions
-	if !left {
-		exprs = e.RightExpressions
-	}
-	for i, expr := range exprs {
-		if i > 0 {
-			result += ", "
-		}
-		result += fmt.Sprintf(
-			"%s. %s vs %s",
-			expr.Player.FirstName[:1],
-			expr.Player.LastName,
-			expr.Game.VsTeamFk(expr.Player.TeamFk),
-		)
-	}
-	return result
-}
+// func (e Equation) expressionSources(left bool) (result string) {
+// 	exprs := e.LeftExpressions
+// 	if !left {
+// 		exprs = e.RightExpressions
+// 	}
+// 	for i, expr := range exprs {
+// 		if i > 0 {
+// 			result += ", "
+// 		}
+// 		result += fmt.Sprintf(
+// 			"%s. %s vs %s",
+// 			expr.Player.FirstName[:1],
+// 			expr.Player.LastName,
+// 			expr.Game.VsTeamFk(expr.Player.TeamFk),
+// 		)
+// 	}
+// 	return result
+// }
 
 // Expression
 
@@ -364,6 +371,7 @@ type PlayerExpression struct {
 	Player *Player  `bson:"player" json:"player"`
 	Game   *Game    `bson:"gm" json:"game"`
 	Value  *float64 `bson:"val" json:"value"`
+	Metric *BetMap  `bson:"mtc" json:"metric"`
 }
 
 func (e PlayerExpression) Valid() error {
@@ -376,17 +384,22 @@ func (e PlayerExpression) Valid() error {
 	}
 }
 
-func (e PlayerExpression) Description() (desc string) {
+func (e PlayerExpression) String() (desc string) {
 	vsTeam := e.Game.HomeTeamName
 	if e.Player.TeamFk == e.Game.HomeTeamFk {
 		vsTeam = e.Game.AwayTeamName
 	}
-	return fmt.Sprintf("%s.%s (%s-%s) vs %s",
+	metric := ""
+	if e.Metric != nil {
+		metric = " " + e.Metric.Name
+	}
+	return fmt.Sprintf("%s.%s (%s-%s) vs %s%s",
 		e.Player.FirstName[:1],
 		e.Player.LastName,
 		e.Player.TeamShort,
 		e.Player.Position,
 		vsTeam,
+		metric,
 	)
 }
 
@@ -405,7 +418,7 @@ func (m Metric) Valid() error {
 	}
 }
 
-func (m Metric) Description() string {
+func (m Metric) String() string {
 	result := m.Word.Text
 	for _, m := range m.Modifiers {
 		result += " " + m.Text

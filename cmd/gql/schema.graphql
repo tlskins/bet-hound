@@ -37,10 +37,7 @@ type Bet {
 type Equation {
   leftExpressions: [PlayerExpression]
   rightExpressions: [PlayerExpression]
-  metric: Metric
-  action: Word
-  operator: Word
-  delimiter: Word
+  operator: BetMap
   result: Boolean
 }
 
@@ -48,6 +45,7 @@ type PlayerExpression {
   player: Player!
   game: Game!
   value: Float
+  metric: BetMap
 }
 
 type Metric {
