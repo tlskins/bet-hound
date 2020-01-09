@@ -17,6 +17,7 @@ import (
 type resolver struct {
 	Rooms        map[string]*types.Chatroom
 	RotoObserver *types.RotoObserver
+	RotoArticles map[string][]*types.RotoArticle
 	mu           sync.Mutex
 }
 
@@ -37,6 +38,7 @@ func New() Config {
 		Resolvers: &resolver{
 			Rooms:        map[string]*types.Chatroom{},
 			RotoObserver: &types.RotoObserver{},
+			RotoArticles: map[string][]*types.RotoArticle{},
 		},
 		Directives: DirectiveRoot{
 			User: func(ctx context.Context, obj interface{}, next graphql.Resolver, username string) (res interface{}, err error) {
@@ -88,27 +90,29 @@ func (r *mutationResolver) Post(ctx context.Context, text string, username strin
 	return &message, nil
 }
 
+// need to change this nfl specific
 func (r *mutationResolver) PostRotoArticle(ctx context.Context) (*types.RotoArticle, error) {
 	if len(r.RotoObserver.Observers) == 0 {
 		return nil, nil
 	}
-	articles, err := scraper.RotoNflArticles(1)
+	articles, err := scraper.RotoNflArticles(10)
 	if err != nil {
 		return nil, err
 	}
-	a := articles[0]
-	if a == nil || a.Title == r.RotoObserver.Title {
+	last := articles[0] // last article is first in array
+	if last == nil || last.Title == r.RotoObserver.Title {
 		return nil, nil
 	}
 
 	r.mu.Lock()
-	r.RotoObserver.Title = a.Title
+	r.RotoArticles["nfl"] = articles
+	r.RotoObserver.Title = last.Title
 	for _, observer := range r.RotoObserver.Observers {
-		observer <- a
+		observer <- last
 	}
 	r.mu.Unlock()
 
-	return a, nil
+	return last, nil
 }
 
 type queryResolver struct{ *resolver }
@@ -148,6 +152,21 @@ func (r *queryResolver) Room(ctx context.Context, name string) (*types.Chatroom,
 	r.mu.Unlock()
 
 	return room, nil
+}
+func (r *queryResolver) CurrentRotoArticles(ctx context.Context, id string) (articles []*types.RotoArticle, err error) {
+	articles = r.RotoArticles[id]
+	if len(articles) == 0 {
+		if articles, err = scraper.RotoNflArticles(10); err != nil {
+			return
+		}
+
+		if len(articles) > 0 {
+			r.mu.Lock()
+			r.RotoArticles[id] = articles
+			r.mu.Unlock()
+		}
+	}
+	return articles, nil
 }
 
 type subscriptionResolver struct{ *resolver }

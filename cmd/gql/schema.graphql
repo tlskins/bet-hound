@@ -137,6 +137,7 @@ type Query {
   leagueSettings(id: String!): LeagueSettings!
   bets: [Bet!]!
   bet(id: ID!): Bet
+  currentRotoArticles(id: String!): [RotoArticle]!
   findGames(team: String, gameTime: Timestamp, week: Int, year: Int): [Game]!
   findPlayers(
     name: String

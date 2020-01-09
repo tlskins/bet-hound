@@ -37,7 +37,7 @@ func getRotoNflHtml() (html string, err error) {
 }
 
 func RotoNflArticles(numResults int) (articles []*t.RotoArticle, err error) {
-	fmt.Println("scrape rotowoorld nfl")
+	fmt.Println("scraping rotoworld nfl")
 	html, err := getRotoNflHtml()
 	if err != nil {
 		return

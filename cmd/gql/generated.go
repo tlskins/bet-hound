@@ -150,12 +150,13 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Bet            func(childComplexity int, id string) int
-		Bets           func(childComplexity int) int
-		FindGames      func(childComplexity int, team *string, gameTime *time.Time, week *int, year *int) int
-		FindPlayers    func(childComplexity int, name *string, team *string, position *string, withGame *bool) int
-		LeagueSettings func(childComplexity int, id string) int
-		Room           func(childComplexity int, name string) int
+		Bet                 func(childComplexity int, id string) int
+		Bets                func(childComplexity int) int
+		CurrentRotoArticles func(childComplexity int, id string) int
+		FindGames           func(childComplexity int, team *string, gameTime *time.Time, week *int, year *int) int
+		FindPlayers         func(childComplexity int, name *string, team *string, position *string, withGame *bool) int
+		LeagueSettings      func(childComplexity int, id string) int
+		Room                func(childComplexity int, name string) int
 	}
 
 	RotoArticle struct {
@@ -196,6 +197,7 @@ type QueryResolver interface {
 	LeagueSettings(ctx context.Context, id string) (*types.LeagueSettings, error)
 	Bets(ctx context.Context) ([]*types.Bet, error)
 	Bet(ctx context.Context, id string) (*types.Bet, error)
+	CurrentRotoArticles(ctx context.Context, id string) ([]*types.RotoArticle, error)
 	FindGames(ctx context.Context, team *string, gameTime *time.Time, week *int, year *int) ([]*types.Game, error)
 	FindPlayers(ctx context.Context, name *string, team *string, position *string, withGame *bool) ([]*types.Player, error)
 	Room(ctx context.Context, name string) (*types.Chatroom, error)
@@ -706,6 +708,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Bets(childComplexity), true
 
+	case "Query.currentRotoArticles":
+		if e.complexity.Query.CurrentRotoArticles == nil {
+			break
+		}
+
+		args, err := ec.field_Query_currentRotoArticles_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.CurrentRotoArticles(childComplexity, args["id"].(string)), true
+
 	case "Query.findGames":
 		if e.complexity.Query.FindGames == nil {
 			break
@@ -1100,6 +1114,7 @@ type Query {
   leagueSettings(id: String!): LeagueSettings!
   bets: [Bet!]!
   bet(id: ID!): Bet
+  currentRotoArticles(id: String!): [RotoArticle]!
   findGames(team: String, gameTime: Timestamp, week: Int, year: Int): [Game]!
   findPlayers(
     name: String
@@ -1196,6 +1211,20 @@ func (ec *executionContext) field_Query_bet_args(ctx context.Context, rawArgs ma
 	var arg0 string
 	if tmp, ok := rawArgs["id"]; ok {
 		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_currentRotoArticles_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3657,6 +3686,47 @@ func (ec *executionContext) _Query_bet(ctx context.Context, field graphql.Collec
 	return ec.marshalOBet2ᚖbetᚑhoundᚋcmdᚋtypesᚐBet(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_currentRotoArticles(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_currentRotoArticles_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().CurrentRotoArticles(rctx, args["id"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*types.RotoArticle)
+	fc.Result = res
+	return ec.marshalNRotoArticle2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐRotoArticle(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_findGames(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -6046,6 +6116,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				res = ec._Query_bet(ctx, field)
 				return res
 			})
+		case "currentRotoArticles":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_currentRotoArticles(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "findGames":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -6842,6 +6926,43 @@ func (ec *executionContext) marshalNRotoArticle2betᚑhoundᚋcmdᚋtypesᚐRoto
 	return ec._RotoArticle(ctx, sel, &v)
 }
 
+func (ec *executionContext) marshalNRotoArticle2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐRotoArticle(ctx context.Context, sel ast.SelectionSet, v []*types.RotoArticle) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalORotoArticle2ᚖbetᚑhoundᚋcmdᚋtypesᚐRotoArticle(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
 func (ec *executionContext) marshalNRotoArticle2ᚖbetᚑhoundᚋcmdᚋtypesᚐRotoArticle(ctx context.Context, sel ast.SelectionSet, v *types.RotoArticle) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -7382,6 +7503,17 @@ func (ec *executionContext) marshalOPlayerExpression2ᚖbetᚑhoundᚋcmdᚋtype
 		return graphql.Null
 	}
 	return ec._PlayerExpression(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalORotoArticle2betᚑhoundᚋcmdᚋtypesᚐRotoArticle(ctx context.Context, sel ast.SelectionSet, v types.RotoArticle) graphql.Marshaler {
+	return ec._RotoArticle(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalORotoArticle2ᚖbetᚑhoundᚋcmdᚋtypesᚐRotoArticle(ctx context.Context, sel ast.SelectionSet, v *types.RotoArticle) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._RotoArticle(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {
