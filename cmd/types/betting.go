@@ -10,19 +10,23 @@ import (
 
 type BetChanges struct {
 	EquationsChanges []*EquationChanges `json:"equationsChanges"`
+	Delete           bool               `json:"delete"`
 }
 
 type EquationChanges struct {
 	Id                int                        `json:"id"`
-	OperatorName      *string                    `json:"operatorName"`
+	Delete            *bool                      `json:"delete"`
+	OperatorId        *int                       `json:"operatorId"`
 	ExpressionChanges []*PlayerExpressionChanges `json:"expressionChanges"`
 }
 
 type PlayerExpressionChanges struct {
-	Id         int     `json:"id"`
-	PlayerFk   *string `json:"playerFk"`
-	GameFk     *string `json:"gameFk"`
-	MetricName *string `json:"metricName"`
+	Id       int     `json:"id"`
+	IsLeft   *bool   `json:"is_left"`
+	Delete   *bool   `json:"delete"`
+	PlayerFk *string `json:"playerFk"`
+	GameFk   *string `json:"gameFk"`
+	MetricId *int    `json:"metricId"`
 }
 
 // Bet Maps
@@ -88,6 +92,7 @@ type Bet struct {
 	ProposerReplyFk  *string     `bson:"pr_fk" json:"proposer_reply_fk"`
 	RecipientReplyFk *string     `bson:"rr_fk" json:"recipient_reply_fk"`
 	Equations        []*Equation `bson:"eqs" json:"equations"`
+	CreatedAt        *time.Time  `bson:"crt_at" json:"created_at"`
 	ExpiresAt        *time.Time  `bson:"exp_at" json:"expires_at"`
 	FinalizedAt      *time.Time  `bson:"final_at" json:"finalized_at"`
 	BetStatus        BetStatus   `bson:"status" json:"bet_status"`

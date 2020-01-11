@@ -51,6 +51,7 @@ type ComplexityRoot struct {
 		AcceptFk         func(childComplexity int) int
 		BetResult        func(childComplexity int) int
 		BetStatus        func(childComplexity int) int
+		CreatedAt        func(childComplexity int) int
 		Equations        func(childComplexity int) int
 		ExpiresAt        func(childComplexity int) int
 		FinalizedAt      func(childComplexity int) int
@@ -63,6 +64,7 @@ type ComplexityRoot struct {
 	}
 
 	BetMap struct {
+		Id   func(childComplexity int) int
 		Name func(childComplexity int) int
 	}
 
@@ -80,11 +82,10 @@ type ComplexityRoot struct {
 	}
 
 	Equation struct {
-		Id               func(childComplexity int) int
-		LeftExpressions  func(childComplexity int) int
-		Operator         func(childComplexity int) int
-		Result           func(childComplexity int) int
-		RightExpressions func(childComplexity int) int
+		Expressions func(childComplexity int) int
+		Id          func(childComplexity int) int
+		Operator    func(childComplexity int) int
+		Result      func(childComplexity int) int
 	}
 
 	Game struct {
@@ -120,6 +121,7 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
+		CreateBet       func(childComplexity int, changes types.BetChanges) int
 		Post            func(childComplexity int, text string, username string, roomName string) int
 		PostRotoArticle func(childComplexity int) int
 		UpdateBet       func(childComplexity int, id string, changes types.BetChanges) int
@@ -142,6 +144,7 @@ type ComplexityRoot struct {
 	PlayerExpression struct {
 		Game   func(childComplexity int) int
 		Id     func(childComplexity int) int
+		IsLeft func(childComplexity int) int
 		Metric func(childComplexity int) int
 		Player func(childComplexity int) int
 		Value  func(childComplexity int) int
@@ -180,14 +183,10 @@ type ComplexityRoot struct {
 		Name       func(childComplexity int) int
 		ScreenName func(childComplexity int) int
 	}
-
-	Word struct {
-		Lemma func(childComplexity int) int
-		Text  func(childComplexity int) int
-	}
 }
 
 type MutationResolver interface {
+	CreateBet(ctx context.Context, changes types.BetChanges) (*types.Bet, error)
 	UpdateBet(ctx context.Context, id string, changes types.BetChanges) (*types.Bet, error)
 	Post(ctx context.Context, text string, username string, roomName string) (*types.Message, error)
 	PostRotoArticle(ctx context.Context) (*types.RotoArticle, error)
@@ -241,6 +240,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Bet.BetStatus(childComplexity), true
+
+	case "Bet.createdAt":
+		if e.complexity.Bet.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.Bet.CreatedAt(childComplexity), true
 
 	case "Bet.equations":
 		if e.complexity.Bet.Equations == nil {
@@ -305,6 +311,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Bet.SourceFk(childComplexity), true
 
+	case "BetMap.id":
+		if e.complexity.BetMap.Id == nil {
+			break
+		}
+
+		return e.complexity.BetMap.Id(childComplexity), true
+
 	case "BetMap.name":
 		if e.complexity.BetMap.Name == nil {
 			break
@@ -361,19 +374,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Chatroom.Name(childComplexity), true
 
+	case "Equation.expressions":
+		if e.complexity.Equation.Expressions == nil {
+			break
+		}
+
+		return e.complexity.Equation.Expressions(childComplexity), true
+
 	case "Equation.id":
 		if e.complexity.Equation.Id == nil {
 			break
 		}
 
 		return e.complexity.Equation.Id(childComplexity), true
-
-	case "Equation.leftExpressions":
-		if e.complexity.Equation.LeftExpressions == nil {
-			break
-		}
-
-		return e.complexity.Equation.LeftExpressions(childComplexity), true
 
 	case "Equation.operator":
 		if e.complexity.Equation.Operator == nil {
@@ -388,13 +401,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Equation.Result(childComplexity), true
-
-	case "Equation.rightExpressions":
-		if e.complexity.Equation.RightExpressions == nil {
-			break
-		}
-
-		return e.complexity.Equation.RightExpressions(childComplexity), true
 
 	case "Game.awayTeamFk":
 		if e.complexity.Game.AwayTeamFk == nil {
@@ -557,6 +563,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Message.Text(childComplexity), true
 
+	case "Mutation.createBet":
+		if e.complexity.Mutation.CreateBet == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createBet_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateBet(childComplexity, args["changes"].(types.BetChanges)), true
+
 	case "Mutation.post":
 		if e.complexity.Mutation.Post == nil {
 			break
@@ -678,6 +696,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.PlayerExpression.Id(childComplexity), true
+
+	case "PlayerExpression.isLeft":
+		if e.complexity.PlayerExpression.IsLeft == nil {
+			break
+		}
+
+		return e.complexity.PlayerExpression.IsLeft(childComplexity), true
 
 	case "PlayerExpression.metric":
 		if e.complexity.PlayerExpression.Metric == nil {
@@ -889,20 +914,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.ScreenName(childComplexity), true
 
-	case "Word.lemma":
-		if e.complexity.Word.Lemma == nil {
-			break
-		}
-
-		return e.complexity.Word.Lemma(childComplexity), true
-
-	case "Word.text":
-		if e.complexity.Word.Text == nil {
-			break
-		}
-
-		return e.complexity.Word.Text(childComplexity), true
-
 	}
 	return 0, false
 }
@@ -993,6 +1004,7 @@ var parsedSchema = gqlparser.MustLoadSchema(
 # settings
 
 type BetMap {
+  id: Int!
   name: String!
 }
 
@@ -1009,6 +1021,7 @@ type LeagueSettings {
 
 type Bet {
   id: ID!
+  createdAt: Timestamp
   sourceFk: String!
   proposer: User
   recipient: User
@@ -1024,23 +1037,18 @@ type Bet {
 
 type Equation {
   id: Int!
-  leftExpressions: [PlayerExpression]
-  rightExpressions: [PlayerExpression]
+  expressions: [PlayerExpression]
   operator: BetMap
   result: Boolean
 }
 
 type PlayerExpression {
   id: Int!
+  isLeft: Boolean!
   player: Player!
   game: Game!
   value: Float
   metric: BetMap
-}
-
-type Word {
-  text: String!
-  lemma: String
 }
 
 type Player {
@@ -1134,6 +1142,7 @@ type Query {
 }
 
 type Mutation {
+  createBet(changes: BetChanges!): Bet
   updateBet(id: ID!, changes: BetChanges!): Bet
   post(text: String!, username: String!, roomName: String!): Message!
   postRotoArticle: RotoArticle!
@@ -1151,16 +1160,19 @@ input BetChanges {
 }
 
 input EquationChanges {
-  id: Int!
-  operatorName: String
+  id: Int
+  delete: Boolean
+  operatorId: Int
   expressionChanges: [PlayerExpressionChanges]
 }
 
 input PlayerExpressionChanges {
-  id: Int!
+  id: Int
+  delete: Boolean
+  isLeft: Boolean
   playerFk: String
   gameFk: String
-  metricName: String
+  metricId: Int
 }
 
 scalar Timestamp
@@ -1186,6 +1198,20 @@ func (ec *executionContext) dir_user_args(ctx context.Context, rawArgs map[strin
 		}
 	}
 	args["username"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createBet_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 types.BetChanges
+	if tmp, ok := rawArgs["changes"]; ok {
+		arg0, err = ec.unmarshalNBetChanges2betᚑhoundᚋcmdᚋtypesᚐBetChanges(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["changes"] = arg0
 	return args, nil
 }
 
@@ -1506,6 +1532,37 @@ func (ec *executionContext) _Bet_id(ctx context.Context, field graphql.Collected
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Bet_createdAt(ctx context.Context, field graphql.CollectedField, obj *types.Bet) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Bet",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*time.Time)
+	fc.Result = res
+	return ec.marshalOTimestamp2ᚖtimeᚐTime(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Bet_sourceFk(ctx context.Context, field graphql.CollectedField, obj *types.Bet) (ret graphql.Marshaler) {
@@ -1855,6 +1912,40 @@ func (ec *executionContext) _Bet_betResult(ctx context.Context, field graphql.Co
 	return ec.marshalOBetResult2ᚖbetᚑhoundᚋcmdᚋtypesᚐBetResult(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _BetMap_id(ctx context.Context, field graphql.CollectedField, obj *types.BetMap) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "BetMap",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Id, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _BetMap_name(ctx context.Context, field graphql.CollectedField, obj *types.BetMap) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2158,7 +2249,7 @@ func (ec *executionContext) _Equation_id(ctx context.Context, field graphql.Coll
 	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Equation_leftExpressions(ctx context.Context, field graphql.CollectedField, obj *types.Equation) (ret graphql.Marshaler) {
+func (ec *executionContext) _Equation_expressions(ctx context.Context, field graphql.CollectedField, obj *types.Equation) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2169,44 +2260,13 @@ func (ec *executionContext) _Equation_leftExpressions(ctx context.Context, field
 		Object:   "Equation",
 		Field:    field,
 		Args:     nil,
-		IsMethod: true,
+		IsMethod: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.LeftExpressions(), nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.([]*types.PlayerExpression)
-	fc.Result = res
-	return ec.marshalOPlayerExpression2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐPlayerExpression(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Equation_rightExpressions(ctx context.Context, field graphql.CollectedField, obj *types.Equation) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Equation",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.RightExpressions(), nil
+		return obj.Expressions, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3031,6 +3091,44 @@ func (ec *executionContext) _Message_createdAt(ctx context.Context, field graphq
 	return ec.marshalNTimestamp2timeᚐTime(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Mutation_createBet(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_createBet_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateBet(rctx, args["changes"].(types.BetChanges))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*types.Bet)
+	fc.Result = res
+	return ec.marshalOBet2ᚖbetᚑhoundᚋcmdᚋtypesᚐBet(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Mutation_updateBet(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3532,6 +3630,40 @@ func (ec *executionContext) _PlayerExpression_id(ctx context.Context, field grap
 	res := resTmp.(int)
 	fc.Result = res
 	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _PlayerExpression_isLeft(ctx context.Context, field graphql.CollectedField, obj *types.PlayerExpression) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "PlayerExpression",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsLeft, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PlayerExpression_player(ctx context.Context, field graphql.CollectedField, obj *types.PlayerExpression) (ret graphql.Marshaler) {
@@ -4527,71 +4659,6 @@ func (ec *executionContext) _User_indices(ctx context.Context, field graphql.Col
 	res := resTmp.(*[]int64)
 	fc.Result = res
 	return ec.marshalOInt2ᚖᚕint64(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Word_text(ctx context.Context, field graphql.CollectedField, obj *types.Word) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Word",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Text, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Word_lemma(ctx context.Context, field graphql.CollectedField, obj *types.Word) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Word",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Lemma, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalOString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -5675,13 +5742,19 @@ func (ec *executionContext) unmarshalInputEquationChanges(ctx context.Context, o
 		switch k {
 		case "id":
 			var err error
-			it.Id, err = ec.unmarshalNInt2int(ctx, v)
+			it.Id, err = ec.unmarshalOInt2int(ctx, v)
 			if err != nil {
 				return it, err
 			}
-		case "operatorName":
+		case "delete":
 			var err error
-			it.OperatorName, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			it.Delete, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "operatorId":
+			var err error
+			it.OperatorId, err = ec.unmarshalOInt2ᚖint(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5705,7 +5778,19 @@ func (ec *executionContext) unmarshalInputPlayerExpressionChanges(ctx context.Co
 		switch k {
 		case "id":
 			var err error
-			it.Id, err = ec.unmarshalNInt2int(ctx, v)
+			it.Id, err = ec.unmarshalOInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "delete":
+			var err error
+			it.Delete, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "isLeft":
+			var err error
+			it.IsLeft, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5721,9 +5806,9 @@ func (ec *executionContext) unmarshalInputPlayerExpressionChanges(ctx context.Co
 			if err != nil {
 				return it, err
 			}
-		case "metricName":
+		case "metricId":
 			var err error
-			it.MetricName, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			it.MetricId, err = ec.unmarshalOInt2ᚖint(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5757,6 +5842,8 @@ func (ec *executionContext) _Bet(ctx context.Context, sel ast.SelectionSet, obj 
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "createdAt":
+			out.Values[i] = ec._Bet_createdAt(ctx, field, obj)
 		case "sourceFk":
 			out.Values[i] = ec._Bet_sourceFk(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -5807,6 +5894,11 @@ func (ec *executionContext) _BetMap(ctx context.Context, sel ast.SelectionSet, o
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("BetMap")
+		case "id":
+			out.Values[i] = ec._BetMap_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "name":
 			out.Values[i] = ec._BetMap_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -5915,10 +6007,8 @@ func (ec *executionContext) _Equation(ctx context.Context, sel ast.SelectionSet,
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "leftExpressions":
-			out.Values[i] = ec._Equation_leftExpressions(ctx, field, obj)
-		case "rightExpressions":
-			out.Values[i] = ec._Equation_rightExpressions(ctx, field, obj)
+		case "expressions":
+			out.Values[i] = ec._Equation_expressions(ctx, field, obj)
 		case "operator":
 			out.Values[i] = ec._Equation_operator(ctx, field, obj)
 		case "result":
@@ -6097,6 +6187,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Mutation")
+		case "createBet":
+			out.Values[i] = ec._Mutation_createBet(ctx, field)
 		case "updateBet":
 			out.Values[i] = ec._Mutation_updateBet(ctx, field)
 		case "post":
@@ -6192,6 +6284,11 @@ func (ec *executionContext) _PlayerExpression(ctx context.Context, sel ast.Selec
 			out.Values[i] = graphql.MarshalString("PlayerExpression")
 		case "id":
 			out.Values[i] = ec._PlayerExpression_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "isLeft":
+			out.Values[i] = ec._PlayerExpression_isLeft(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -6447,35 +6544,6 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "indices":
 			out.Values[i] = ec._User_indices(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var wordImplementors = []string{"Word"}
-
-func (ec *executionContext) _Word(ctx context.Context, sel ast.SelectionSet, obj *types.Word) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, wordImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("Word")
-		case "text":
-			out.Values[i] = ec._Word_text(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "lemma":
-			out.Values[i] = ec._Word_lemma(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

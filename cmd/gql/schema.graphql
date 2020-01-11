@@ -5,6 +5,7 @@
 # settings
 
 type BetMap {
+  id: Int!
   name: String!
 }
 
@@ -21,6 +22,7 @@ type LeagueSettings {
 
 type Bet {
   id: ID!
+  createdAt: Timestamp
   sourceFk: String!
   proposer: User
   recipient: User
@@ -43,15 +45,11 @@ type Equation {
 
 type PlayerExpression {
   id: Int!
+  isLeft: Boolean!
   player: Player!
   game: Game!
   value: Float
   metric: BetMap
-}
-
-type Word {
-  text: String!
-  lemma: String
 }
 
 type Player {
@@ -145,6 +143,7 @@ type Query {
 }
 
 type Mutation {
+  createBet(changes: BetChanges!): Bet
   updateBet(id: ID!, changes: BetChanges!): Bet
   post(text: String!, username: String!, roomName: String!): Message!
   postRotoArticle: RotoArticle!
@@ -162,16 +161,19 @@ input BetChanges {
 }
 
 input EquationChanges {
-  id: Int!
-  operatorName: String
+  id: Int
+  delete: Boolean
+  operatorId: Int
   expressionChanges: [PlayerExpressionChanges]
 }
 
 input PlayerExpressionChanges {
-  id: Int!
+  id: Int
+  delete: Boolean
+  isLeft: Boolean
   playerFk: String
   gameFk: String
-  metricName: String
+  metricId: Int
 }
 
 scalar Timestamp

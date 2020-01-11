@@ -144,8 +144,8 @@ func scrapePlayerLogs(doc *gq.Document) (playerLogs map[string]t.PlayerLog) {
 	return
 }
 
-func ScrapeCurrentGames() {
-	doc, gmYr, gmWk, err := getThisWeeksGames()
+func ScrapeGames(gmYr, gmWk int) {
+	doc, err := GetWeeksGames(gmYr, gmWk)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -246,9 +246,9 @@ func ScrapeCurrentGames() {
 		fmt.Println("game: ", *game)
 	}
 	// Add to current and game histories
-	if err = db.UpsertCurrentGames(&games); err != nil {
-		log.Fatal(err)
-	}
+	// if err = db.UpsertCurrentGames(&games); err != nil {
+	// 	log.Fatal(err)
+	// }
 	if err = db.UpsertGames(&games); err != nil {
 		log.Fatal(err)
 	}
@@ -260,6 +260,25 @@ func ScrapeCurrentGames() {
 		CurrentWeek: gmWk,
 	}
 	db.UpsertLeagueSettings(s)
+}
+
+func GetWeeksGames(yr, wk int) (doc *gq.Document, err error) {
+	res, err := http.Get(fmt.Sprintf("https://www.pro-football-reference.com/years/%d/week_%d.htm", yr, wk))
+	if err != nil {
+		log.Fatal(err)
+		return nil, err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
+		return nil, err
+	}
+	doc, err = gq.NewDocumentFromReader(res.Body)
+	if err != nil {
+		log.Fatal(err)
+		return nil, err
+	}
+	return doc, err
 }
 
 func getThisWeeksGames() (doc *gq.Document, gmYr int, gmWk int, err error) {
@@ -286,7 +305,11 @@ func getThisWeeksGames() (doc *gq.Document, gmYr int, gmWk int, err error) {
 	gameDate := doc.Find("#content > div.section_heading > h2").Text()
 	re := regexp.MustCompile(`^(?P<yr>\d+) Week (?P<wk>\d+)$`)
 	match := re.FindStringSubmatch(gameDate)
-	gmYrStr := match[1]
+	gmYrStr := ""
+	if len(match) > 2 {
+
+	}
+	gmYrStr = match[1]
 	gmYr, _ = strconv.Atoi(match[1])
 	gmWk, _ = strconv.Atoi(match[2])
 	nextGmWk := gmWk + 1

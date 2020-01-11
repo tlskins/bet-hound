@@ -27,7 +27,9 @@ func main() {
 	defer env.Cleanup()
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
 
+	// Scrape
 	scraper.ScrapePlayers()
+	scraper.ScrapeGames(2019, 19)
 
 	// Player metrics
 	playerBets := make([]*t.BetMap, 23)

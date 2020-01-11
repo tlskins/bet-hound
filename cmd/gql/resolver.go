@@ -2,12 +2,12 @@ package gql
 
 import (
 	"context"
-	"fmt"
 	"github.com/99designs/gqlgen/graphql"
 	"math/rand"
 	"sync"
 	"time"
 
+	"bet-hound/cmd/betting"
 	"bet-hound/cmd/db"
 	"bet-hound/cmd/scraper"
 	"bet-hound/cmd/types"
@@ -58,66 +58,11 @@ func getUsername(ctx context.Context) string {
 
 type mutationResolver struct{ *resolver }
 
+func (r *mutationResolver) CreateBet(ctx context.Context, changes types.BetChanges) (bet *types.Bet, err error) {
+	return betting.CreateBet(changes)
+}
 func (r *mutationResolver) UpdateBet(ctx context.Context, id string, changes types.BetChanges) (bet *types.Bet, err error) {
-	bet, err = db.FindBetById(id)
-	if err != nil {
-		return nil, err
-	}
-
-	// get bet map lookups
-	settings, err := db.GetLeagueSettings("nfl")
-	if err != nil {
-		return nil, err
-	}
-	opMap := settings.BetEquationsMap()
-	metricMap := settings.PlayerBetsMap()
-
-	// build equations map
-	eqMap := map[int]*types.Equation{}
-	for _, eq := range bet.Equations {
-		eqMap[eq.Id] = eq
-	}
-
-	// make equation changes
-	for _, eqChg := range changes.EquationsChanges {
-		eq := eqMap[eqChg.Id]
-		if eq == nil {
-			return nil, fmt.Errorf("equation %d not found", eqChg.Id)
-		}
-		// build expression map
-		exprMap := map[int]*types.PlayerExpression{}
-		for _, expr := range eq.Expressions {
-			exprMap[expr.Id] = expr
-		}
-		// operator changes
-		if eqChg.OperatorName != nil {
-			eq.Operator = opMap[*eqChg.OperatorName]
-		}
-		// expression changes
-		for _, exprChg := range eqChg.ExpressionChanges {
-			expr := exprMap[exprChg.Id]
-			if expr == nil {
-				return nil, fmt.Errorf("expression %d not found", exprChg.Id)
-			}
-			// change player
-			if exprChg.PlayerFk != nil {
-				if expr.Player, err = db.FindPlayer(*exprChg.PlayerFk); err != nil {
-					return nil, err
-				}
-			}
-			// change metric
-			if exprChg.MetricName != nil {
-				metric := metricMap[*exprChg.MetricName]
-				if metric == nil {
-					return nil, fmt.Errorf("%s not a valid metric", *exprChg.MetricName)
-				}
-				expr.Metric = metric
-			}
-		}
-	}
-
-	err = db.UpsertBet(bet)
-	return
+	return betting.UpdateBet(id, changes)
 }
 
 func (r *mutationResolver) Post(ctx context.Context, text string, username string, roomName string) (*types.Message, error) {

@@ -9,26 +9,26 @@ type LeagueSettings struct {
 	BetEquations []*BetMap `bson:"b_eqs,omitempty" json:"bet_equations"`
 }
 
-func (s LeagueSettings) PlayerBetsMap() (betMap map[string]*BetMap) {
-	betMap = make(map[string]*BetMap)
+func (s LeagueSettings) PlayerBetsMap() (betMap map[int]*BetMap) {
+	betMap = make(map[int]*BetMap)
 	for _, bet := range s.PlayerBets {
-		betMap[bet.Name] = bet
+		betMap[bet.Id] = bet
 	}
 	return
 }
 
-func (s LeagueSettings) TeamBetsMap() (betMap map[string]*BetMap) {
-	betMap = make(map[string]*BetMap)
+func (s LeagueSettings) TeamBetsMap() (betMap map[int]*BetMap) {
+	betMap = make(map[int]*BetMap)
 	for _, bet := range s.TeamBets {
-		betMap[bet.Name] = bet
+		betMap[bet.Id] = bet
 	}
 	return
 }
 
-func (s LeagueSettings) BetEquationsMap() (betMap map[string]*BetMap) {
-	betMap = make(map[string]*BetMap)
+func (s LeagueSettings) BetEquationsMap() (betMap map[int]*BetMap) {
+	betMap = make(map[int]*BetMap)
 	for _, bet := range s.BetEquations {
-		betMap[bet.Name] = bet
+		betMap[bet.Id] = bet
 	}
 	return
 }

@@ -34,20 +34,15 @@ func GetCurrentGames() (games *[]*t.Game) {
 	return
 }
 
-// func GetCurrentWeek() (yr, wk int) {
-// 	conn := env.MGOSession().Copy()
-// 	defer conn.Close()
-// 	c := conn.DB(env.MongoDb()).C(env.CurrentGamesCollection())
+func FindCurrentGame(settings *t.LeagueSettings, fk string) (game *t.Game, err error) {
+	conn := env.MGOSession().Copy()
+	defer conn.Close()
+	c := conn.DB(env.MongoDb()).C(env.GamesCollection())
 
-// 	games := make([]*t.Game, 1)
-// 	c.Find(m.M{}).Limit(1).All(&games)
-// 	if len(games) == 1 {
-// 		return games[0].Year, games[0].Week
-// 	} else {
-// 		return 0, 0
-// 	}
-// 	return
-// }
+	game = &t.Game{}
+	err = m.FindOne(c, game, m.M{"fk": fk, "wk": settings.CurrentWeek, "yr": settings.CurrentYear})
+	return
+}
 
 func UpsertGames(games *[]*t.Game) (err error) {
 	conn := env.MGOSession().Copy()

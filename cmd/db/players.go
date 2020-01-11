@@ -27,9 +27,9 @@ func FindPlayer(fk string) (*t.Player, error) {
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.PlayersCollection())
 
-	var player t.Player
+	player := &t.Player{}
 	err := m.FindOne(c, player, m.M{"fk": fk})
-	return &player, err
+	return player, err
 }
 
 func SearchPlayers(name, team, position *string, numResults int) (players []*t.Player, err error) {
