@@ -22,6 +22,16 @@ func UpsertPlayers(players *[]*t.Player) (err error) {
 	return err
 }
 
+func FindPlayer(fk string) (*t.Player, error) {
+	conn := env.MGOSession().Copy()
+	defer conn.Close()
+	c := conn.DB(env.MongoDb()).C(env.PlayersCollection())
+
+	var player t.Player
+	err := m.FindOne(c, player, m.M{"fk": fk})
+	return &player, err
+}
+
 func SearchPlayers(name, team, position *string, numResults int) (players []*t.Player, err error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()

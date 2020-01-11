@@ -35,22 +35,18 @@ type Bet {
 }
 
 type Equation {
-  leftExpressions: [PlayerExpression]
-  rightExpressions: [PlayerExpression]
+  id: Int!
+  expressions: [PlayerExpression]
   operator: BetMap
   result: Boolean
 }
 
 type PlayerExpression {
+  id: Int!
   player: Player!
   game: Game!
   value: Float
   metric: BetMap
-}
-
-type Metric {
-  word: Word!
-  modifiers: [Word]
 }
 
 type Word {
@@ -149,6 +145,7 @@ type Query {
 }
 
 type Mutation {
+  updateBet(id: ID!, changes: BetChanges!): Bet
   post(text: String!, username: String!, roomName: String!): Message!
   postRotoArticle: RotoArticle!
 }
@@ -156,6 +153,25 @@ type Mutation {
 type Subscription {
   messageAdded(roomName: String!): Message!
   rotoArticleAdded: RotoArticle!
+}
+
+# inputs
+
+input BetChanges {
+  equationsChanges: [EquationChanges]!
+}
+
+input EquationChanges {
+  id: Int!
+  operatorName: String
+  expressionChanges: [PlayerExpressionChanges]
+}
+
+input PlayerExpressionChanges {
+  id: Int!
+  playerFk: String
+  gameFk: String
+  metricName: String
 }
 
 scalar Timestamp

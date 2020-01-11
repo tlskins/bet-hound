@@ -2,30 +2,37 @@ package types
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 )
 
+// Changes
+
+type BetChanges struct {
+	EquationsChanges []*EquationChanges `json:"equationsChanges"`
+}
+
+type EquationChanges struct {
+	Id                int                        `json:"id"`
+	OperatorName      *string                    `json:"operatorName"`
+	ExpressionChanges []*PlayerExpressionChanges `json:"expressionChanges"`
+}
+
+type PlayerExpressionChanges struct {
+	Id         int     `json:"id"`
+	PlayerFk   *string `json:"playerFk"`
+	GameFk     *string `json:"gameFk"`
+	MetricName *string `json:"metricName"`
+}
+
+// Bet Maps
+
 type BetMap struct {
+	Id         int    `bson:"id" json:"id"`
 	Name       string `bson:"n" json:"name"`
 	Field      string `bson:"f" json:"field"`
 	FieldType  string `bson:"ft" json:"field_type"`
 	ResultType string `bson:"rt" json:"result_type"`
-}
-
-type BetCalc struct{}
-
-func (b BetCalc) GreaterThan(v1, v2 float64) bool {
-	return v1 > v2
-}
-
-func (b BetCalc) LesserThan(v1, v2 float64) bool {
-	return v1 < v2
-}
-
-func (b BetCalc) EqualTo(v1, v2 float64) bool {
-	return v1 == v2
 }
 
 // Bet status
@@ -160,15 +167,11 @@ func (b Bet) String() (result string) {
 func (b Bet) minGameTime() *time.Time {
 	var minTime *time.Time
 	for _, eq := range b.Equations {
-		allExprs := [][]*PlayerExpression{eq.LeftExpressions, eq.RightExpressions}
-		for _, exprs := range allExprs {
-			for _, expr := range exprs {
-				// Toggle for expiration testing
-				fmt.Println("min game time ", expr.Game.GameTime.String())
-				if !expr.Game.Final && (minTime == nil || expr.Game.GameTime.Before(*minTime)) {
-					// if minTime == nil || expr.Game.GameTime.Before(*minTime) {
-					minTime = &expr.Game.GameTime
-				}
+		for _, expr := range eq.Expressions {
+			// Toggle for expiration testing
+			if !expr.Game.Final && (minTime == nil || expr.Game.GameTime.Before(*minTime)) {
+				// if minTime == nil || expr.Game.GameTime.Before(*minTime) {
+				minTime = &expr.Game.GameTime
 			}
 		}
 	}
@@ -179,14 +182,11 @@ func (b Bet) minGameTime() *time.Time {
 func (b Bet) maxFinalizedGameTime() *time.Time {
 	var maxTime *time.Time
 	for _, eq := range b.Equations {
-		allExprs := [][]*PlayerExpression{eq.LeftExpressions, eq.RightExpressions}
-		for _, exprs := range allExprs {
-			for _, expr := range exprs {
-				// Toggle for expiration testing
-				if !expr.Game.Final && (maxTime == nil || expr.Game.GameResultsAt.After(*maxTime)) {
-					// if maxTime == nil || expr.Game.GameTime.After(*maxTime) {
-					maxTime = &expr.Game.GameResultsAt
-				}
+		for _, expr := range eq.Expressions {
+			// Toggle for expiration testing
+			if !expr.Game.Final && (maxTime == nil || expr.Game.GameResultsAt.After(*maxTime)) {
+				// if maxTime == nil || expr.Game.GameTime.After(*maxTime) {
+				maxTime = &expr.Game.GameResultsAt
 			}
 		}
 	}
@@ -211,66 +211,65 @@ func (b *Bet) PostProcess() error {
 
 func (b Bet) Valid() error {
 	errs := []string{}
-
 	if len(b.Equations) == 0 {
 		errs = append(errs, "Invalid bet syntax, no equations found.")
 	}
-
 	if b.ExpiresAt == nil {
 		errs = append(errs, "Invalid bet, all referrenced games are already in progress or finalized.")
 	}
-
 	// if b.FinalizedAt == nil {
 	// 	errs = append(errs, "Invalid bet, no final game time found.")
 	// }
-
 	for _, eq := range b.Equations {
 		err := eq.Valid()
 		if err != nil {
 			errs = append(errs, err.Error())
 		}
 	}
-
 	if len(errs) > 0 {
 		return fmt.Errorf(strings.Join(errs, " "))
 	} else {
 		return nil
 	}
-
 }
 
 // Equation
 
 type Equation struct {
-	LeftExpressions  []*PlayerExpression `bson:"l_exprs" json:"left_expressions"`
-	RightExpressions []*PlayerExpression `bson:"r_exprs" json:"right_expressions"`
-	Action           *Word               `bson:"a_word" json:"action_word"`
-	Operator         *BetMap             `bson:"op_word" json:"operator_word"`
-	Delimiter        *Word               `bson:"delim_word" json:"delimiter_word"`
-	Result           *bool               `bson:"res" json:"result"`
+	Id          int                 `bson:"id" json:"id"`
+	Expressions []*PlayerExpression `bson:"exprs" json:"expressions"`
+	Operator    *BetMap             `bson:"op" json:"operator"`
+	Result      *bool               `bson:"res" json:"result"`
+}
+
+func (e Equation) LeftExpressions() (exprs []*PlayerExpression) {
+	for _, expr := range e.Expressions {
+		if expr.IsLeft {
+			exprs[expr.Id] = expr
+		}
+	}
+	return
+}
+
+func (e Equation) RightExpressions() (exprs []*PlayerExpression) {
+	for _, expr := range e.Expressions {
+		if !expr.IsLeft {
+			exprs[expr.Id] = expr
+		}
+	}
+	return
 }
 
 func (e Equation) Valid() error {
-	if len(e.LeftExpressions) == 0 {
+	if len(e.LeftExpressions()) == 0 {
 		return fmt.Errorf("No left expressions found.")
-	} else if len(e.RightExpressions) == 0 {
+	} else if len(e.RightExpressions()) == 0 {
 		return fmt.Errorf("No right expressions found.")
-		// } else if e.Action == nil {
-		// 	return fmt.Errorf("No action found.")
 	} else if e.Operator == nil {
 		return fmt.Errorf("No operator found.")
-		// } else if e.Delimiter == nil {
-		// 	return fmt.Errorf("No delimiter found.")
 	} else {
-		for _, l := range e.LeftExpressions {
-			err := l.Valid()
-			if err != nil {
-				return err
-			}
-		}
-		for _, r := range e.RightExpressions {
-			err := r.Valid()
-			if err != nil {
+		for _, expr := range e.Expressions {
+			if err := expr.Valid(); err != nil {
 				return err
 			}
 		}
@@ -279,95 +278,56 @@ func (e Equation) Valid() error {
 }
 
 func (e Equation) String() (result string) {
-	left, right := "", ""
-	for i, e := range e.LeftExpressions {
-		if i > 0 {
-			left += " "
+	left, right := []string{}, []string{}
+	for _, expr := range e.Expressions {
+		if expr.IsLeft {
+			left = append(left, expr.String())
+		} else {
+			right = append(right, expr.String())
 		}
-		left += e.String()
-	}
-	for i, e := range e.RightExpressions {
-		if i > 0 {
-			right += " "
-		}
-		right += e.String()
 	}
 	return fmt.Sprintf(
-		"%s %s %s %s %s",
-		left,
-		e.Action.Text,
+		"%s %s %s",
+		strings.Join(left, " "),
 		e.Operator.Name,
-		e.Delimiter.Text,
-		right,
+		strings.Join(right, " "),
 	)
 }
 
 func (e Equation) ResultDescription() (result string) {
-	for i, e := range e.LeftExpressions {
+	left, right := []string{}, []string{}
+	for _, expr := range e.Expressions {
 		str := fmt.Sprintf(
 			"%s. %s ",
-			e.Player.FirstName[:1],
-			e.Player.LastName,
+			expr.Player.FirstName[:1],
+			expr.Player.LastName,
 		)
-		if e.Value != nil {
-			str += fmt.Sprintf("(%.2f)", *e.Value)
+		if expr.Value != nil {
+			str += fmt.Sprintf("(%.2f)", *expr.Value)
 		} else {
 			str += "(n/a)"
 		}
-		if i > 0 {
-			str = " + " + str
-		}
-		result += str
-	}
-
-	if e.Operator.Name == ">" {
-		result += " > "
-	} else if e.Operator.Name == "<" {
-		result += " < "
-	}
-
-	for i, e := range e.RightExpressions {
-		str := fmt.Sprintf(
-			"%s. %s ",
-			e.Player.FirstName[:1],
-			e.Player.LastName,
-		)
-		if e.Value != nil {
-			str += fmt.Sprintf("(%.2f)", *e.Value)
+		if expr.IsLeft {
+			left = append(left, str)
 		} else {
-			str += "(n/a)"
+			right = append(right, str)
 		}
-		if i > 0 {
-			str = " + " + str
-		}
-		result += str
 	}
-	return result
+
+	operator := "(?)"
+	if e.Operator != nil {
+		operator = e.Operator.Name
+	}
+
+	return strings.Join([]string{strings.Join(left, " + "), strings.Join(right, " + ")}, fmt.Sprintf(" %s ", operator))
 }
-
-// func (e Equation) expressionSources(left bool) (result string) {
-// 	exprs := e.LeftExpressions
-// 	if !left {
-// 		exprs = e.RightExpressions
-// 	}
-// 	for i, expr := range exprs {
-// 		if i > 0 {
-// 			result += ", "
-// 		}
-// 		result += fmt.Sprintf(
-// 			"%s. %s vs %s",
-// 			expr.Player.FirstName[:1],
-// 			expr.Player.LastName,
-// 			expr.Game.VsTeamFk(expr.Player.TeamFk),
-// 		)
-// 	}
-// 	return result
-// }
 
 // Expression
 
 // Evaluates to a value. Metric and Player descendent of Action. Operator descendent of Metric.
 type PlayerExpression struct {
+	Id     int      `bson:"id" json:"id"`
+	IsLeft bool     `bson:"lft" json:"is_left"`
 	Player *Player  `bson:"player" json:"player"`
 	Game   *Game    `bson:"gm" json:"game"`
 	Value  *float64 `bson:"val" json:"value"`
@@ -401,64 +361,4 @@ func (e PlayerExpression) String() (desc string) {
 		vsTeam,
 		metric,
 	)
-}
-
-// Metric
-
-type Metric struct {
-	Word      *Word   `bson:"word" json:"word"`
-	Modifiers []*Word `bson:"mods" json:"modifiers"`
-}
-
-func (m Metric) Valid() error {
-	if m.Word == nil {
-		return fmt.Errorf("Metric not found.")
-	} else {
-		return nil
-	}
-}
-
-func (m Metric) String() string {
-	result := m.Word.Text
-	for _, m := range m.Modifiers {
-		result += " " + m.Text
-	}
-	return result
-}
-
-func (m Metric) PPR() float64 {
-	for _, m := range m.Modifiers {
-		if m.Text == "ppr" {
-			return 1.0
-		} else if m.Text == "0.5ppr" || m.Text == ".5ppr" {
-			return 0.5
-		}
-	}
-	return 0.0
-}
-
-func (m Metric) FixedValueMod() *float64 {
-	for _, m := range m.Modifiers {
-		f, err := strconv.ParseFloat(m.Text, 64)
-		if err == nil {
-			return &f
-		}
-	}
-	return nil
-}
-
-// Player
-
-type Player struct {
-	Id        string `bson:"_id" json:"id"`
-	Name      string `bson:"name,omitempty" json:"name"`
-	FirstName string `bson:"f_name,omitempty" json:"first_name"`
-	LastName  string `bson:"l_name,omitempty" json:"last_name"`
-	Fk        string `bson:"fk,omitempty" json:"fk"`
-	TeamFk    string `bson:"team_fk,omitempty" json:"team_fk"`
-	TeamName  string `bson:"team_name,omitempty" json:"team_name"`
-	TeamShort string `bson:"team_short,omitempty" json:"team_short"`
-	Position  string `bson:"pos,omitempty" json:"position"`
-	Url       string `bson:"url,omitempty" json:"url"`
-	Game      *Game  `bson:"gm,omitempty" json:"game,omitempty"` // should only be aggregated
 }

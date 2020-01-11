@@ -22,8 +22,6 @@ models:
     model: bet-hound/cmd/types.Equation
   Word:
     model: bet-hound/cmd/types.Word
-  Metric:
-    model: bet-hound/cmd/types.Metric
   PlayerExpression:
     model: bet-hound/cmd/types.PlayerExpression
   Player:
@@ -40,6 +38,12 @@ models:
     model: bet-hound/cmd/types.BetMap
   LeagueSettings:
     model: bet-hound/cmd/types.LeagueSettings
+  BetChanges:
+    model: bet-hound/cmd/types.BetChanges
+  EquationChanges:
+    model: bet-hound/cmd/types.EquationChanges
+  PlayerExpressionChanges:
+    model: bet-hound/cmd/types.PlayerExpressionChanges
 resolver:
   filename: resolver.go
   type: Resolver
