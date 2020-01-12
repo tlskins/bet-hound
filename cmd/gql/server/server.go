@@ -10,9 +10,11 @@ import (
 
 	"bet-hound/cmd/env"
 	"bet-hound/cmd/gql"
+	"bet-hound/cmd/gql/server/auth"
 	m "bet-hound/pkg/mongo"
 
 	"github.com/99designs/gqlgen/handler"
+	"github.com/go-chi/chi"
 	"github.com/gorilla/websocket"
 	"github.com/rs/cors"
 )
@@ -23,6 +25,10 @@ const appConfigPath = "../../env"
 const appConfigName = "config"
 
 var logger *log.Logger
+
+// func final(w http.ResponseWriter, r *http.Request) {
+// 	w.Write([]byte("OK"))
+// }
 
 func main() {
 	// Initialize
@@ -37,23 +43,18 @@ func main() {
 	defer env.Cleanup()
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
 
-	mux := http.NewServeMux()
-
 	corsOptions := cors.Options{
-		AllowedHeaders: []string{
-			"content-type",
-			"authorization",
-			"client-name",
-			"client-version",
-			"content-type",
-		},
+		AllowedHeaders:   []string{"Authorization", "content-type"},
 		AllowCredentials: true,
-		// Enable Debugging for testing, consider disabling in production
-		Debug:          false,
-		AllowedOrigins: []string{"*"},
+		Debug:            true, // Enable Debugging for testing, consider disabling in production
+		AllowedOrigins:   []string{"*"},
 	}
+	corsHandler := cors.New(corsOptions).Handler
+	router := chi.NewRouter()
+	router.Use(corsHandler)
 
-	httpHandler := cors.New(corsOptions).Handler(mux)
+	// mux := http.NewServeMux()
+	// httpHandler := cors.New(corsOptions).Handler(auth.AuthMiddleware(mux))
 	gqlConfig := gql.New()
 	gqlTimeout := handler.WebsocketKeepAliveDuration(10 * time.Second)
 	gqlOption := handler.WebsocketUpgrader(websocket.Upgrader{
@@ -63,8 +64,10 @@ func main() {
 	})
 	gqlHandler := handler.GraphQL(gql.NewExecutableSchema(gqlConfig), gqlOption, gqlTimeout)
 
-	mux.Handle("/", handler.Playground("GraphQL playground", "/query"))
-	mux.Handle("/query", gqlHandler)
+	router.Handle("/", auth.AuthMiddleWare(handler.Playground("GraphQL playground", "/query")))
+	router.Handle("/query", auth.AuthMiddleWare(gqlHandler))
+	// mux.Handle("/", handler.Playground("GraphQL playground", "/query"))
+	// mux.Handle("/query", gqlHandler)
 
 	// timed processes
 	ticker := time.NewTicker(10 * time.Minute)
@@ -80,7 +83,7 @@ func main() {
 	}()
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
-	http.ListenAndServe(":"+port, httpHandler)
+	http.ListenAndServe(":"+port, router)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 

@@ -2,13 +2,16 @@ package gql
 
 import (
 	"context"
-	"github.com/99designs/gqlgen/graphql"
+	"fmt"
 	"math/rand"
 	"sync"
 	"time"
 
+	// "github.com/99designs/gqlgen/graphql"
+
 	"bet-hound/cmd/betting"
 	"bet-hound/cmd/db"
+	"bet-hound/cmd/gql/server/auth"
 	"bet-hound/cmd/scraper"
 	"bet-hound/cmd/types"
 )
@@ -34,6 +37,12 @@ func (r *resolver) Subscription() SubscriptionResolver {
 	return &subscriptionResolver{r}
 }
 
+// type ContextKey string
+
+// var (
+// 	UserIDCtxKey = contextKey("userID")
+// )
+
 func New() Config {
 	return Config{
 		Resolvers: &resolver{
@@ -41,11 +50,19 @@ func New() Config {
 			RotoObserver: &types.RotoObserver{},
 			RotoArticles: map[string][]*types.RotoArticle{},
 		},
-		Directives: DirectiveRoot{
-			User: func(ctx context.Context, obj interface{}, next graphql.Resolver, username string) (res interface{}, err error) {
-				return next(context.WithValue(ctx, "username", username))
-			},
-		},
+		// Directives: DirectiveRoot{
+		// 	User: func(ctx context.Context, obj interface{}, next graphql.Resolver, username string) (res interface{}, err error) {
+		// 		return next(context.WithValue(ctx, "username", username))
+		// 	},
+		// 	IsAuthenticated: func(ctx context.Context, obj interface{}, next graphql.Resolver) (res interface{}, err error) {
+		// 		ctxUserID := ctx.Value(UserIDCtxKey)
+		// 		if ctxUserID != nil {
+		// 			return next(ctx)
+		// 		} else {
+		// 			return nil, fmt.Errorf("Unauthorized")
+		// 		}
+		// 	},
+		// },
 	}
 }
 
@@ -56,8 +73,31 @@ func getUsername(ctx context.Context) string {
 	return ""
 }
 
+func UserFromContext(ctx context.Context) *types.User {
+	// userId, err := ctx.Value(auth.ContextKey("userID")).(string)
+	authPointer := ctx.Value(auth.ContextKey("userID")).(*auth.AuthResponseWriter)
+	fmt.Println("userid in context", authPointer.UserId)
+	if user, err := db.FindUserById(authPointer.UserId); err == nil {
+		return user
+	}
+	return nil
+}
+
 type mutationResolver struct{ *resolver }
 
+func (r *mutationResolver) SignIn(ctx context.Context, userName string, password string) (user *types.User, err error) {
+	fmt.Println("resolver", userName, password)
+	// return UserFromContext(ctx), nil
+	user, err = db.SignInUser(userName, password)
+	if err == nil {
+		authPointer := ctx.Value(auth.ContextKey("userID")).(*auth.AuthResponseWriter)
+		authPointer.SetSession(user.Id)
+		return
+	} else {
+		return nil, fmt.Errorf("Invalid user name or password")
+	}
+
+}
 func (r *mutationResolver) CreateBet(ctx context.Context, changes types.BetChanges) (bet *types.Bet, err error) {
 	return betting.CreateBet(changes)
 }
@@ -129,6 +169,10 @@ func (r *queryResolver) LeagueSettings(ctx context.Context, id string) (*types.L
 	return db.GetLeagueSettings(id)
 }
 func (r *queryResolver) Bets(ctx context.Context) ([]*types.Bet, error) {
+	if user := UserFromContext(ctx); user == nil {
+		return nil, fmt.Errorf("Access denied")
+	}
+
 	return db.AllBets(), nil
 }
 func (r *queryResolver) Bet(ctx context.Context, id string) (*types.Bet, error) {

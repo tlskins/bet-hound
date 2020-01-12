@@ -99,67 +99,67 @@ type Bet struct {
 	BetResult        *BetResult  `bson:"rslt" json:"result"`
 }
 
-func (b *Bet) AcceptBy(idStr, replyFk string) {
-	if b.BetStatus.String() != "Pending Approval" {
-		return
-	}
+// func (b *Bet) AcceptBy(idStr, replyFk string) {
+// 	if b.BetStatus.String() != "Pending Approval" {
+// 		return
+// 	}
 
-	if b.ProposerReplyFk == nil && b.Proposer.IdStr == idStr {
-		b.ProposerReplyFk = &replyFk
-	} else if b.RecipientReplyFk == nil && b.Recipient.IdStr == idStr {
-		b.RecipientReplyFk = &replyFk
-	}
+// 	if b.ProposerReplyFk == nil && b.Proposer.IdStr == idStr {
+// 		b.ProposerReplyFk = &replyFk
+// 	} else if b.RecipientReplyFk == nil && b.Recipient.IdStr == idStr {
+// 		b.RecipientReplyFk = &replyFk
+// 	}
 
-	if b.RecipientReplyFk != nil && b.ProposerReplyFk != nil {
-		b.BetStatus = BetStatusAccepted
-	}
-}
+// 	if b.RecipientReplyFk != nil && b.ProposerReplyFk != nil {
+// 		b.BetStatus = BetStatusAccepted
+// 	}
+// }
 
-func (b *Bet) CancelBy(idStr, replyFk string) {
-	if b.BetStatus.String() != "Pending Approval" {
-		return
-	}
+// func (b *Bet) CancelBy(idStr, replyFk string) {
+// 	if b.BetStatus.String() != "Pending Approval" {
+// 		return
+// 	}
 
-	if b.ProposerReplyFk == nil && b.Proposer.IdStr == idStr {
-		b.ProposerReplyFk = &replyFk
-		b.BetStatus = BetStatusCancelled
-	} else if b.RecipientReplyFk == nil && b.Recipient.IdStr == idStr {
-		b.RecipientReplyFk = &replyFk
-		b.BetStatus = BetStatusCancelled
-	}
-}
+// 	if b.ProposerReplyFk == nil && b.Proposer.IdStr == idStr {
+// 		b.ProposerReplyFk = &replyFk
+// 		b.BetStatus = BetStatusCancelled
+// 	} else if b.RecipientReplyFk == nil && b.Recipient.IdStr == idStr {
+// 		b.RecipientReplyFk = &replyFk
+// 		b.BetStatus = BetStatusCancelled
+// 	}
+// }
 
-func (b Bet) Response() (txt string) {
-	if b.BetStatus.String() == "Pending Approval" {
-		return fmt.Sprintf(
-			"@%s @%s Is this correct: \"%s\" ? Reply \"Yes\"",
-			b.Proposer.ScreenName,
-			b.Recipient.ScreenName,
-			b.String(),
-		)
-	} else if b.BetStatus.String() == "Accepted" {
-		return fmt.Sprintf(
-			"@%s @%s Bet recorded! When the bet has been finalized I will tweet the final results.",
-			b.Proposer.ScreenName,
-			b.Recipient.ScreenName,
-		)
-	} else if b.BetStatus.String() == "Final" {
-		return b.BetResult.Response
-	} else if b.BetStatus.String() == "Expired" {
-		return fmt.Sprintf(
-			"@%s @%s Bet has expired.",
-			b.Proposer.ScreenName,
-			b.Recipient.ScreenName,
-		)
-	} else if b.BetStatus.String() == "Cancelled" {
-		return fmt.Sprintf(
-			"@%s @%s Bet has been cancelled.",
-			b.Proposer.ScreenName,
-			b.Recipient.ScreenName,
-		)
-	}
-	return ""
-}
+// func (b Bet) Response() (txt string) {
+// 	if b.BetStatus.String() == "Pending Approval" {
+// 		return fmt.Sprintf(
+// 			"@%s @%s Is this correct: \"%s\" ? Reply \"Yes\"",
+// 			b.Proposer.ScreenName,
+// 			b.Recipient.ScreenName,
+// 			b.String(),
+// 		)
+// 	} else if b.BetStatus.String() == "Accepted" {
+// 		return fmt.Sprintf(
+// 			"@%s @%s Bet recorded! When the bet has been finalized I will tweet the final results.",
+// 			b.Proposer.ScreenName,
+// 			b.Recipient.ScreenName,
+// 		)
+// 	} else if b.BetStatus.String() == "Final" {
+// 		return b.BetResult.Response
+// 	} else if b.BetStatus.String() == "Expired" {
+// 		return fmt.Sprintf(
+// 			"@%s @%s Bet has expired.",
+// 			b.Proposer.ScreenName,
+// 			b.Recipient.ScreenName,
+// 		)
+// 	} else if b.BetStatus.String() == "Cancelled" {
+// 		return fmt.Sprintf(
+// 			"@%s @%s Bet has been cancelled.",
+// 			b.Proposer.ScreenName,
+// 			b.Recipient.ScreenName,
+// 		)
+// 	}
+// 	return ""
+// }
 
 func (b Bet) String() (result string) {
 	result = fmt.Sprintf("%s bets", b.Proposer.Name)

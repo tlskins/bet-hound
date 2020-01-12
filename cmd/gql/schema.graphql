@@ -90,12 +90,20 @@ type BetResult {
   decidedAt: Timestamp!
 }
 
-type User {
+type TwitterUser {
   id: Int!
   screenName: String!
   name: String!
   idStr: String!
   indices: [Int]
+}
+
+type User {
+  id: ID!
+  name: String
+  userName: String!
+  Email: String
+  TwitterUser: TwitterUser
 }
 
 # chatting
@@ -143,6 +151,7 @@ type Query {
 }
 
 type Mutation {
+  signIn(userName: String!, password: String!): User!
   createBet(changes: BetChanges!): Bet
   updateBet(id: ID!, changes: BetChanges!): Bet
   post(text: String!, username: String!, roomName: String!): Message!
@@ -181,3 +190,4 @@ scalar Timestamp
 scalar BetStatus
 
 directive @user(username: String!) on SUBSCRIPTION
+directive @isAuthenticated on FIELD_DEFINITION

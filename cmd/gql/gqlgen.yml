@@ -16,6 +16,8 @@ models:
     model: bet-hound/cmd/types.Bet
   User:
     model: bet-hound/cmd/types.User
+  TwitterUser:
+    model: bet-hound/cmd/types.TwitterUser
   BetResult:
     model: bet-hound/cmd/types.BetResult
   Equation:

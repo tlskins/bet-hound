@@ -98,8 +98,8 @@ func CreateBet(changes t.BetChanges) (bet *t.Bet, err error) {
 	bet = &t.Bet{
 		Id:        uuid.NewV4().String(),
 		CreatedAt: &now,
-		Proposer:  t.User{Name: "Tim Lee", ScreenName: "steve_aoili"},
-		Recipient: t.User{Name: "Christine Kettler", ScreenName: "cktweets"},
+		Proposer:  t.User{Name: "Tim Lee", UserName: "steve_aoili"},
+		Recipient: t.User{Name: "Christine Kettler", UserName: "cktweets"},
 	}
 
 	// get bet map lookups

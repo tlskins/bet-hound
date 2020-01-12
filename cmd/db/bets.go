@@ -45,7 +45,7 @@ func FindBetByReply(tweet *t.Tweet) *t.Bet {
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
 
-	authorId := tweet.User.IdStr
+	authorId := tweet.TwitterUser.IdStr
 	var bet t.Bet
 	fmt.Println("FindBetByReply ", tweet.InReplyToStatusIdStr, authorId)
 	q := m.M{"$or": []m.M{

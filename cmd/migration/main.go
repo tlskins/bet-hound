@@ -27,6 +27,24 @@ func main() {
 	defer env.Cleanup()
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
 
+	// Upsert users
+	tim := t.User{
+		Id:       "timlee",
+		Name:     "Timothy Lee",
+		UserName: "JooSeeDong",
+		Password: "password",
+		Email:    "tlee87@gmail.com",
+	}
+	xtine := t.User{
+		Id:       "xtine",
+		Name:     "Christine Kettler",
+		UserName: "cktweets",
+		Password: "password",
+		Email:    "christine.b.kettler@gmail.com",
+	}
+	db.UpsertUser(&tim)
+	db.UpsertUser(&xtine)
+
 	// Scrape
 	scraper.ScrapePlayers()
 	scraper.ScrapeGames(2019, 19)
