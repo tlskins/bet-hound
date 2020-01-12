@@ -1045,8 +1045,8 @@ type Equation {
 type PlayerExpression {
   id: Int!
   isLeft: Boolean!
-  player: Player!
-  game: Game!
+  player: Player
+  game: Game
   value: Float
   metric: BetMap
 }
@@ -3690,14 +3690,11 @@ func (ec *executionContext) _PlayerExpression_player(ctx context.Context, field 
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.(*types.Player)
 	fc.Result = res
-	return ec.marshalNPlayer2ᚖbetᚑhoundᚋcmdᚋtypesᚐPlayer(ctx, field.Selections, res)
+	return ec.marshalOPlayer2ᚖbetᚑhoundᚋcmdᚋtypesᚐPlayer(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PlayerExpression_game(ctx context.Context, field graphql.CollectedField, obj *types.PlayerExpression) (ret graphql.Marshaler) {
@@ -3724,14 +3721,11 @@ func (ec *executionContext) _PlayerExpression_game(ctx context.Context, field gr
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.(*types.Game)
 	fc.Result = res
-	return ec.marshalNGame2ᚖbetᚑhoundᚋcmdᚋtypesᚐGame(ctx, field.Selections, res)
+	return ec.marshalOGame2ᚖbetᚑhoundᚋcmdᚋtypesᚐGame(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PlayerExpression_value(ctx context.Context, field graphql.CollectedField, obj *types.PlayerExpression) (ret graphql.Marshaler) {
@@ -6294,14 +6288,8 @@ func (ec *executionContext) _PlayerExpression(ctx context.Context, sel ast.Selec
 			}
 		case "player":
 			out.Values[i] = ec._PlayerExpression_player(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "game":
 			out.Values[i] = ec._PlayerExpression_game(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "value":
 			out.Values[i] = ec._PlayerExpression_value(ctx, field, obj)
 		case "metric":
@@ -6963,10 +6951,6 @@ func (ec *executionContext) unmarshalNEquationChanges2ᚕᚖbetᚑhoundᚋcmdᚋ
 	return res, nil
 }
 
-func (ec *executionContext) marshalNGame2betᚑhoundᚋcmdᚋtypesᚐGame(ctx context.Context, sel ast.SelectionSet, v types.Game) graphql.Marshaler {
-	return ec._Game(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalNGame2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐGame(ctx context.Context, sel ast.SelectionSet, v []*types.Game) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -7002,16 +6986,6 @@ func (ec *executionContext) marshalNGame2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐGame(
 	}
 	wg.Wait()
 	return ret
-}
-
-func (ec *executionContext) marshalNGame2ᚖbetᚑhoundᚋcmdᚋtypesᚐGame(ctx context.Context, sel ast.SelectionSet, v *types.Game) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._Game(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
@@ -7121,10 +7095,6 @@ func (ec *executionContext) marshalNMessage2ᚖbetᚑhoundᚋcmdᚋtypesᚐMessa
 	return ec._Message(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNPlayer2betᚑhoundᚋcmdᚋtypesᚐPlayer(ctx context.Context, sel ast.SelectionSet, v types.Player) graphql.Marshaler {
-	return ec._Player(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalNPlayer2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐPlayer(ctx context.Context, sel ast.SelectionSet, v []*types.Player) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -7160,16 +7130,6 @@ func (ec *executionContext) marshalNPlayer2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐPla
 	}
 	wg.Wait()
 	return ret
-}
-
-func (ec *executionContext) marshalNPlayer2ᚖbetᚑhoundᚋcmdᚋtypesᚐPlayer(ctx context.Context, sel ast.SelectionSet, v *types.Player) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._Player(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNRotoArticle2betᚑhoundᚋcmdᚋtypesᚐRotoArticle(ctx context.Context, sel ast.SelectionSet, v types.RotoArticle) graphql.Marshaler {

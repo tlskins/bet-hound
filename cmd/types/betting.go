@@ -85,6 +85,7 @@ type BetResult struct {
 
 type Bet struct {
 	Id               string      `bson:"_id" json:"id"`
+	CreatedAt        *time.Time  `bson:"crt_at" json:"created_at"`
 	SourceFk         string      `bson:"source_fk" json:"source_fk"`
 	Proposer         User        `bson:"proposer" json:"proposer"`
 	Recipient        User        `bson:"recipient" json:"recipient"`
@@ -92,7 +93,6 @@ type Bet struct {
 	ProposerReplyFk  *string     `bson:"pr_fk" json:"proposer_reply_fk"`
 	RecipientReplyFk *string     `bson:"rr_fk" json:"recipient_reply_fk"`
 	Equations        []*Equation `bson:"eqs" json:"equations"`
-	CreatedAt        *time.Time  `bson:"crt_at" json:"created_at"`
 	ExpiresAt        *time.Time  `bson:"exp_at" json:"expires_at"`
 	FinalizedAt      *time.Time  `bson:"final_at" json:"finalized_at"`
 	BetStatus        BetStatus   `bson:"status" json:"bet_status"`

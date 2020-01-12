@@ -46,8 +46,8 @@ type Equation {
 type PlayerExpression {
   id: Int!
   isLeft: Boolean!
-  player: Player!
-  game: Game!
+  player: Player
+  game: Game
   value: Float
   metric: BetMap
 }
