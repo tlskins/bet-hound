@@ -10,12 +10,20 @@ import (
 	m "bet-hound/pkg/mongo"
 )
 
-func AllBets() (bets []*t.Bet) {
+func Bets(userId string) (bets []*t.Bet) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
+	q := m.M{"$and": []m.M{
+		m.M{"$or": []m.M{
+			m.M{"proposer._id": userId},
+			m.M{"recipient._id": userId},
+		}},
+		m.M{"eqs": m.M{"$exists": true, "$ne": []m.M{}}},
+	}}
 
-	m.Find(c, &bets, m.M{"eqs": m.M{"$exists": true, "$ne": []m.M{}}})
+	bets = []*t.Bet{}
+	m.Find(c, &bets, q)
 	return
 }
 

@@ -26,10 +26,6 @@ const appConfigName = "config"
 
 var logger *log.Logger
 
-// func final(w http.ResponseWriter, r *http.Request) {
-// 	w.Write([]byte("OK"))
-// }
-
 func main() {
 	// Initialize
 	port := os.Getenv("PORT")
@@ -44,17 +40,15 @@ func main() {
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
 
 	corsOptions := cors.Options{
-		AllowedHeaders:   []string{"Authorization", "content-type"},
+		AllowedHeaders:   []string{"*"},
 		AllowCredentials: true,
 		Debug:            true, // Enable Debugging for testing, consider disabling in production
-		AllowedOrigins:   []string{"*"},
+		AllowedOrigins:   []string{"http://localhost:3000"},
 	}
 	corsHandler := cors.New(corsOptions).Handler
 	router := chi.NewRouter()
 	router.Use(corsHandler)
 
-	// mux := http.NewServeMux()
-	// httpHandler := cors.New(corsOptions).Handler(auth.AuthMiddleware(mux))
 	gqlConfig := gql.New()
 	gqlTimeout := handler.WebsocketKeepAliveDuration(10 * time.Second)
 	gqlOption := handler.WebsocketUpgrader(websocket.Upgrader{
@@ -66,8 +60,6 @@ func main() {
 
 	router.Handle("/", auth.AuthMiddleWare(handler.Playground("GraphQL playground", "/query")))
 	router.Handle("/query", auth.AuthMiddleWare(gqlHandler))
-	// mux.Handle("/", handler.Playground("GraphQL playground", "/query"))
-	// mux.Handle("/query", gqlHandler)
 
 	// timed processes
 	ticker := time.NewTicker(10 * time.Minute)

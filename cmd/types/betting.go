@@ -9,6 +9,7 @@ import (
 // Changes
 
 type BetChanges struct {
+	RecipientId      string             `json:"recipientId"`
 	EquationsChanges []*EquationChanges `json:"equationsChanges"`
 	Delete           bool               `json:"delete"`
 }

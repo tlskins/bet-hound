@@ -1,11 +1,14 @@
 package db
 
 import (
+	"fmt"
+
+	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
+
 	"bet-hound/cmd/env"
 	t "bet-hound/cmd/types"
 	m "bet-hound/pkg/mongo"
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
 )
 
 func UpsertPlayers(players *[]*t.Player) (err error) {
@@ -26,7 +29,9 @@ func FindPlayer(fk string) (player *t.Player, err error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.PlayersCollection())
+	fmt.Println("find player ", fk)
 
+	player = &t.Player{}
 	err = m.FindOne(c, player, m.M{"fk": fk})
 	return
 }

@@ -13,6 +13,7 @@ require (
 	github.com/creack/pty v1.1.9 // indirect
 	github.com/dghubble/go-twitter v0.0.0-20190719072343-39e5462e111f
 	github.com/dghubble/oauth1 v0.6.0
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/dgryski/trifles v0.0.0-20191129005055-5a6159895336 // indirect
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
 	github.com/go-chi/chi v4.0.2+incompatible
@@ -27,6 +28,7 @@ require (
 	github.com/kr/pty v1.1.8 // indirect
 	github.com/lib/pq v1.3.0 // indirect
 	github.com/matryer/moq v0.0.0-20191223155252-4203548722f8 // indirect
+	github.com/mitchellh/mapstructure v1.1.2
 	github.com/opentracing/opentracing-go v1.1.0 // indirect
 	github.com/ridhamtarpara/go-graphql-demo v0.0.0-20190326085507-511d670a8f66
 	github.com/rs/cors v1.7.0

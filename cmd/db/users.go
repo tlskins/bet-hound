@@ -25,11 +25,11 @@ func FindUser(search string, numResults int) (users []*t.User, err error) {
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.UsersCollection())
 
-	query := []m.M{
+	query := m.M{"$or": []m.M{
 		m.M{"nm": bson.RegEx{search, "i"}},
 		m.M{"usr_nm": bson.RegEx{search, "i"}},
 		m.M{"email": bson.RegEx{search, "i"}},
-	}
+	}}
 	users = make([]*t.User, 0, numResults)
 	err = m.Find(c, &users, query)
 	return

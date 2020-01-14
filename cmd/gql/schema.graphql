@@ -103,7 +103,7 @@ type User {
   name: String
   userName: String!
   Email: String
-  TwitterUser: TwitterUser
+  twitterUser: TwitterUser
 }
 
 # chatting
@@ -136,6 +136,7 @@ type RotoArticle {
 # graphql
 
 type Query {
+  signIn(userName: String!, password: String!): User!
   leagueSettings(id: String!): LeagueSettings!
   bets: [Bet!]!
   bet(id: ID!): Bet
@@ -147,13 +148,14 @@ type Query {
     position: String
     withGame: Boolean
   ): [Player]!
+  findUsers(search: String!): [User]!
   room(name: String!): Chatroom
 }
 
 type Mutation {
-  signIn(userName: String!, password: String!): User!
+  signOut: Boolean!
   createBet(changes: BetChanges!): Bet
-  updateBet(id: ID!, changes: BetChanges!): Bet
+  acceptBet(id: ID!): Boolean!
   post(text: String!, username: String!, roomName: String!): Message!
   postRotoArticle: RotoArticle!
 }
@@ -166,6 +168,7 @@ type Subscription {
 # inputs
 
 input BetChanges {
+  recipientId: String!
   equationsChanges: [EquationChanges]!
 }
 
@@ -190,4 +193,3 @@ scalar Timestamp
 scalar BetStatus
 
 directive @user(username: String!) on SUBSCRIPTION
-directive @isAuthenticated on FIELD_DEFINITION

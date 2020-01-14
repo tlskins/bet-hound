@@ -1,105 +1,111 @@
 package betting
 
 import (
-	"bet-hound/cmd/db"
-	t "bet-hound/cmd/types"
 	"fmt"
 	"math/rand"
-	// "strings"
 	"time"
 
 	"github.com/satori/go.uuid"
+
+	"bet-hound/cmd/db"
+	t "bet-hound/cmd/types"
 )
 
-func UpdateBet(id string, changes t.BetChanges) (bet *t.Bet, err error) {
-	bet, err = db.FindBetById(id)
-	if err != nil {
-		return nil, err
-	}
+// func UpdateBet(id string, changes t.BetChanges) (bet *t.Bet, err error) {
+// 	bet, err = db.FindBetById(id)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	// get bet map lookups
-	settings, err := db.GetLeagueSettings("nfl")
-	if err != nil {
-		return nil, err
-	}
-	opMap := settings.BetEquationsMap()
-	metricMap := settings.PlayerBetsMap()
+// 	// get bet map lookups
+// 	settings, err := db.GetLeagueSettings("nfl")
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	opMap := settings.BetEquationsMap()
+// 	metricMap := settings.PlayerBetsMap()
 
-	// build equations map
-	eqMap := map[int]*t.Equation{}
-	eqIdxMap := map[int]*int{}
-	for i, eq := range bet.Equations {
-		eqMap[eq.Id] = eq
-		eqIdxMap[eq.Id] = &i
-	}
+// 	// build equations map
+// 	eqMap := map[int]*t.Equation{}
+// 	eqIdxMap := map[int]*int{}
+// 	for i, eq := range bet.Equations {
+// 		eqMap[eq.Id] = eq
+// 		eqIdxMap[eq.Id] = &i
+// 	}
 
-	// make equation changes
-	for _, eqChg := range changes.EquationsChanges {
-		eq := eqMap[eqChg.Id]
-		if eq == nil {
-			return nil, fmt.Errorf("equation not found")
-		} else if eqChg.Delete != nil {
-			// delete  equation
-			idx := eqIdxMap[eqChg.Id]
-			if idx != nil {
-				copy(bet.Equations[*idx:], bet.Equations[*idx+1:])
-				bet.Equations[len(bet.Equations)-1] = nil
-				bet.Equations = bet.Equations[:len(bet.Equations)-1]
-			}
-		}
-		// build expression map
-		exprMap := map[int]*t.PlayerExpression{}
-		exprIdxMap := map[int]*int{}
-		for i, expr := range eq.Expressions {
-			exprMap[expr.Id] = expr
-			exprIdxMap[expr.Id] = &i
-		}
-		// operator changes
-		if eqChg.OperatorId != nil {
-			eq.Operator = opMap[*eqChg.OperatorId]
-		}
-		// expression changes
-		for _, exprChg := range eqChg.ExpressionChanges {
-			expr := exprMap[exprChg.Id]
-			if expr == nil {
-				return nil, fmt.Errorf("expression not found")
-			} else if exprChg.Delete != nil {
-				// delete  expression
-				idx := exprIdxMap[exprChg.Id]
-				if idx != nil {
-					copy(bet.Equations[*idx:], bet.Equations[*idx+1:])
-					bet.Equations[len(bet.Equations)-1] = nil
-					bet.Equations = bet.Equations[:len(bet.Equations)-1]
-				}
-			}
-			// change player
-			if exprChg.PlayerFk != nil {
-				if expr.Player, err = db.FindPlayer(*exprChg.PlayerFk); err != nil {
-					return nil, err
-				}
-			}
-			// change metric
-			if exprChg.MetricId != nil {
-				metric := metricMap[*exprChg.MetricId]
-				if metric == nil {
-					return nil, fmt.Errorf("not a valid metric")
-				}
-				expr.Metric = metric
-			}
-		}
-	}
+// 	// make equation changes
+// 	for _, eqChg := range changes.EquationsChanges {
+// 		eq := eqMap[eqChg.Id]
+// 		if eq == nil {
+// 			return nil, fmt.Errorf("equation not found")
+// 		} else if eqChg.Delete != nil {
+// 			// delete  equation
+// 			idx := eqIdxMap[eqChg.Id]
+// 			if idx != nil {
+// 				copy(bet.Equations[*idx:], bet.Equations[*idx+1:])
+// 				bet.Equations[len(bet.Equations)-1] = nil
+// 				bet.Equations = bet.Equations[:len(bet.Equations)-1]
+// 			}
+// 		}
+// 		// build expression map
+// 		exprMap := map[int]*t.PlayerExpression{}
+// 		exprIdxMap := map[int]*int{}
+// 		for i, expr := range eq.Expressions {
+// 			exprMap[expr.Id] = expr
+// 			exprIdxMap[expr.Id] = &i
+// 		}
+// 		// operator changes
+// 		if eqChg.OperatorId != nil {
+// 			eq.Operator = opMap[*eqChg.OperatorId]
+// 		}
+// 		// expression changes
+// 		for _, exprChg := range eqChg.ExpressionChanges {
+// 			expr := exprMap[exprChg.Id]
+// 			if expr == nil {
+// 				return nil, fmt.Errorf("expression not found")
+// 			} else if exprChg.Delete != nil {
+// 				// delete  expression
+// 				idx := exprIdxMap[exprChg.Id]
+// 				if idx != nil {
+// 					copy(bet.Equations[*idx:], bet.Equations[*idx+1:])
+// 					bet.Equations[len(bet.Equations)-1] = nil
+// 					bet.Equations = bet.Equations[:len(bet.Equations)-1]
+// 				}
+// 			}
+// 			// change player
+// 			if exprChg.PlayerFk != nil {
+// 				if expr.Player, err = db.FindPlayer(*exprChg.PlayerFk); err != nil {
+// 					return nil, err
+// 				}
+// 			}
+// 			// change metric
+// 			if exprChg.MetricId != nil {
+// 				metric := metricMap[*exprChg.MetricId]
+// 				if metric == nil {
+// 					return nil, fmt.Errorf("not a valid metric")
+// 				}
+// 				expr.Metric = metric
+// 			}
+// 		}
+// 	}
 
-	err = db.UpsertBet(bet)
-	return
-}
+// 	err = db.UpsertBet(bet)
+// 	return
+// }
 
-func CreateBet(changes t.BetChanges) (bet *t.Bet, err error) {
+func CreateBet(proposer *t.User, changes t.BetChanges) (bet *t.Bet, err error) {
 	now := time.Now()
+	rand.Seed(now.UnixNano())
+	recipient, err := db.FindUserById(changes.RecipientId)
+	if err != nil {
+		return nil, err
+	}
 	bet = &t.Bet{
 		Id:        uuid.NewV4().String(),
+		BetStatus: t.BetStatusFromString("Pending Approval"),
 		CreatedAt: &now,
-		Proposer:  t.User{Name: "Tim Lee", UserName: "steve_aoili"},
-		Recipient: t.User{Name: "Christine Kettler", UserName: "cktweets"},
+		Proposer:  *proposer,
+		Recipient: *recipient,
 	}
 
 	// get bet map lookups
@@ -124,8 +130,10 @@ func CreateBet(changes t.BetChanges) (bet *t.Bet, err error) {
 				expr.IsLeft = *exprChg.IsLeft
 			}
 			// add player
+			fmt.Println("exprChg.PlayerFk ", exprChg.PlayerFk)
 			if exprChg.PlayerFk != nil {
 				expr.Player, _ = db.FindPlayer(*exprChg.PlayerFk)
+				fmt.Println("expr.Player ", *expr.Player)
 			}
 			// add game
 			if exprChg.GameFk != nil {

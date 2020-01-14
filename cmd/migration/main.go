@@ -7,7 +7,7 @@ import (
 
 	"bet-hound/cmd/db"
 	"bet-hound/cmd/env"
-	"bet-hound/cmd/scraper"
+	// "bet-hound/cmd/scraper"
 	t "bet-hound/cmd/types"
 	m "bet-hound/pkg/mongo"
 )
@@ -34,6 +34,12 @@ func main() {
 		UserName: "JooSeeDong",
 		Password: "password",
 		Email:    "tlee87@gmail.com",
+		TwitterUser: &t.TwitterUser{
+			Id:         501399114,
+			ScreenName: "timmy_the_truth",
+			Name:       "steve_aioli",
+			IdStr:      "501399114",
+		},
 	}
 	xtine := t.User{
 		Id:       "xtine",
@@ -41,13 +47,19 @@ func main() {
 		UserName: "cktweets",
 		Password: "password",
 		Email:    "christine.b.kettler@gmail.com",
+		TwitterUser: &t.TwitterUser{
+			Id:         249778392,
+			ScreenName: "ckettstweets",
+			Name:       "Christine Kettler",
+			IdStr:      "249778392",
+		},
 	}
 	db.UpsertUser(&tim)
 	db.UpsertUser(&xtine)
 
 	// Scrape
-	scraper.ScrapePlayers()
-	scraper.ScrapeGames(2019, 19)
+	// scraper.ScrapePlayers()
+	// scraper.ScrapeGames(2019, 19)
 
 	// Player metrics
 	playerBets := make([]*t.BetMap, 23)
