@@ -23,7 +23,7 @@ func Bets(userId string) (bets []*t.Bet) {
 	}}
 
 	bets = []*t.Bet{}
-	m.Find(c, &bets, q)
+	c.Find(q).Sort("-crt_at").All(&bets)
 	return
 }
 

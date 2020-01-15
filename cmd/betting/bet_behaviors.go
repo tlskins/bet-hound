@@ -151,10 +151,8 @@ func CreateBet(proposer *t.User, changes t.BetChanges) (bet *t.Bet, err error) {
 				expr.IsLeft = *exprChg.IsLeft
 			}
 			// add player
-			fmt.Println("exprChg.PlayerFk ", exprChg.PlayerFk)
 			if exprChg.PlayerFk != nil {
 				expr.Player, _ = db.FindPlayer(*exprChg.PlayerFk)
-				fmt.Println("expr.Player ", *expr.Player)
 			}
 			// add game
 			if exprChg.GameFk != nil {
@@ -170,12 +168,12 @@ func CreateBet(proposer *t.User, changes t.BetChanges) (bet *t.Bet, err error) {
 	}
 
 	// validate and upsert
-	// if err = bet.Valid(); err != nil {
-	// 	return nil, err
-	// } else {
-	// 	err = db.UpsertBet(bet)
-	// }
-	err = db.UpsertBet(bet)
+	bet.PostProcess()
+	if err = bet.Valid(); err != nil {
+		return nil, err
+	} else {
+		err = db.UpsertBet(bet)
+	}
 	return
 }
 

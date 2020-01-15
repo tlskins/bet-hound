@@ -174,9 +174,7 @@ func (b Bet) minGameTime() *time.Time {
 	var minTime *time.Time
 	for _, eq := range b.Equations {
 		for _, expr := range eq.Expressions {
-			// Toggle for expiration testing
-			if !expr.Game.Final && (minTime == nil || expr.Game.GameTime.Before(*minTime)) {
-				// if minTime == nil || expr.Game.GameTime.Before(*minTime) {
+			if minTime == nil || expr.Game.GameTime.Before(*minTime) {
 				minTime = &expr.Game.GameTime
 			}
 		}
@@ -189,9 +187,7 @@ func (b Bet) maxFinalizedGameTime() *time.Time {
 	var maxTime *time.Time
 	for _, eq := range b.Equations {
 		for _, expr := range eq.Expressions {
-			// Toggle for expiration testing
-			if !expr.Game.Final && (maxTime == nil || expr.Game.GameResultsAt.After(*maxTime)) {
-				// if maxTime == nil || expr.Game.GameTime.After(*maxTime) {
+			if maxTime == nil || expr.Game.GameResultsAt.After(*maxTime) {
 				maxTime = &expr.Game.GameResultsAt
 			}
 		}
@@ -207,10 +203,6 @@ func (b *Bet) PostProcess() error {
 	if b.FinalizedAt == nil {
 		b.FinalizedAt = b.maxFinalizedGameTime()
 	}
-	// Toggle for expiration testing
-	if b.BetStatus.String() == "Pending Approval" && b.ExpiresAt != nil && time.Now().After(*b.ExpiresAt) {
-		b.BetStatus = BetStatusFromString("Expired")
-	}
 
 	return nil
 }
@@ -218,13 +210,13 @@ func (b *Bet) PostProcess() error {
 func (b Bet) Valid() error {
 	errs := []string{}
 	if len(b.Equations) == 0 {
-		errs = append(errs, "Invalid bet syntax, no equations found.")
+		errs = append(errs, "No bet details found.")
 	}
-	if b.ExpiresAt == nil {
-		errs = append(errs, "Invalid bet, all referrenced games are already in progress or finalized.")
-	}
-	// if b.FinalizedAt == nil {
-	// 	errs = append(errs, "Invalid bet, no final game time found.")
+	// if b.ExpiresAt.Before(time.Now()) {
+	// 	errs = append(errs, "Invalid bet, all referenced games are already in progress or finalized.")
+	// }
+	// if b.FinalizedAt.Before(time.Now()) {
+	// 	errs = append(errs, "Invalid bet, games are already final.")
 	// }
 	for _, eq := range b.Equations {
 		err := eq.Valid()
@@ -249,18 +241,20 @@ type Equation struct {
 }
 
 func (e Equation) LeftExpressions() (exprs []*PlayerExpression) {
+	exprs = []*PlayerExpression{}
 	for _, expr := range e.Expressions {
 		if expr.IsLeft {
-			exprs[expr.Id] = expr
+			exprs = append(exprs, expr)
 		}
 	}
 	return
 }
 
 func (e Equation) RightExpressions() (exprs []*PlayerExpression) {
+	exprs = []*PlayerExpression{}
 	for _, expr := range e.Expressions {
 		if !expr.IsLeft {
-			exprs[expr.Id] = expr
+			exprs = append(exprs, expr)
 		}
 	}
 	return
