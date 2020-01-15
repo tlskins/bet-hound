@@ -121,7 +121,7 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AcceptBet       func(childComplexity int, id string) int
+		AcceptBet       func(childComplexity int, id string, accept bool) int
 		CreateBet       func(childComplexity int, changes types.BetChanges) int
 		Post            func(childComplexity int, text string, username string, roomName string) int
 		PostRotoArticle func(childComplexity int) int
@@ -199,7 +199,7 @@ type ComplexityRoot struct {
 type MutationResolver interface {
 	SignOut(ctx context.Context) (bool, error)
 	CreateBet(ctx context.Context, changes types.BetChanges) (*types.Bet, error)
-	AcceptBet(ctx context.Context, id string) (bool, error)
+	AcceptBet(ctx context.Context, id string, accept bool) (bool, error)
 	Post(ctx context.Context, text string, username string, roomName string) (*types.Message, error)
 	PostRotoArticle(ctx context.Context) (*types.RotoArticle, error)
 }
@@ -587,7 +587,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.AcceptBet(childComplexity, args["id"].(string)), true
+		return e.complexity.Mutation.AcceptBet(childComplexity, args["id"].(string), args["accept"].(bool)), true
 
 	case "Mutation.createBet":
 		if e.complexity.Mutation.CreateBet == nil {
@@ -1234,7 +1234,7 @@ type Query {
 type Mutation {
   signOut: Boolean!
   createBet(changes: BetChanges!): Bet
-  acceptBet(id: ID!): Boolean!
+  acceptBet(id: ID!, accept: Boolean!): Boolean!
   post(text: String!, username: String!, roomName: String!): Message!
   postRotoArticle: RotoArticle!
 }
@@ -1304,6 +1304,14 @@ func (ec *executionContext) field_Mutation_acceptBet_args(ctx context.Context, r
 		}
 	}
 	args["id"] = arg0
+	var arg1 bool
+	if tmp, ok := rawArgs["accept"]; ok {
+		arg1, err = ec.unmarshalNBoolean2bool(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["accept"] = arg1
 	return args, nil
 }
 
@@ -3307,7 +3315,7 @@ func (ec *executionContext) _Mutation_acceptBet(ctx context.Context, field graph
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AcceptBet(rctx, args["id"].(string))
+		return ec.resolvers.Mutation().AcceptBet(rctx, args["id"].(string), args["accept"].(bool))
 	})
 	if err != nil {
 		ec.Error(ctx, err)

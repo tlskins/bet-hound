@@ -76,8 +76,13 @@ func (r *mutationResolver) CreateBet(ctx context.Context, changes types.BetChang
 
 	return betting.CreateBet(user, changes)
 }
-func (r *mutationResolver) AcceptBet(ctx context.Context, id string) (bool, error) {
-	panic("not implemented")
+func (r *mutationResolver) AcceptBet(ctx context.Context, id string, accept bool) (bool, error) {
+	user, err := UserFromContext(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	return betting.AcceptBet(user, id, accept)
 }
 func (r *mutationResolver) Post(ctx context.Context, text string, username string, roomName string) (*types.Message, error) {
 	r.mu.Lock()

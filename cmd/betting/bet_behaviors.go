@@ -93,6 +93,27 @@ import (
 // 	return
 // }
 
+func AcceptBet(recipient *t.User, betId string, accept bool) (bool, error) {
+	bet, err := db.FindBetById(betId)
+	if err != nil {
+		return false, err
+	} else if bet.BetStatus.String() != "Pending Approval" {
+		return false, fmt.Errorf("Cannot accept a bet with status: %s", bet.BetStatus.String())
+	} else if bet.Recipient.Id != recipient.Id {
+		return false, fmt.Errorf("You are not the recipient of this bet")
+	}
+
+	status := t.BetStatusFromString("Accepted")
+	if !accept {
+		status = t.BetStatusFromString("Cancelled")
+	}
+	bet.BetStatus = status
+	if err = db.UpsertBet(bet); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 func CreateBet(proposer *t.User, changes t.BetChanges) (bet *t.Bet, err error) {
 	now := time.Now()
 	rand.Seed(now.UnixNano())

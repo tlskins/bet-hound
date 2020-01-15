@@ -43,7 +43,7 @@ func main() {
 		AllowedHeaders:   []string{"*"},
 		AllowCredentials: true,
 		Debug:            true, // Enable Debugging for testing, consider disabling in production
-		AllowedOrigins:   []string{"http://localhost:3000"},
+		AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:8080"},
 	}
 	corsHandler := cors.New(corsOptions).Handler
 	router := chi.NewRouter()

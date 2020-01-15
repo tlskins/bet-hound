@@ -155,7 +155,7 @@ type Query {
 type Mutation {
   signOut: Boolean!
   createBet(changes: BetChanges!): Bet
-  acceptBet(id: ID!): Boolean!
+  acceptBet(id: ID!, accept: Boolean!): Boolean!
   post(text: String!, username: String!, roomName: String!): Message!
   postRotoArticle: RotoArticle!
 }
