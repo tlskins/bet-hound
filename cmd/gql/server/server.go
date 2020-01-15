@@ -11,10 +11,12 @@ import (
 	"bet-hound/cmd/env"
 	"bet-hound/cmd/gql"
 	"bet-hound/cmd/gql/server/auth"
+	tw "bet-hound/cmd/twitter"
 	m "bet-hound/pkg/mongo"
 
 	"github.com/99designs/gqlgen/handler"
 	"github.com/go-chi/chi"
+	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/rs/cors"
 )
@@ -39,6 +41,7 @@ func main() {
 	defer env.Cleanup()
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
 
+	// graphql server
 	corsOptions := cors.Options{
 		AllowedHeaders:   []string{"*"},
 		AllowCredentials: true,
@@ -61,6 +64,23 @@ func main() {
 	router.Handle("/", auth.AuthMiddleWare(handler.Playground("GraphQL playground", "/query")))
 	router.Handle("/query", auth.AuthMiddleWare(gqlHandler))
 
+	// twitter server
+	twt := env.TwitterClient()
+	hookHandler := tw.WebhookHandlerWrapper(env.BotHandle())
+	if args := os.Args; len(args) > 1 && args[1] == "-register" {
+		go twt.RegisterWebhook(env.WebhookEnv(), env.AppUrl())
+	}
+	m := mux.NewRouter()
+	m.HandleFunc("/", func(writer http.ResponseWriter, _ *http.Request) {
+		writer.WriteHeader(200)
+		fmt.Fprintf(writer, "Server is up and running")
+	})
+	m.HandleFunc("/webhook/twitter", tw.CrcCheck(env.ConsumerSecret())).Methods("GET")
+	m.HandleFunc("/webhook/twitter", hookHandler(twt.Client)).Methods("POST")
+	server := &http.Server{Handler: m, Addr: ":9090"}
+	go server.ListenAndServe()
+	fmt.Println("Twitter server running")
+
 	// timed processes
 	ticker := time.NewTicker(10 * time.Minute)
 	go func() {
@@ -73,6 +93,8 @@ func main() {
 			}
 		}
 	}()
+
+	twt.SendTweet(fmt.Sprintf("@ckettstweets test %d", time.Now().Unix()), nil)
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 	http.ListenAndServe(":"+port, router)

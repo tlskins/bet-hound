@@ -1,26 +1,5 @@
 package types
 
-import (
-	"bet-hound/cmd/env"
-	"fmt"
-)
-
-type TwitterErrorResponse struct {
-	Errors []TwitterError `json:"errors"`
-}
-
-func (t TwitterErrorResponse) String() (response string) {
-	for _, err := range t.Errors {
-		response += fmt.Sprintf("%s %s. ", err.Code, err.Message)
-	}
-	return response
-}
-
-type TwitterError struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
-}
-
 type Tweet struct {
 	Id                   int64       `bson:"_id" json:"id"`
 	IdStr                string      `bson:"id_str" json:"id_str"`
@@ -44,9 +23,9 @@ func (t *Tweet) GetText() (text string) {
 	}
 }
 
-func (t *Tweet) Recipients() (handles []TwitterUser) {
+func (t *Tweet) Recipients(botHandle string) (handles []TwitterUser) {
 	for _, user := range t.Entities.UserMentions {
-		if user.ScreenName != env.BotHandle() {
+		if user.ScreenName != botHandle {
 			handles = append(handles, user)
 		}
 	}
@@ -66,4 +45,9 @@ type TwitterUser struct {
 	Name       string   `bson:"nm" json:"name"`
 	IdStr      string   `bson:"id_str" json:"id_str"`
 	Indices    *[]int64 `bson:"indices,omitempty" json:"indices"`
+}
+
+type WebhookLoad struct {
+	UserId           string  `json:"for_user_id"`
+	TweetCreateEvent []Tweet `json:"tweet_create_events"`
 }

@@ -64,7 +64,7 @@ func FindBetByReply(tweet *t.Tweet) *t.Bet {
 	return &bet
 }
 
-func FindPendingFinal() []*t.Bet {
+func FindPendingFinalBets() []*t.Bet {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.BetsCollection())

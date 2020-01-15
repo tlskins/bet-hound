@@ -6,16 +6,15 @@ import (
 	"github.com/globalsign/mgo"
 	"github.com/spf13/viper"
 
+	tw "bet-hound/cmd/twitter/client"
 	"bet-hound/pkg/mongo"
 )
 
 type environment struct {
-	m *mgo.Session
+	m  *mgo.Session
+	tc *tw.TwitterClient
 
-	consumerKey              string
 	consumerSecret           string
-	accessTokenKey           string
-	accessTokenSecret        string
 	webhookEnv               string
 	appUrl                   string
 	port                     string
@@ -36,17 +35,8 @@ type environment struct {
 
 var e = &environment{}
 
-func ConsumerKey() string {
-	return e.consumerKey
-}
 func ConsumerSecret() string {
 	return e.consumerSecret
-}
-func AccessTokenKey() string {
-	return e.accessTokenKey
-}
-func AccessTokenSecret() string {
-	return e.accessTokenSecret
 }
 func WebhookEnv() string {
 	return e.webhookEnv
@@ -56,6 +46,9 @@ func AppUrl() string {
 }
 func Cleanup() {
 	e.m.Close()
+}
+func TwitterClient() *tw.TwitterClient {
+	return e.tc
 }
 func MGOSession() *mgo.Session {
 	return e.m
@@ -120,10 +113,14 @@ func Init(configFile, configPath string) error {
 	}
 	e.m = mgoSession
 
-	e.consumerKey = viper.GetString("consumer_key")
+	e.tc = tw.CreateClient(
+		viper.GetString("consumer_key"),
+		viper.GetString("consumer_secret"),
+		viper.GetString("access_token_key"),
+		viper.GetString("access_token_secret"),
+	)
+
 	e.consumerSecret = viper.GetString("consumer_secret")
-	e.accessTokenKey = viper.GetString("access_token_key")
-	e.accessTokenSecret = viper.GetString("access_token_secret")
 	e.webhookEnv = viper.GetString("webhook_env")
 	e.appUrl = viper.GetString("app_url")
 	e.port = viper.GetString("port")

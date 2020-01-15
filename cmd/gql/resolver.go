@@ -7,8 +7,6 @@ import (
 	"sync"
 	"time"
 
-	// "github.com/99designs/gqlgen/graphql"
-
 	"bet-hound/cmd/betting"
 	"bet-hound/cmd/db"
 	"bet-hound/cmd/gql/server/auth"
