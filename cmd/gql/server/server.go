@@ -11,6 +11,7 @@ import (
 	"bet-hound/cmd/env"
 	"bet-hound/cmd/gql"
 	"bet-hound/cmd/gql/server/auth"
+	"bet-hound/cmd/migration"
 	tw "bet-hound/cmd/twitter"
 	m "bet-hound/pkg/mongo"
 
@@ -66,9 +67,6 @@ func main() {
 	// twitter server
 	twt := env.TwitterClient()
 	hookHandler := tw.WebhookHandlerWrapper(env.BotHandle())
-	if args := os.Args; len(args) > 1 && args[1] == "-register" {
-		go twt.RegisterWebhook(env.WebhookEnv(), env.WebhookUrl())
-	}
 	m := mux.NewRouter()
 	m.HandleFunc("/", func(writer http.ResponseWriter, _ *http.Request) {
 		writer.WriteHeader(200)
@@ -79,6 +77,21 @@ func main() {
 	server := &http.Server{Handler: m, Addr: ":9090"}
 	go server.ListenAndServe()
 	fmt.Println("Twitter server running")
+
+	// server options
+	if args := os.Args; len(args) > 1 {
+		for _, arg := range args {
+			if arg == "-register" {
+				go twt.RegisterWebhook(env.WebhookEnv(), env.WebhookUrl())
+			} else if arg == "-seed_users" {
+				migration.SeedUsers()
+			} else if arg == "-seed_nfl_players" {
+				migration.SeedNflPlayers()
+			} else if arg == "-seed_nfl_settings" {
+				migration.SeedNflLeagueSettings()
+			}
+		}
+	}
 
 	// timed processes
 	ticker := time.NewTicker(10 * time.Minute)

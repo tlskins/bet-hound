@@ -51,9 +51,9 @@ func FindBetById(id string) (*t.Bet, error) {
 
 func FindBetByReply(tweet *t.Tweet) (*t.Bet, error) {
 	if tweet.InReplyToStatusIdStr == "" {
-		return fmt.Errorf("Tweet doesnt reply to a bet")
+		return nil, fmt.Errorf("Tweet doesnt reply to a bet")
 	} else if tweet.TwitterUser.IdStr == "" {
-		return fmt.Errorf("Tweet doest not have an author")
+		return nil, fmt.Errorf("Tweet doest not have an author")
 	}
 
 	conn := env.MGOSession().Copy()

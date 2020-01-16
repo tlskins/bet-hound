@@ -1,66 +1,14 @@
-package main
+package migration
 
 import (
 	"fmt"
-	"log"
-	"os"
 
 	"bet-hound/cmd/db"
-	"bet-hound/cmd/env"
-	// "bet-hound/cmd/scraper"
+	"bet-hound/cmd/scraper"
 	t "bet-hound/cmd/types"
-	m "bet-hound/pkg/mongo"
 )
 
-const appConfigPath = "../env"
-const appConfigName = "config"
-
-var logger *log.Logger
-
-func main() {
-	// Initialization
-	logger = setUpLogger(env.LogPath(), "logs.log")
-	err := env.Init(appConfigName, appConfigPath)
-	if err != nil {
-		logger.Fatalf("Error loading application config: %s \n", err)
-	}
-	defer env.Cleanup()
-	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
-
-	// Upsert users
-	tim := t.User{
-		Id:       "timlee",
-		Name:     "Timothy Lee",
-		UserName: "JooSeeDong",
-		Password: "password",
-		Email:    "tlee87@gmail.com",
-		TwitterUser: &t.TwitterUser{
-			Id:         501399114,
-			ScreenName: "timmy_the_truth",
-			Name:       "steve_aioli",
-			IdStr:      "501399114",
-		},
-	}
-	xtine := t.User{
-		Id:       "xtine",
-		Name:     "Christine Kettler",
-		UserName: "cktweets",
-		Password: "password",
-		Email:    "christine.b.kettler@gmail.com",
-		TwitterUser: &t.TwitterUser{
-			Id:         249778392,
-			ScreenName: "ckettstweets",
-			Name:       "Christine Kettler",
-			IdStr:      "249778392",
-		},
-	}
-	db.UpsertUser(&tim)
-	db.UpsertUser(&xtine)
-
-	// Scrape
-	// scraper.ScrapePlayers()
-	// scraper.ScrapeGames(2019, 19)
-
+func SeedNflLeagueSettings() {
 	// Player metrics
 	playerBets := make([]*t.BetMap, 23)
 	playerBets[0] = &t.BetMap{
@@ -296,15 +244,42 @@ func main() {
 	if err := db.UpsertLeagueSettings(&setting); err != nil {
 		fmt.Println(err)
 	}
+	fmt.Println("Seeded nfl league settings...")
 }
 
-func setUpLogger(logPath, defaultPath string) *log.Logger {
-	if logPath == "" {
-		logPath = defaultPath
+func SeedNflPlayers() {
+	scraper.ScrapePlayers()
+	fmt.Println("Seeded nfl players...")
+}
+
+func SeedUsers() {
+	tim := t.User{
+		Id:       "timlee",
+		Name:     "Timothy Lee",
+		UserName: "JooSeeDong",
+		Password: "password",
+		Email:    "tlee87@gmail.com",
+		TwitterUser: &t.TwitterUser{
+			Id:         501399114,
+			ScreenName: "timmy_the_truth",
+			Name:       "steve_aioli",
+			IdStr:      "501399114",
+		},
 	}
-	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Fatal(err)
+	xtine := t.User{
+		Id:       "xtine",
+		Name:     "Christine Kettler",
+		UserName: "cktweets",
+		Password: "password",
+		Email:    "christine.b.kettler@gmail.com",
+		TwitterUser: &t.TwitterUser{
+			Id:         249778392,
+			ScreenName: "ckettstweets",
+			Name:       "Christine Kettler",
+			IdStr:      "249778392",
+		},
 	}
-	return log.New(f, "", 0)
+	db.UpsertUser(&tim)
+	db.UpsertUser(&xtine)
+	fmt.Println("Seeded users...")
 }

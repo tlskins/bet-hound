@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"regexp"
 	"strings"
+	"time"
 
 	"bet-hound/cmd/db"
 	"bet-hound/cmd/env"
@@ -55,6 +56,7 @@ func ReplyToTweet(tweet *t.Tweet) error {
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
 
 func randString(n int) string {
+	rand.Seed(time.Now().UnixNano())
 	b := make([]rune, n)
 	for i := range b {
 		b[i] = letterRunes[rand.Intn(len(letterRunes))]
