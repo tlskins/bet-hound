@@ -9,6 +9,7 @@ import (
 
 	"bet-hound/cmd/betting"
 	"bet-hound/cmd/db"
+	"bet-hound/cmd/env"
 	"bet-hound/cmd/gql/server/auth"
 	"bet-hound/cmd/scraper"
 	"bet-hound/cmd/types"
@@ -64,7 +65,7 @@ type mutationResolver struct{ *resolver }
 
 func (r *mutationResolver) SignOut(ctx context.Context) (bool, error) {
 	authPointer := ctx.Value(auth.ContextKey("userID")).(*auth.AuthResponseWriter)
-	return authPointer.DeleteSession(), nil
+	return authPointer.DeleteSession(env.AppUrl()), nil
 }
 func (r *mutationResolver) CreateBet(ctx context.Context, changes types.BetChanges) (bet *types.Bet, err error) {
 	user, err := UserFromContext(ctx)
@@ -145,7 +146,7 @@ type queryResolver struct{ *resolver }
 func (r *queryResolver) SignIn(ctx context.Context, userName string, password string) (user *types.User, err error) {
 	if user, err = db.SignInUser(userName, password); err == nil {
 		authPointer := ctx.Value(auth.ContextKey("userID")).(*auth.AuthResponseWriter)
-		authPointer.SetSession(user.Id)
+		authPointer.SetSession(env.AppUrl(), user.Id)
 		return
 	}
 	return nil, fmt.Errorf("Invalid user name or password")

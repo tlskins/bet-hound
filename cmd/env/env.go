@@ -16,6 +16,7 @@ type environment struct {
 
 	consumerSecret           string
 	webhookEnv               string
+	webhookUrl               string
 	appUrl                   string
 	port                     string
 	mongoHost                string
@@ -40,6 +41,9 @@ func ConsumerSecret() string {
 }
 func WebhookEnv() string {
 	return e.webhookEnv
+}
+func WebhookUrl() string {
+	return e.webhookUrl
 }
 func AppUrl() string {
 	return e.appUrl
@@ -122,6 +126,7 @@ func Init(configFile, configPath string) error {
 
 	e.consumerSecret = viper.GetString("consumer_secret")
 	e.webhookEnv = viper.GetString("webhook_env")
+	e.webhookUrl = viper.GetString("webhook_url")
 	e.appUrl = viper.GetString("app_url")
 	e.port = viper.GetString("port")
 	e.mongoHost = viper.GetString("mongo_host")

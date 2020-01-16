@@ -46,12 +46,12 @@ func (c *TwitterClient) SendTweet(text string, replyId *string) (responseTweet *
 	return responseTweet, nil
 }
 
-func (c *TwitterClient) RegisterWebhook(webhookEnv, appUrl string) {
+func (c *TwitterClient) RegisterWebhook(webhookEnv, webhookUrl string) {
 	fmt.Println("Registering webhook...")
 
 	//Set parameters
 	path := fmt.Sprintf("https://api.twitter.com/1.1/account_activity/all/%s/webhooks.json", webhookEnv)
-	hook_url := fmt.Sprintf("%s/webhook/twitter", appUrl)
+	hook_url := fmt.Sprintf("%s/webhook/twitter", webhookUrl)
 	values := url.Values{}
 	values.Set("url", hook_url)
 

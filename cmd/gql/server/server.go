@@ -46,7 +46,7 @@ func main() {
 		AllowedHeaders:   []string{"*"},
 		AllowCredentials: true,
 		Debug:            true, // Enable Debugging for testing, consider disabling in production
-		AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:8080"},
+		AllowedOrigins:   []string{"http://" + env.AppUrl() + ":3000", "http://" + env.AppUrl() + ":8080"},
 	}
 	corsHandler := cors.New(corsOptions).Handler
 	router := chi.NewRouter()
@@ -60,7 +60,6 @@ func main() {
 		},
 	})
 	gqlHandler := handler.GraphQL(gql.NewExecutableSchema(gqlConfig), gqlOption, gqlTimeout)
-
 	router.Handle("/", auth.AuthMiddleWare(handler.Playground("GraphQL playground", "/query")))
 	router.Handle("/query", auth.AuthMiddleWare(gqlHandler))
 
@@ -68,7 +67,7 @@ func main() {
 	twt := env.TwitterClient()
 	hookHandler := tw.WebhookHandlerWrapper(env.BotHandle())
 	if args := os.Args; len(args) > 1 && args[1] == "-register" {
-		go twt.RegisterWebhook(env.WebhookEnv(), env.AppUrl())
+		go twt.RegisterWebhook(env.WebhookEnv(), env.WebhookUrl())
 	}
 	m := mux.NewRouter()
 	m.HandleFunc("/", func(writer http.ResponseWriter, _ *http.Request) {
@@ -94,9 +93,9 @@ func main() {
 		}
 	}()
 
-	twt.SendTweet(fmt.Sprintf("@ckettstweets test %d", time.Now().Unix()), nil)
+	// twt.SendTweet(fmt.Sprintf("@ckettstweets test %d", time.Now().Unix()), nil)
 
-	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
+	log.Printf("connect to http://%s:%s/ for GraphQL playground", env.AppUrl(), port)
 	http.ListenAndServe(":"+port, router)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
