@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"bet-hound/cmd/db"
 	"bet-hound/cmd/env"
 	"bet-hound/cmd/gql"
 	"bet-hound/cmd/gql/server/auth"
@@ -41,6 +42,10 @@ func main() {
 	}
 	defer env.Cleanup()
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
+
+	// ensure indexes
+	mSess := env.MGOSession()
+	db.EnsureIndexes(mSess.DB(env.MongoDb()))
 
 	// graphql server
 	corsOptions := cors.Options{
