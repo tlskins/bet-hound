@@ -41,12 +41,14 @@ func WebhookHandlerWrapper(botHandle string) func(httpClient *http.Client) func(
 				fmt.Println(err)
 			}
 
-			if len(load.TweetCreateEvent) < 1 || len(load.TweetCreateEvent[0].IdStr) == 0 || load.TweetCreateEvent[0].TwitterUser.ScreenName == botHandle {
-				fmt.Println("filtered out tweet")
+			if len(load.TweetCreateEvent) < 1 {
+				return
+			}
+			newTweet := load.TweetCreateEvent[0]
+			if len(newTweet.IdStr) == 0 || newTweet.TwitterUser.ScreenName == botHandle {
 				return
 			}
 
-			newTweet := load.TweetCreateEvent[0]
 			fmt.Println("incoming tweet text, id, replyTo: ", newTweet.GetText(), newTweet.IdStr, newTweet.InReplyToStatusIdStr)
 			if err := b.ReplyToTweet(&newTweet); err != nil {
 				fmt.Println(err)

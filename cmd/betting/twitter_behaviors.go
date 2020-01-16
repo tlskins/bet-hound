@@ -37,18 +37,14 @@ func ReplyToTweet(tweet *t.Tweet) error {
 	// check if bet reply
 	if tweet.InReplyToStatusIdStr != "" {
 		if bet, err := db.FindBetByReply(tweet); err == nil && bet != nil {
-			if err = replyToApproval(bet, tweet); err != nil {
-				return err
-			}
+			return replyToApproval(bet, tweet)
 		}
 	}
 	text := strings.TrimSpace(nlp.RemoveReservedTwitterWords(tweet.GetText()))
 	// check if user registration
 	var registerRgx = regexp.MustCompile(`(?i)^register`)
 	if registerRgx.Match([]byte(text)) {
-		if err := replyToUserRegistration(tweet); err != nil {
-			return err
-		}
+		return replyToUserRegistration(tweet)
 	}
 
 	return nil
