@@ -2,6 +2,7 @@ package betting
 
 import (
 	"fmt"
+	"math/rand"
 	"regexp"
 	"strings"
 
@@ -32,14 +33,82 @@ func TweetBetProposal(bet *t.Bet) (*t.Tweet, error) {
 	return resp, nil
 }
 
-func ReplyToTweet(tweet *t.Tweet) (err error) {
-	var bet *t.Bet
-	if bet, err = db.FindBetByReply(tweet); err == nil && bet != nil {
-		if err = replyToApproval(bet, tweet); err != nil {
-			return
+func ReplyToTweet(tweet *t.Tweet) error {
+	// check if bet reply
+	if tweet.InReplyToStatusIdStr != "" {
+		if bet, err := db.FindBetByReply(tweet); err == nil && bet != nil {
+			if err = replyToApproval(bet, tweet); err != nil {
+				return err
+			}
 		}
 	}
+	text := strings.TrimSpace(nlp.RemoveReservedTwitterWords(tweet.GetText()))
+	// check if user registration
+	var registerRgx = regexp.MustCompile(`(?i)^register`)
+	if registerRgx.Match([]byte(text)) {
+		if err := replyToUserRegistration(tweet); err != nil {
+			return err
+		}
+	}
+
 	return nil
+}
+
+// private helpers
+
+var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
+
+func randString(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return string(b)
+}
+
+func replyToUserRegistration(tweet *t.Tweet) error {
+	userRgx := regexp.MustCompile(`(?i)^register[^ ]* +([^ ]+)`)
+	text := strings.TrimSpace(nlp.RemoveReservedTwitterWords(tweet.GetText()))
+	client := env.TwitterClient()
+
+	userNameMatch := userRgx.FindStringSubmatch(text)
+	if len(userNameMatch) < 2 {
+		response := fmt.Sprintf("@%s Invalid user name", tweet.TwitterUser.ScreenName)
+		if _, err := client.SendTweet(response, &tweet.IdStr); err != nil {
+			return err
+		}
+		return fmt.Errorf(response)
+	}
+
+	userName := userNameMatch[1]
+	fmt.Println("register username: ", userName)
+	if _, err := db.FindUserByUserName(userName); err == nil {
+		response := fmt.Sprintf("@%s User name already exists", tweet.TwitterUser.ScreenName)
+		if _, err := client.SendTweet(response, &tweet.IdStr); err != nil {
+			return err
+		}
+		return fmt.Errorf(response)
+	} else if usr, err := db.FindUserByTwitterId(tweet.TwitterUser.IdStr); err == nil {
+		response := fmt.Sprintf("@%s Already registered under username: %s", tweet.TwitterUser.ScreenName, usr.UserName)
+		if _, err := client.SendTweet(response, &tweet.IdStr); err != nil {
+			return err
+		}
+		return fmt.Errorf(response)
+	} else {
+		pwd := randString(8)
+		newUser := t.User{
+			Name:        tweet.TwitterUser.Name,
+			UserName:    userName,
+			Password:    pwd,
+			TwitterUser: &tweet.TwitterUser,
+		}
+		response := fmt.Sprintf("You have been registered with username: %s. Your temporary password is: %s", userName, pwd)
+		if _, err = client.SendDirectMessage(response, tweet.TwitterUser.IdStr); err != nil {
+			return err
+		}
+		err = db.UpsertUser(&newUser)
+		return err
+	}
 }
 
 func replyToApproval(bet *t.Bet, tweet *t.Tweet) error {

@@ -45,6 +45,26 @@ func FindUserById(id string) (*t.User, error) {
 	return &user, err
 }
 
+func FindUserByTwitterId(twtUserId string) (*t.User, error) {
+	conn := env.MGOSession().Copy()
+	defer conn.Close()
+	c := conn.DB(env.MongoDb()).C(env.UsersCollection())
+
+	var user t.User
+	err := m.FindOne(c, &user, m.M{"twt.id_str": twtUserId})
+	return &user, err
+}
+
+func FindUserByUserName(userName string) (*t.User, error) {
+	conn := env.MGOSession().Copy()
+	defer conn.Close()
+	c := conn.DB(env.MongoDb()).C(env.UsersCollection())
+
+	var user t.User
+	err := m.FindOne(c, &user, m.M{"usr_nm": userName})
+	return &user, err
+}
+
 func SignInUser(username, password string) (*t.User, error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()

@@ -13,6 +13,28 @@ type Tweet struct {
 	Entities             Entities    `bson:"entities" json:"entities"`
 }
 
+type DirectMessage struct {
+	Event TwitterEvent `bson:"ev" json:"event"`
+}
+
+type TwitterEvent struct {
+	Type          string         `bson:"tp" json:"type"`
+	MessageCreate *MessageCreate `bson:"msg_crt" json:"message_create"`
+}
+
+type MessageCreate struct {
+	MessageData TwtMessageData `bson:"md" json:"message_data"`
+	Target      TwtTarget      `bson:"tg" json:"target"`
+}
+
+type TwtMessageData struct {
+	Text string `bson:"txt" json:"text"`
+}
+
+type TwtTarget struct {
+	RecipientId string `bson:"r_id" json:"recipient_id"`
+}
+
 func (t *Tweet) GetText() (text string) {
 	if t.FullText != nil {
 		return *t.FullText

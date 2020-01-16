@@ -94,6 +94,7 @@ func main() {
 	}()
 
 	// twt.SendTweet(fmt.Sprintf("@ckettstweets test %d", time.Now().Unix()), nil)
+	// twt.SendDirectMessage("test dm!", "249778392")
 
 	log.Printf("connect to http://%s:%s/ for GraphQL playground", env.AppUrl(), port)
 	http.ListenAndServe(":"+port, router)

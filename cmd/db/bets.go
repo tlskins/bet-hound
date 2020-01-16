@@ -1,8 +1,10 @@
 package db
 
 import (
-	"github.com/satori/go.uuid"
+	"fmt"
 	"time"
+
+	"github.com/satori/go.uuid"
 
 	"bet-hound/cmd/env"
 	t "bet-hound/cmd/types"
@@ -48,6 +50,12 @@ func FindBetById(id string) (*t.Bet, error) {
 }
 
 func FindBetByReply(tweet *t.Tweet) (*t.Bet, error) {
+	if tweet.InReplyToStatusIdStr == "" {
+		return fmt.Errorf("Tweet doesnt reply to a bet")
+	} else if tweet.TwitterUser.IdStr == "" {
+		return fmt.Errorf("Tweet doest not have an author")
+	}
+
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
