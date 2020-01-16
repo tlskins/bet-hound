@@ -1,7 +1,6 @@
 package db
 
 import (
-	"fmt"
 	"github.com/satori/go.uuid"
 	"time"
 
@@ -48,20 +47,19 @@ func FindBetById(id string) (*t.Bet, error) {
 	return &bet, err
 }
 
-func FindBetByReply(tweet *t.Tweet) *t.Bet {
+func FindBetByReply(tweet *t.Tweet) (*t.Bet, error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
 
 	authorId := tweet.TwitterUser.IdStr
 	var bet t.Bet
-	fmt.Println("FindBetByReply ", tweet.InReplyToStatusIdStr, authorId)
 	q := m.M{"$or": []m.M{
-		m.M{"acc_fk": tweet.InReplyToStatusIdStr, "status": 0, "proposer.id_str": authorId, "pr_fk": nil},
-		m.M{"acc_fk": tweet.InReplyToStatusIdStr, "status": 0, "recipient.id_str": authorId, "rr_fk": nil},
+		m.M{"acc_fk": tweet.InReplyToStatusIdStr, "status": 0, "proposer.twt.id_str": authorId, "pr_fk": nil},
+		m.M{"acc_fk": tweet.InReplyToStatusIdStr, "status": 0, "recipient.twt.id_str": authorId, "rr_fk": nil},
 	}}
-	m.FindOne(c, &bet, q)
-	return &bet
+	err := m.FindOne(c, &bet, q)
+	return &bet, err
 }
 
 func FindPendingFinalBets() []*t.Bet {

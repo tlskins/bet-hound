@@ -49,7 +49,8 @@ const (
 	BetStatusAccepted
 	BetStatusFinal
 	BetStatusExpired
-	BetStatusCancelled
+	BetStatusDeclined
+	BetStatusWithdrawn
 )
 
 func BetStatusFromString(s string) BetStatus {
@@ -58,7 +59,8 @@ func BetStatusFromString(s string) BetStatus {
 		"Accepted":         BetStatusAccepted,
 		"Final":            BetStatusFinal,
 		"Expired":          BetStatusExpired,
-		"Cancelled":        BetStatusCancelled,
+		"Declined":         BetStatusDeclined,
+		"Withdrawn":        BetStatusWithdrawn,
 	}[s]
 }
 
@@ -68,7 +70,8 @@ func (s BetStatus) String() string {
 		BetStatusAccepted:        "Accepted",
 		BetStatusFinal:           "Final",
 		BetStatusExpired:         "Expired",
-		BetStatusCancelled:       "Cancelled",
+		BetStatusDeclined:        "Declined",
+		BetStatusWithdrawn:       "Withdrawn",
 	}[s]
 }
 
@@ -161,6 +164,17 @@ type Bet struct {
 // 	}
 // 	return ""
 // }
+
+func (b Bet) TwitterHandles() (result string) {
+	handles := []string{}
+	if b.Proposer.TwitterUser != nil {
+		handles = append(handles, "@"+b.Proposer.TwitterUser.ScreenName)
+	}
+	if b.Recipient.TwitterUser != nil {
+		handles = append(handles, "@"+b.Recipient.TwitterUser.ScreenName)
+	}
+	return strings.Join(handles, " ")
+}
 
 func (b Bet) String() (result string) {
 	result = fmt.Sprintf("%s bets", b.Proposer.Name)
@@ -349,16 +363,12 @@ func (e PlayerExpression) String() (desc string) {
 	if e.Player.TeamFk == e.Game.HomeTeamFk {
 		vsTeam = e.Game.AwayTeamName
 	}
-	metric := ""
-	if e.Metric != nil {
-		metric = " " + e.Metric.Name
-	}
-	return fmt.Sprintf("%s.%s (%s-%s) vs %s%s",
+	return fmt.Sprintf("%s.%s (%s-%s) %s vs %s",
 		e.Player.FirstName[:1],
 		e.Player.LastName,
 		e.Player.TeamShort,
 		e.Player.Position,
+		e.Metric.Name,
 		vsTeam,
-		metric,
 	)
 }

@@ -39,12 +39,14 @@ func CreateBet(proposer *t.User, changes t.BetChanges) (bet *t.Bet, err error) {
 	if err != nil {
 		return nil, err
 	}
+	pReplyFk := "-1"
 	bet = &t.Bet{
-		Id:        uuid.NewV4().String(),
-		BetStatus: t.BetStatusFromString("Pending Approval"),
-		CreatedAt: &now,
-		Proposer:  *proposer,
-		Recipient: *recipient,
+		Id:              uuid.NewV4().String(),
+		BetStatus:       t.BetStatusFromString("Pending Approval"),
+		ProposerReplyFk: &pReplyFk,
+		CreatedAt:       &now,
+		Proposer:        *proposer,
+		Recipient:       *recipient,
 	}
 
 	// get bet map lookups
@@ -94,7 +96,9 @@ func CreateBet(proposer *t.User, changes t.BetChanges) (bet *t.Bet, err error) {
 		return nil, err
 	}
 	if bet.Recipient.TwitterUser != nil {
-		TweetBetProposal(bet)
+		if _, err = TweetBetProposal(bet); err != nil {
+			return bet, err
+		}
 	}
 	return
 }

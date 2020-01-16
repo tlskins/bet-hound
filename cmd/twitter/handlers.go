@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	b "bet-hound/cmd/betting"
 	t "bet-hound/cmd/types"
 )
 
@@ -33,7 +34,7 @@ func CrcCheck(consumerSecret string) func(writer http.ResponseWriter, request *h
 func WebhookHandlerWrapper(botHandle string) func(httpClient *http.Client) func(writer http.ResponseWriter, request *http.Request) {
 	return func(httpClient *http.Client) func(writer http.ResponseWriter, request *http.Request) {
 		return func(writer http.ResponseWriter, request *http.Request) {
-			fmt.Println("Handler called")
+			fmt.Println("WebhookHandlerWrapper called")
 			body, _ := ioutil.ReadAll(request.Body)
 			var load t.WebhookLoad
 			if err := json.Unmarshal(body, &load); err != nil {
@@ -47,36 +48,9 @@ func WebhookHandlerWrapper(botHandle string) func(httpClient *http.Client) func(
 
 			newTweet := load.TweetCreateEvent[0]
 			fmt.Println("incoming tweet text, id, replyTo: ", newTweet.GetText(), newTweet.IdStr, newTweet.InReplyToStatusIdStr)
-			// var bet *t.Bet
-			// // Check if response to a check tweet
-			// if len(newTweet.InReplyToStatusIdStr) > 0 {
-			// 	bet = db.FindBetByReply(&newTweet)
-			// }
-
-			// Reply to proposer check
-			// if bet != nil {
-			// 	logger.Println("processing reply to bet", bet.Id, bet.Description())
-			// 	err = twitter.ProcessReplyTweet(httpClient, &newTweet, bet)
-			// 	if err != nil {
-			// 		logger.Println("err processing reply tweet", err)
-			// 	}
-			// } else {
-			// 	// Process a new bet
-			// 	logger.Println("processing new tweet...")
-			// 	err, bet := twitter.ProcessNewTweet(httpClient, &newTweet)
-			// 	if err != nil {
-			// 		logger.Println("err processing new tweet", err)
-			// 	} else {
-			// 		logger.Println("created bet: ", bet.Id)
-			// 	}
-			// }
-
-			// if err != nil {
-			// 	fmt.Println("An error occured:")
-			// 	fmt.Println(err.Error())
-			// } else {
-			// 	fmt.Println("Tweet handled successfully")
-			// }
+			if err := b.ReplyToTweet(&newTweet); err != nil {
+				fmt.Println(err)
+			}
 		}
 	}
 }

@@ -2,15 +2,22 @@ package betting
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 
 	"bet-hound/cmd/db"
 	"bet-hound/cmd/env"
+	"bet-hound/cmd/nlp"
 	t "bet-hound/cmd/types"
 )
 
 func TweetBetProposal(bet *t.Bet) (*t.Tweet, error) {
+	if bet.Recipient.TwitterUser == nil {
+		return nil, fmt.Errorf("Bet recipient does not have a twitter account linked.")
+	}
 	client := env.TwitterClient()
-	txt := fmt.Sprintf("@%s %s has proposed a bet that: %s. Do you accept?", bet.Recipient.TwitterUser.ScreenName, bet.Proposer.Name, bet.String())
+
+	txt := fmt.Sprintf("@%s %s. Do you accept?", bet.Recipient.TwitterUser.ScreenName, bet.String())
 	resp, err := client.SendTweet(txt, nil)
 	if err != nil {
 		return nil, err
@@ -23,6 +30,58 @@ func TweetBetProposal(bet *t.Bet) (*t.Tweet, error) {
 		return nil, err
 	}
 	return resp, nil
+}
+
+func ReplyToTweet(tweet *t.Tweet) (err error) {
+	var bet *t.Bet
+	if bet, err = db.FindBetByReply(tweet); err == nil && bet != nil {
+		if err = replyToApproval(bet, tweet); err != nil {
+			return
+		}
+	}
+	return nil
+}
+
+func replyToApproval(bet *t.Bet, tweet *t.Tweet) error {
+	var yesRgx = regexp.MustCompile(`(?i)^(y(e|a)\S*|ok|sure|deal)`)
+	var noRgx = regexp.MustCompile(`(?i)^(n(a|o)\S*|pass)`)
+	text := strings.TrimSpace(nlp.RemoveReservedTwitterWords(tweet.GetText()))
+
+	// process response
+	if yesRgx.Match([]byte(text)) {
+		if bet.Proposer.TwitterUser.IdStr == tweet.TwitterUser.IdStr {
+			bet.ProposerReplyFk = &tweet.IdStr
+		} else if bet.Recipient.TwitterUser.IdStr == tweet.TwitterUser.IdStr {
+			bet.RecipientReplyFk = &tweet.IdStr
+		}
+		if bet.ProposerReplyFk != nil && bet.RecipientReplyFk != nil {
+			bet.BetStatus = t.BetStatusFromString("Accepted")
+		}
+	} else if noRgx.Match([]byte(text)) {
+		bet.BetStatus = t.BetStatusFromString("Declined")
+	}
+
+	// reply to tweet
+	txt := fmt.Sprintf("%s Bet status: %s", bet.TwitterHandles(), bet.BetStatus.String())
+	if bet.BetStatus.String() == "Pending Approval" {
+		pends := "recipient"
+		if bet.ProposerReplyFk == nil {
+			pends = "proposer and " + pends
+		}
+		txt = fmt.Sprintf("Pending approval from %s", pends)
+	}
+	client := env.TwitterClient()
+	if resp, err := client.SendTweet(txt, &tweet.IdStr); err == nil {
+		if err = db.UpsertTweet(resp); err != nil {
+			fmt.Println(err)
+		}
+		if err = db.UpsertBet(bet); err != nil {
+			return err
+		}
+	} else {
+		return err
+	}
+	return nil
 }
 
 // func BuildBetFromTweet(tweet *t.Tweet) (err error, bet *t.Bet) {
