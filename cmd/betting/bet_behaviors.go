@@ -11,88 +11,6 @@ import (
 	t "bet-hound/cmd/types"
 )
 
-// func UpdateBet(id string, changes t.BetChanges) (bet *t.Bet, err error) {
-// 	bet, err = db.FindBetById(id)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	// get bet map lookups
-// 	settings, err := db.GetLeagueSettings("nfl")
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	opMap := settings.BetEquationsMap()
-// 	metricMap := settings.PlayerBetsMap()
-
-// 	// build equations map
-// 	eqMap := map[int]*t.Equation{}
-// 	eqIdxMap := map[int]*int{}
-// 	for i, eq := range bet.Equations {
-// 		eqMap[eq.Id] = eq
-// 		eqIdxMap[eq.Id] = &i
-// 	}
-
-// 	// make equation changes
-// 	for _, eqChg := range changes.EquationsChanges {
-// 		eq := eqMap[eqChg.Id]
-// 		if eq == nil {
-// 			return nil, fmt.Errorf("equation not found")
-// 		} else if eqChg.Delete != nil {
-// 			// delete  equation
-// 			idx := eqIdxMap[eqChg.Id]
-// 			if idx != nil {
-// 				copy(bet.Equations[*idx:], bet.Equations[*idx+1:])
-// 				bet.Equations[len(bet.Equations)-1] = nil
-// 				bet.Equations = bet.Equations[:len(bet.Equations)-1]
-// 			}
-// 		}
-// 		// build expression map
-// 		exprMap := map[int]*t.PlayerExpression{}
-// 		exprIdxMap := map[int]*int{}
-// 		for i, expr := range eq.Expressions {
-// 			exprMap[expr.Id] = expr
-// 			exprIdxMap[expr.Id] = &i
-// 		}
-// 		// operator changes
-// 		if eqChg.OperatorId != nil {
-// 			eq.Operator = opMap[*eqChg.OperatorId]
-// 		}
-// 		// expression changes
-// 		for _, exprChg := range eqChg.ExpressionChanges {
-// 			expr := exprMap[exprChg.Id]
-// 			if expr == nil {
-// 				return nil, fmt.Errorf("expression not found")
-// 			} else if exprChg.Delete != nil {
-// 				// delete  expression
-// 				idx := exprIdxMap[exprChg.Id]
-// 				if idx != nil {
-// 					copy(bet.Equations[*idx:], bet.Equations[*idx+1:])
-// 					bet.Equations[len(bet.Equations)-1] = nil
-// 					bet.Equations = bet.Equations[:len(bet.Equations)-1]
-// 				}
-// 			}
-// 			// change player
-// 			if exprChg.PlayerFk != nil {
-// 				if expr.Player, err = db.FindPlayer(*exprChg.PlayerFk); err != nil {
-// 					return nil, err
-// 				}
-// 			}
-// 			// change metric
-// 			if exprChg.MetricId != nil {
-// 				metric := metricMap[*exprChg.MetricId]
-// 				if metric == nil {
-// 					return nil, fmt.Errorf("not a valid metric")
-// 				}
-// 				expr.Metric = metric
-// 			}
-// 		}
-// 	}
-
-// 	err = db.UpsertBet(bet)
-// 	return
-// }
-
 func AcceptBet(recipient *t.User, betId string, accept bool) (bool, error) {
 	bet, err := db.FindBetById(betId)
 	if err != nil {
@@ -171,8 +89,12 @@ func CreateBet(proposer *t.User, changes t.BetChanges) (bet *t.Bet, err error) {
 	bet.PostProcess()
 	if err = bet.Valid(); err != nil {
 		return nil, err
-	} else {
-		err = db.UpsertBet(bet)
+	}
+	if err = db.UpsertBet(bet); err != nil {
+		return nil, err
+	}
+	if bet.Recipient.TwitterUser != nil {
+		TweetBetProposal(bet)
 	}
 	return
 }

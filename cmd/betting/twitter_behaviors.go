@@ -1,16 +1,29 @@
 package betting
 
-// import (
-// 	"bet-hound/cmd/db"
-// 	"bet-hound/cmd/nlp"
-// 	"bet-hound/cmd/scraper"
-// 	t "bet-hound/cmd/types"
-// 	"fmt"
-// 	"github.com/satori/go.uuid"
-// 	// "math"
-// 	"strings"
-// 	// "time"
-// )
+import (
+	"fmt"
+
+	"bet-hound/cmd/db"
+	"bet-hound/cmd/env"
+	t "bet-hound/cmd/types"
+)
+
+func TweetBetProposal(bet *t.Bet) (*t.Tweet, error) {
+	client := env.TwitterClient()
+	txt := fmt.Sprintf("@%s %s has proposed a bet that: %s. Do you accept?", bet.Recipient.TwitterUser.ScreenName, bet.Proposer.Name, bet.String())
+	resp, err := client.SendTweet(txt, nil)
+	if err != nil {
+		return nil, err
+	}
+	bet.AcceptFk = resp.IdStr
+	if err = db.UpsertTweet(resp); err != nil {
+		fmt.Println(err)
+	}
+	if err = db.UpsertBet(bet); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
 
 // func BuildBetFromTweet(tweet *t.Tweet) (err error, bet *t.Bet) {
 // 	text := strings.TrimSpace(nlp.RemoveReservedTwitterWords(tweet.GetText()))
