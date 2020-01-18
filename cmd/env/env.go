@@ -22,6 +22,7 @@ type environment struct {
 	appPort                  string
 	gqlUrl                   string
 	gqlPort                  string
+	twitterPort              string
 	mongoHost                string
 	mongoUser                string
 	mongoPwd                 string
@@ -67,6 +68,9 @@ func GqlUrl() string {
 }
 func GqlPort() string {
 	return e.gqlPort
+}
+func TwitterPort() string {
+	return e.twitterPort
 }
 func Cleanup() {
 	e.m.Close()
@@ -164,6 +168,7 @@ func Init(configFile, configPath string) error {
 	e.appPort = viper.GetString("app_port")
 	e.gqlUrl = viper.GetString("gql_url")
 	e.gqlPort = viper.GetString("gql_port")
+	e.twitterPort = viper.GetString("twitter_port")
 	e.mongoHost = viper.GetString("mongo_host")
 	e.mongoUser = viper.GetString("mongo_user")
 	e.mongoPwd = viper.GetString("mongo_pwd")

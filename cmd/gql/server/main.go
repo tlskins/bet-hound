@@ -87,7 +87,7 @@ func main() {
 	})
 	m.HandleFunc("/webhook/twitter", tw.CrcCheck(env.ConsumerSecret())).Methods("GET")
 	m.HandleFunc("/webhook/twitter", hookHandler(twt.Client)).Methods("POST")
-	server := &http.Server{Handler: m, Addr: ":9090"}
+	server := &http.Server{Handler: m, Addr: ":" + env.TwitterPort()}
 	go server.ListenAndServe()
 	fmt.Println("Twitter server running")
 

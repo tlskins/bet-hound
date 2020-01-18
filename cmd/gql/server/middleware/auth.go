@@ -12,24 +12,24 @@ type AuthResponseWriter struct {
 	UserId string
 }
 
-func (w *AuthResponseWriter) SetSession(appUrl, userId string) {
+func (w *AuthResponseWriter) SetSession(appHost, userId string) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "auth",
 		Value:    userId,
 		HttpOnly: true,
 		Path:     "/",
-		Domain:   appUrl,
+		Domain:   appHost,
 	})
 }
 
-func (w *AuthResponseWriter) DeleteSession(appUrl string) bool {
+func (w *AuthResponseWriter) DeleteSession(appHost string) bool {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "auth",
 		Value:    "",
 		HttpOnly: true,
 		Path:     "/",
 		MaxAge:   0,
-		Domain:   appUrl,
+		Domain:   appHost,
 	})
 	return true
 }

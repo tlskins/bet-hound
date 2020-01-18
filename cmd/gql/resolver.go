@@ -70,7 +70,7 @@ type mutationResolver struct{ *resolver }
 
 func (r *mutationResolver) SignOut(ctx context.Context) (bool, error) {
 	authPointer := ctx.Value(mw.AuthContextKey("userID")).(*mw.AuthResponseWriter)
-	return authPointer.DeleteSession(env.AppUrl()), nil
+	return authPointer.DeleteSession(env.AppHost()), nil
 }
 func (r *mutationResolver) CreateBet(ctx context.Context, changes types.BetChanges) (bet *types.Bet, err error) {
 	user, err := userFromContext(ctx)
@@ -152,13 +152,12 @@ type queryResolver struct{ *resolver }
 func (r *queryResolver) SignIn(ctx context.Context, userName string, password string) (user *types.User, err error) {
 	if user, err = db.SignInUser(userName, password); err == nil {
 		authPointer := ctx.Value(mw.AuthContextKey("userID")).(*mw.AuthResponseWriter)
-		authPointer.SetSession(env.AppUrl(), user.Id)
+		authPointer.SetSession(env.AppHost(), user.Id)
 		return
 	}
 	return nil, fmt.Errorf("Invalid user name or password")
 }
 func (r *queryResolver) LeagueSettings(ctx context.Context, id string) (*types.LeagueSettings, error) {
-	// return db.GetLeagueSettings(id)
 	return leagueFromContext(ctx)
 }
 func (r *queryResolver) Bets(ctx context.Context) ([]*types.Bet, error) {
