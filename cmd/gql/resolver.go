@@ -10,7 +10,7 @@ import (
 	"bet-hound/cmd/betting"
 	"bet-hound/cmd/db"
 	"bet-hound/cmd/env"
-	"bet-hound/cmd/gql/server/auth"
+	mw "bet-hound/cmd/gql/server/middleware"
 	"bet-hound/cmd/scraper"
 	"bet-hound/cmd/types"
 )
@@ -53,22 +53,27 @@ func getUsername(ctx context.Context) string {
 	return ""
 }
 
-func UserFromContext(ctx context.Context) (*types.User, error) {
-	authPointer := ctx.Value(auth.ContextKey("userID")).(*auth.AuthResponseWriter)
+func userFromContext(ctx context.Context) (*types.User, error) {
+	authPointer := ctx.Value(mw.AuthContextKey("userID")).(*mw.AuthResponseWriter)
 	if user, err := db.FindUserById(authPointer.UserId); err == nil {
 		return user, nil
 	}
 	return nil, fmt.Errorf("Access denied")
 }
 
+func leagueFromContext(ctx context.Context) (*types.LeagueSettings, error) {
+	lgPointer := ctx.Value(mw.LgContextKey("league")).(*types.LeagueSettings)
+	return lgPointer, nil
+}
+
 type mutationResolver struct{ *resolver }
 
 func (r *mutationResolver) SignOut(ctx context.Context) (bool, error) {
-	authPointer := ctx.Value(auth.ContextKey("userID")).(*auth.AuthResponseWriter)
+	authPointer := ctx.Value(mw.AuthContextKey("userID")).(*mw.AuthResponseWriter)
 	return authPointer.DeleteSession(env.AppUrl()), nil
 }
 func (r *mutationResolver) CreateBet(ctx context.Context, changes types.BetChanges) (bet *types.Bet, err error) {
-	user, err := UserFromContext(ctx)
+	user, err := userFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +81,7 @@ func (r *mutationResolver) CreateBet(ctx context.Context, changes types.BetChang
 	return betting.CreateBet(user, changes)
 }
 func (r *mutationResolver) AcceptBet(ctx context.Context, id string, accept bool) (bool, error) {
-	user, err := UserFromContext(ctx)
+	user, err := userFromContext(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -146,17 +151,18 @@ type queryResolver struct{ *resolver }
 
 func (r *queryResolver) SignIn(ctx context.Context, userName string, password string) (user *types.User, err error) {
 	if user, err = db.SignInUser(userName, password); err == nil {
-		authPointer := ctx.Value(auth.ContextKey("userID")).(*auth.AuthResponseWriter)
+		authPointer := ctx.Value(mw.AuthContextKey("userID")).(*mw.AuthResponseWriter)
 		authPointer.SetSession(env.AppUrl(), user.Id)
 		return
 	}
 	return nil, fmt.Errorf("Invalid user name or password")
 }
 func (r *queryResolver) LeagueSettings(ctx context.Context, id string) (*types.LeagueSettings, error) {
-	return db.GetLeagueSettings(id)
+	// return db.GetLeagueSettings(id)
+	return leagueFromContext(ctx)
 }
 func (r *queryResolver) Bets(ctx context.Context) ([]*types.Bet, error) {
-	user, err := UserFromContext(ctx)
+	user, err := userFromContext(ctx)
 	if err != nil {
 		return []*types.Bet{}, err
 	}

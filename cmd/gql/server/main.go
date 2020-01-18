@@ -10,7 +10,7 @@ import (
 	"bet-hound/cmd/db"
 	"bet-hound/cmd/env"
 	"bet-hound/cmd/gql"
-	"bet-hound/cmd/gql/server/auth"
+	mw "bet-hound/cmd/gql/server/middleware"
 	"bet-hound/cmd/migration"
 	tw "bet-hound/cmd/twitter"
 	t "bet-hound/cmd/types"
@@ -24,27 +24,20 @@ import (
 	"github.com/rs/cors"
 )
 
-const defaultPort = "8080"
-
 const appConfigPath = "../../env"
 const appConfigName = "config"
 
 var logger *log.Logger
-
 var lgSttgs *t.LeagueSettings
 
 func main() {
 	// Initialize
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = defaultPort
-	}
-	logger = SetUpLogger("", "logs.log")
 	if err := env.Init(appConfigName, appConfigPath); err != nil {
 		logger.Fatalf("Error loading db config: %s \n", err)
 	}
 	defer env.Cleanup()
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
+	logger = SetUpLogger(env.LogPath(), env.LogName())
 
 	// ensure indexes
 	mSess := env.MGOSession()
@@ -54,11 +47,19 @@ func main() {
 		AllowedHeaders:   []string{"*"},
 		AllowCredentials: true,
 		// Debug:            true, // Enable Debugging for testing, consider disabling in production
-		AllowedOrigins: []string{"http://" + env.AppUrl() + ":3000", "http://" + env.AppUrl() + ":8080"},
+		AllowedOrigins: []string{env.AppUrl(), env.GqlUrl()},
 	}
 	corsHandler := cors.New(corsOptions).Handler
 	router := chi.NewRouter()
 	router.Use(corsHandler)
+
+	// initialize league settings
+	tz, err := time.LoadLocation(env.ServerTz())
+	if err != nil {
+		panic(err)
+	}
+	lgSttgs = InitLeagueSettings(tz, "nfl", env.LeagueStart(), env.LeagueStart2(), env.LeagueEnd())
+	lgSttgs.Print()
 
 	// initialize graphql server
 	gqlConfig := gql.New()
@@ -69,8 +70,12 @@ func main() {
 		},
 	})
 	gqlHandler := handler.GraphQL(gql.NewExecutableSchema(gqlConfig), gqlOption, gqlTimeout)
-	router.Handle("/", auth.AuthMiddleWare(handler.Playground("GraphQL playground", "/query")))
-	router.Handle("/query", auth.AuthMiddleWare(gqlHandler))
+	gqlWithAuth := mw.AuthMiddleWare(gqlHandler, env.AppUrl())
+	gqlWithLg := mw.LeagueMiddleWare(gqlWithAuth, lgSttgs)
+	router.Handle("/query", gqlWithLg)
+	plgWithAuth := mw.AuthMiddleWare(handler.Playground("GraphQL playground", "/query"), env.AppUrl())
+	plgWithLg := mw.LeagueMiddleWare(plgWithAuth, lgSttgs)
+	router.Handle("/", plgWithLg)
 
 	// twitter server
 	twt := env.TwitterClient()
@@ -86,6 +91,17 @@ func main() {
 	go server.ListenAndServe()
 	fmt.Println("Twitter server running")
 
+	// cron
+	cronSrv := cron.New(cron.WithLocation(tz))
+	if _, err := cronSrv.AddFunc("*/30 * * * *", ProcessEvents(lgSttgs, logger)); err != nil {
+		fmt.Println(err)
+	}
+	if _, err := cronSrv.AddFunc("*/10 * * * *", ProcessRotoNfl(&gqlConfig)); err != nil {
+		fmt.Println(err)
+	}
+	cronSrv.Start()
+	defer cronSrv.Stop()
+
 	// options
 	if args := os.Args; len(args) > 1 {
 		for _, arg := range args {
@@ -97,30 +113,14 @@ func main() {
 				migration.SeedNflPlayers()
 			} else if arg == "-seed_nfl_settings" {
 				migration.SeedNflLeagueSettings()
+			} else if arg == "-process_events" {
+				ProcessEvents(lgSttgs, logger)()
 			}
 		}
 	}
 
-	// cron
-	tz, err := time.LoadLocation(env.ServerTz())
-	if err != nil {
-		fmt.Println(err)
-	}
-	cronSrv := cron.New(cron.WithLocation(tz))
-	lgSttgs = InitLeagueSettings(tz)
-	lgSttgs.Print()
-	if _, err := cronSrv.AddFunc("*/1 * * * *", ProcessEvents(lgSttgs, logger)); err != nil {
-		fmt.Println(err)
-	}
-	if _, err := cronSrv.AddFunc("*/10 * * * *", ProcessRotoNfl(&gqlConfig)); err != nil {
-		fmt.Println(err)
-	}
-	cronSrv.Start()
-	defer cronSrv.Stop()
-
 	// start graphql server
-	log.Printf("connect to http://%s:%s/ for GraphQL playground", env.AppUrl(), port)
-	http.ListenAndServe(":"+port, router)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
-	fmt.Println("END")
+	log.Printf("connect to %s for GraphQL playground", env.GqlUrl())
+	http.ListenAndServe(":"+env.GqlPort(), router)
+	log.Fatal(http.ListenAndServe(":"+env.GqlPort(), nil))
 }

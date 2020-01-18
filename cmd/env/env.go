@@ -18,7 +18,10 @@ type environment struct {
 	webhookEnv               string
 	webhookUrl               string
 	appUrl                   string
-	port                     string
+	appHost                  string
+	appPort                  string
+	gqlUrl                   string
+	gqlPort                  string
 	mongoHost                string
 	mongoUser                string
 	mongoPwd                 string
@@ -30,6 +33,10 @@ type environment struct {
 	currentGamesCollection   string
 	leagueSettingsCollection string
 	usersCollection          string
+	leagueStart              string
+	leagueStart2             string
+	leagueEnd                string
+	logName                  string
 	logPath                  string
 	botHandle                string
 	serverTz                 string
@@ -49,6 +56,18 @@ func WebhookUrl() string {
 func AppUrl() string {
 	return e.appUrl
 }
+func AppHost() string {
+	return e.appHost
+}
+func AppPort() string {
+	return e.appPort
+}
+func GqlUrl() string {
+	return e.gqlUrl
+}
+func GqlPort() string {
+	return e.gqlPort
+}
 func Cleanup() {
 	e.m.Close()
 }
@@ -57,9 +76,6 @@ func TwitterClient() *tw.TwitterClient {
 }
 func MGOSession() *mgo.Session {
 	return e.m
-}
-func Port() string {
-	return e.port
 }
 func MongoHost() string {
 	return e.mongoHost
@@ -93,6 +109,18 @@ func LeagueSettingsCollection() string {
 }
 func UsersCollection() string {
 	return e.usersCollection
+}
+func LeagueStart() string {
+	return e.leagueStart
+}
+func LeagueStart2() string {
+	return e.leagueStart2
+}
+func LeagueEnd() string {
+	return e.leagueEnd
+}
+func LogName() string {
+	return e.logName
 }
 func LogPath() string {
 	return e.logPath
@@ -132,7 +160,10 @@ func Init(configFile, configPath string) error {
 	e.webhookEnv = viper.GetString("webhook_env")
 	e.webhookUrl = viper.GetString("webhook_url")
 	e.appUrl = viper.GetString("app_url")
-	e.port = viper.GetString("port")
+	e.appHost = viper.GetString("app_host")
+	e.appPort = viper.GetString("app_port")
+	e.gqlUrl = viper.GetString("gql_url")
+	e.gqlPort = viper.GetString("gql_port")
 	e.mongoHost = viper.GetString("mongo_host")
 	e.mongoUser = viper.GetString("mongo_user")
 	e.mongoPwd = viper.GetString("mongo_pwd")
@@ -145,7 +176,12 @@ func Init(configFile, configPath string) error {
 	e.leagueSettingsCollection = viper.GetString("league_settings_collection")
 	e.usersCollection = viper.GetString("users_collection")
 	e.botHandle = viper.GetString("bot_handle")
+	e.leagueStart = viper.GetString("league_start")
+	e.leagueStart2 = viper.GetString("league_start2")
+	e.leagueEnd = viper.GetString("league_end")
 	e.serverTz = viper.GetString("server_tz")
+	e.logName = viper.GetString("log_name")
+	e.logPath = viper.GetString("log_path")
 
 	return nil
 }

@@ -16,34 +16,32 @@ import (
 	t "bet-hound/cmd/types"
 )
 
-func InitLeagueSettings(tz *time.Location) *t.LeagueSettings {
+func InitLeagueSettings(tz *time.Location, leagueId, lgStartTxt, lgStart2Txt, lgEndTxt string) *t.LeagueSettings {
+	s, err := db.GetLeagueSettings(leagueId)
+	if err != nil {
+		panic(err)
+	}
 	const longForm = "Jan 2, 2006 3:04pm (MST)"
-	// first game sep 5 2019
-	lgStart, _ := time.ParseInLocation(longForm, "Sep 2, 2019 9:00am (EDT)", tz)
-	lgStart2, _ := time.ParseInLocation(longForm, "Sep 10, 2019 9:00am (EDT)", tz)
-	lgEnd, _ := time.ParseInLocation(longForm, "Feb 3, 2020 9:00am (EDT)", tz)
+	lgStart, _ := time.ParseInLocation(longForm, lgStartTxt, tz)
+	lgStart2, _ := time.ParseInLocation(longForm, lgStart2Txt, tz)
+	lgEnd, _ := time.ParseInLocation(longForm, lgEndTxt, tz)
 
-	maxWk, err := db.GetGamesCurrentWeek(lgStart.Year())
+	s.StartDate = &lgStart
+	s.StartWeekTwo = &lgStart2
+	s.EndDate = &lgEnd
+	s.MaxScrapedWeek, err = db.GetGamesCurrentWeek(lgStart.Year())
 	if err != nil {
 		panic(err)
 	}
-	minGmTime, err := db.GetMinGameResultReadyTime()
+	s.MinGameTime, err = db.GetMinGameResultReadyTime()
 	if err != nil {
 		panic(err)
 	}
+	s.CurrentYear = lgStart.Year()
+	s.Timezone = tz
+	s.CurrentWeek = currentWeek(s.StartDate, s.StartWeekTwo, s.EndDate)
 
-	s := t.LeagueSettings{
-		StartDate:      &lgStart,
-		StartWeekTwo:   &lgStart2,
-		EndDate:        &lgEnd,
-		MaxScrapedWeek: maxWk,
-		MinGameTime:    minGmTime,
-		CurrentYear:    lgStart.Year(),
-		Timezone:       tz,
-	}
-	s.CurrentWeek = currentWeek(&s)
-
-	return &s
+	return s
 }
 
 func SetUpLogger(logPath, defaultPath string) *log.Logger {
@@ -149,6 +147,7 @@ func CheckGameResults(s *t.LeagueSettings) (*[]*t.Game, error) {
 	// s.Mu.Lock()
 	s.MinGameTime = minGmTime
 	// s.Mu.Unlock()
+	s.Print()
 	return &results, nil
 }
 
@@ -168,16 +167,17 @@ func CheckCurrentGames(s *t.LeagueSettings) error {
 	// s.Mu.Lock()
 	s.MaxScrapedWeek = s.CurrentWeek
 	// s.Mu.Unlock()
+	s.Print()
 	return nil
 }
 
-func currentWeek(s *t.LeagueSettings) (wk int) {
+func currentWeek(startDate, startWeekTwo, endDate *time.Time) (wk int) {
 	now := time.Now()
-	if now.After(*s.StartDate) && now.Before(*s.EndDate) {
-		if now.Before(*s.StartWeekTwo) {
+	if now.After(*startDate) && now.Before(*endDate) {
+		if now.Before(*startWeekTwo) {
 			wk = 1
 		} else {
-			wkDiff := now.Sub(*s.StartWeekTwo).Hours() / (24.0 * 7.0)
+			wkDiff := now.Sub(*startWeekTwo).Hours() / (24.0 * 7.0)
 			wk = int(math.Ceil(wkDiff)) + 1
 		}
 	}

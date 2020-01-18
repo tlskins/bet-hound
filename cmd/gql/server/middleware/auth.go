@@ -1,11 +1,11 @@
-package auth
+package middleware
 
 import (
 	"context"
 	"net/http"
 )
 
-type ContextKey string
+type AuthContextKey string
 
 type AuthResponseWriter struct {
 	http.ResponseWriter
@@ -34,19 +34,19 @@ func (w *AuthResponseWriter) DeleteSession(appUrl string) bool {
 	return true
 }
 
-func AuthMiddleWare(next http.Handler) http.Handler {
+func AuthMiddleWare(next http.Handler, allowOrigin string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+		w.Header().Set("Access-Control-Allow-Origin", allowOrigin)
 
 		arw := AuthResponseWriter{w, ""}
-		userIDContextKey := ContextKey("userID")
+		userIDAuthContextKey := AuthContextKey("userID")
 
 		c, _ := r.Cookie("auth")
 		if c != nil {
 			arw.UserId = c.Value
 		}
-		ctx := context.WithValue(r.Context(), userIDContextKey, &arw)
+		ctx := context.WithValue(r.Context(), userIDAuthContextKey, &arw)
 		r = r.WithContext(ctx)
 
 		next.ServeHTTP(w, r)
