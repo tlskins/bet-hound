@@ -216,6 +216,10 @@ func (r *queryResolver) CurrentRotoArticles(ctx context.Context, id string) (art
 	}
 	return articles, nil
 }
+func (r *queryResolver) CurrentGames(ctx context.Context) ([]*types.Game, error) {
+	lgPointer := ctx.Value(mw.LgContextKey("league")).(*types.LeagueSettings)
+	return db.GetCurrentGames(lgPointer)
+}
 
 type subscriptionResolver struct{ *resolver }
 

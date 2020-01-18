@@ -10,20 +10,6 @@ import (
 	m "bet-hound/pkg/mongo"
 )
 
-func UpsertCurrentGames(games *[]*t.Game) (err error) {
-	conn := env.MGOSession().Copy()
-	defer conn.Close()
-	c := conn.DB(env.MongoDb()).C(env.CurrentGamesCollection())
-
-	for _, game := range *games {
-		err = m.Upsert(c, game, m.M{"_id": game.Id}, m.M{"$set": game})
-		if err != nil {
-			return err
-		}
-	}
-	return err
-}
-
 func GetGamesCurrentWeek(year int) (int, error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
@@ -83,6 +69,16 @@ func FindCurrentGame(settings *t.LeagueSettings, fk string) (game *t.Game, err e
 
 	game = &t.Game{}
 	err = m.FindOne(c, game, m.M{"fk": fk, "wk": settings.CurrentWeek, "yr": settings.CurrentYear})
+	return
+}
+
+func GetCurrentGames(settings *t.LeagueSettings) (games []*t.Game, err error) {
+	conn := env.MGOSession().Copy()
+	defer conn.Close()
+	c := conn.DB(env.MongoDb()).C(env.GamesCollection())
+
+	games = []*t.Game{}
+	err = m.Find(c, &games, m.M{"wk": settings.CurrentWeek, "yr": settings.CurrentYear})
 	return
 }
 
