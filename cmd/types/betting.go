@@ -103,68 +103,6 @@ type Bet struct {
 	BetResult        *BetResult  `bson:"rslt" json:"result"`
 }
 
-// func (b *Bet) AcceptBy(idStr, replyFk string) {
-// 	if b.BetStatus.String() != "Pending Approval" {
-// 		return
-// 	}
-
-// 	if b.ProposerReplyFk == nil && b.Proposer.IdStr == idStr {
-// 		b.ProposerReplyFk = &replyFk
-// 	} else if b.RecipientReplyFk == nil && b.Recipient.IdStr == idStr {
-// 		b.RecipientReplyFk = &replyFk
-// 	}
-
-// 	if b.RecipientReplyFk != nil && b.ProposerReplyFk != nil {
-// 		b.BetStatus = BetStatusAccepted
-// 	}
-// }
-
-// func (b *Bet) CancelBy(idStr, replyFk string) {
-// 	if b.BetStatus.String() != "Pending Approval" {
-// 		return
-// 	}
-
-// 	if b.ProposerReplyFk == nil && b.Proposer.IdStr == idStr {
-// 		b.ProposerReplyFk = &replyFk
-// 		b.BetStatus = BetStatusCancelled
-// 	} else if b.RecipientReplyFk == nil && b.Recipient.IdStr == idStr {
-// 		b.RecipientReplyFk = &replyFk
-// 		b.BetStatus = BetStatusCancelled
-// 	}
-// }
-
-// func (b Bet) Response() (txt string) {
-// 	if b.BetStatus.String() == "Pending Approval" {
-// 		return fmt.Sprintf(
-// 			"@%s @%s Is this correct: \"%s\" ? Reply \"Yes\"",
-// 			b.Proposer.ScreenName,
-// 			b.Recipient.ScreenName,
-// 			b.String(),
-// 		)
-// 	} else if b.BetStatus.String() == "Accepted" {
-// 		return fmt.Sprintf(
-// 			"@%s @%s Bet recorded! When the bet has been finalized I will tweet the final results.",
-// 			b.Proposer.ScreenName,
-// 			b.Recipient.ScreenName,
-// 		)
-// 	} else if b.BetStatus.String() == "Final" {
-// 		return b.BetResult.Response
-// 	} else if b.BetStatus.String() == "Expired" {
-// 		return fmt.Sprintf(
-// 			"@%s @%s Bet has expired.",
-// 			b.Proposer.ScreenName,
-// 			b.Recipient.ScreenName,
-// 		)
-// 	} else if b.BetStatus.String() == "Cancelled" {
-// 		return fmt.Sprintf(
-// 			"@%s @%s Bet has been cancelled.",
-// 			b.Proposer.ScreenName,
-// 			b.Recipient.ScreenName,
-// 		)
-// 	}
-// 	return ""
-// }
-
 func (b Bet) TwitterHandles() (result string) {
 	handles := []string{}
 	if b.Proposer.TwitterUser != nil {
@@ -182,6 +120,14 @@ func (b Bet) String() (result string) {
 		result += fmt.Sprintf(" '%s'", eq.String())
 	}
 	return result
+}
+
+func (b Bet) ResultString() string {
+	results := []string{}
+	for _, eq := range b.Equations {
+		results = append(results, eq.ResultString())
+	}
+	return strings.Join(results, "\n")
 }
 
 func (b Bet) minGameTime() *time.Time {
@@ -308,32 +254,11 @@ func (e Equation) String() (result string) {
 	)
 }
 
-func (e Equation) ResultDescription() (result string) {
-	left, right := []string{}, []string{}
-	for _, expr := range e.Expressions {
-		str := fmt.Sprintf(
-			"%s. %s ",
-			expr.Player.FirstName[:1],
-			expr.Player.LastName,
-		)
-		if expr.Value != nil {
-			str += fmt.Sprintf("(%.2f)", *expr.Value)
-		} else {
-			str += "(n/a)"
-		}
-		if expr.IsLeft {
-			left = append(left, str)
-		} else {
-			right = append(right, str)
-		}
+func (e Equation) ResultString() string {
+	if e.Result == nil {
+		return e.String()
 	}
-
-	operator := "(?)"
-	if e.Operator != nil {
-		operator = e.Operator.Name
-	}
-
-	return strings.Join([]string{strings.Join(left, " + "), strings.Join(right, " + ")}, fmt.Sprintf(" %s ", operator))
+	return fmt.Sprintf("%s (%t)", e.ResultString(), *e.Result)
 }
 
 // Expression
@@ -353,12 +278,17 @@ func (e PlayerExpression) Valid() error {
 		return fmt.Errorf("Player not found.")
 	} else if e.Game == nil {
 		return fmt.Errorf("Game not found for player %s.", e.Player.Name)
+	} else if e.Metric == nil {
+		return fmt.Errorf("Metric not found for player %s.", e.Player.Name)
 	} else {
 		return nil
 	}
 }
 
 func (e PlayerExpression) String() (desc string) {
+	if e.Player == nil || e.Game == nil {
+		return "?"
+	}
 	vsTeam := e.Game.HomeTeamName
 	if e.Player.TeamFk == e.Game.HomeTeamFk {
 		vsTeam = e.Game.AwayTeamName
@@ -371,4 +301,11 @@ func (e PlayerExpression) String() (desc string) {
 		e.Metric.Name,
 		vsTeam,
 	)
+}
+
+func (e PlayerExpression) ResultString() string {
+	if e.Value == nil {
+		return e.String()
+	}
+	return fmt.Sprintf("%s (%s)", e.String(), fmt.Sprintf("%.2f", *e.Value))
 }

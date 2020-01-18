@@ -21,15 +21,15 @@ func ScrapeGameLog(url string) (gameLog *t.GameLog, err error) {
 	// Request the HTML page.
 	res, err := http.Get(url)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
-		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
+		return nil, fmt.Errorf("status code error: %d %s", res.StatusCode, res.Status)
 	}
 	doc, err := gq.NewDocumentFromReader(res.Body)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	gameLog = &t.GameLog{}
@@ -81,8 +81,8 @@ func ScrapeGameLog(url string) (gameLog *t.GameLog, err error) {
 	return
 }
 
-func scrapePlayerLogs(doc *gq.Document) (playerLogs map[string]t.PlayerLog) {
-	playerLogs = make(map[string]t.PlayerLog)
+func scrapePlayerLogs(doc *gq.Document) (playerLogs map[string]*t.PlayerLog) {
+	playerLogs = make(map[string]*t.PlayerLog)
 
 	doc.Find("#player_offense tbody").Each(func(i int, s *gq.Selection) {
 		s.Find("tr").Each(func(i int, s *gq.Selection) {
@@ -94,49 +94,49 @@ func scrapePlayerLogs(doc *gq.Document) (playerLogs map[string]t.PlayerLog) {
 					data, _ := s.Attr("data-stat")
 					switch data {
 					case "pass_cmp":
-						log.PassCmp, _ = strconv.Atoi(s.Text())
+						log.PassCmp, _ = strconv.ParseFloat(s.Text(), 64)
 					case "pass_att":
-						log.PassAtt, _ = strconv.Atoi(s.Text())
+						log.PassAtt, _ = strconv.ParseFloat(s.Text(), 64)
 					case "pass_yds":
-						log.PassYd, _ = strconv.Atoi(s.Text())
+						log.PassYd, _ = strconv.ParseFloat(s.Text(), 64)
 					case "pass_td":
-						log.PassTd, _ = strconv.Atoi(s.Text())
+						log.PassTd, _ = strconv.ParseFloat(s.Text(), 64)
 					case "pass_int":
-						log.PassInt, _ = strconv.Atoi(s.Text())
+						log.PassInt, _ = strconv.ParseFloat(s.Text(), 64)
 					case "pass_sacked":
-						log.PassSacked, _ = strconv.Atoi(s.Text())
+						log.PassSacked, _ = strconv.ParseFloat(s.Text(), 64)
 					case "pass_sacked_yds":
-						log.PassSackedYd, _ = strconv.Atoi(s.Text())
+						log.PassSackedYd, _ = strconv.ParseFloat(s.Text(), 64)
 					case "pass_long":
-						log.PassLong, _ = strconv.Atoi(s.Text())
+						log.PassLong, _ = strconv.ParseFloat(s.Text(), 64)
 					case "pass_rating":
 						log.PassRating, _ = strconv.ParseFloat(s.Text(), 64)
 					case "rush_att":
-						log.RushAtt, _ = strconv.Atoi(s.Text())
+						log.RushAtt, _ = strconv.ParseFloat(s.Text(), 64)
 					case "rush_yds":
-						log.RushYd, _ = strconv.Atoi(s.Text())
+						log.RushYd, _ = strconv.ParseFloat(s.Text(), 64)
 					case "rush_td":
-						log.RushTd, _ = strconv.Atoi(s.Text())
+						log.RushTd, _ = strconv.ParseFloat(s.Text(), 64)
 					case "rush_long":
-						log.RushLong, _ = strconv.Atoi(s.Text())
+						log.RushLong, _ = strconv.ParseFloat(s.Text(), 64)
 					case "target":
-						log.Target, _ = strconv.Atoi(s.Text())
+						log.Target, _ = strconv.ParseFloat(s.Text(), 64)
 					case "rec":
-						log.Rec, _ = strconv.Atoi(s.Text())
+						log.Rec, _ = strconv.ParseFloat(s.Text(), 64)
 					case "rec_yds":
-						log.RecYd, _ = strconv.Atoi(s.Text())
+						log.RecYd, _ = strconv.ParseFloat(s.Text(), 64)
 					case "rec_td":
-						log.RecTd, _ = strconv.Atoi(s.Text())
+						log.RecTd, _ = strconv.ParseFloat(s.Text(), 64)
 					case "rec_long":
-						log.RecLong, _ = strconv.Atoi(s.Text())
+						log.RecLong, _ = strconv.ParseFloat(s.Text(), 64)
 					case "fumbles":
-						log.Fumble, _ = strconv.Atoi(s.Text())
+						log.Fumble, _ = strconv.ParseFloat(s.Text(), 64)
 					case "fumbles_lost":
-						log.FumbleLost, _ = strconv.Atoi(s.Text())
+						log.FumbleLost, _ = strconv.ParseFloat(s.Text(), 64)
 					}
 				})
 				log.CalcFantasyScores()
-				playerLogs[playerFk] = log
+				playerLogs[playerFk] = &log
 			}
 		})
 	})
@@ -144,10 +144,11 @@ func scrapePlayerLogs(doc *gq.Document) (playerLogs map[string]t.PlayerLog) {
 	return
 }
 
-func ScrapeGames(gmYr, gmWk int) {
+func ScrapeGames(gmYr, gmWk int) error {
+	fmt.Printf("%s: Scraping games for year %d week %d\n", time.Now().String(), gmYr, gmWk)
 	doc, err := GetWeeksGames(gmYr, gmWk)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	games := []*t.Game{}
@@ -187,6 +188,7 @@ func ScrapeGames(gmYr, gmWk int) {
 			AwayTeamName: awayTeam,
 			HomeTeamFk:   homeTeamFk,
 			HomeTeamName: homeTeam,
+			Final:        false,
 		})
 	})
 
@@ -194,19 +196,17 @@ func ScrapeGames(gmYr, gmWk int) {
 	gameTimes := make(map[string]*time.Time)
 	for _, url := range gameUrls {
 		if gameTimes[url] == nil {
-			// Request the HTML page.
 			res, err := http.Get(url)
 			if err != nil {
-				log.Fatal(err)
+				return err
 			}
 			defer res.Body.Close()
 			if res.StatusCode != 200 {
-				log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
+				return fmt.Errorf("status code error: %d %s", res.StatusCode, res.Status)
 			}
-			// Load the HTML document
 			doc, err := gq.NewDocumentFromReader(res.Body)
 			if err != nil {
-				log.Fatal(err)
+				return err
 			}
 
 			doc.Find(".scorebox_meta").Each(func(i int, s *gq.Selection) {
@@ -233,22 +233,10 @@ func ScrapeGames(gmYr, gmWk int) {
 		loc, _ := time.LoadLocation("America/New_York")
 		// Results at game date + 1 day @ 9AM EST
 		gm.GameResultsAt = time.Date(yrM, mthM, dayM, 9, 0, 0, 0, loc)
-		if gm.GameTime.Before(time.Now()) {
-			gm.Final = true
-		} else {
-			gm.Final = false
-		}
 		gm.Week = gmWk
 		gm.Year = gmYr
 	}
 
-	for _, game := range games {
-		fmt.Println("game: ", *game)
-	}
-	// Add to current and game histories
-	// if err = db.UpsertCurrentGames(&games); err != nil {
-	// 	log.Fatal(err)
-	// }
 	if err = db.UpsertGames(&games); err != nil {
 		log.Fatal(err)
 	}
@@ -260,22 +248,21 @@ func ScrapeGames(gmYr, gmWk int) {
 		CurrentWeek: gmWk,
 	}
 	db.UpsertLeagueSettings(s)
+
+	return nil
 }
 
 func GetWeeksGames(yr, wk int) (doc *gq.Document, err error) {
 	res, err := http.Get(fmt.Sprintf("https://www.pro-football-reference.com/years/%d/week_%d.htm", yr, wk))
 	if err != nil {
-		log.Fatal(err)
 		return nil, err
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
-		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
-		return nil, err
+		return nil, fmt.Errorf("status code error: %d %s", res.StatusCode, res.Status)
 	}
 	doc, err = gq.NewDocumentFromReader(res.Body)
 	if err != nil {
-		log.Fatal(err)
 		return nil, err
 	}
 	return doc, err
@@ -285,17 +272,14 @@ func getThisWeeksGames() (doc *gq.Document, gmYr int, gmWk int, err error) {
 	// Request this weeks games
 	res, err := http.Get("https://www.pro-football-reference.com/boxscores/")
 	if err != nil {
-		log.Fatal(err)
 		return nil, 0, 0, err
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
-		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
-		return nil, 0, 0, err
+		return nil, 0, 0, fmt.Errorf("status code error: %d %s", res.StatusCode, res.Status)
 	}
 	doc, err = gq.NewDocumentFromReader(res.Body)
 	if err != nil {
-		log.Fatal(err)
 		return nil, 0, 0, err
 	}
 
@@ -331,17 +315,14 @@ func getThisWeeksGames() (doc *gq.Document, gmYr int, gmWk int, err error) {
 	// Pull next week if games final
 	res, err = http.Get(fmt.Sprintf("https://www.pro-football-reference.com/years/%s/week_%s.htm", gmYrStr, gmWkStr))
 	if err != nil {
-		log.Fatal(err)
 		return nil, 0, 0, err
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
-		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
-		return nil, 0, 0, err
+		return nil, 0, 0, fmt.Errorf("status code error: %d %s", res.StatusCode, res.Status)
 	}
 	doc, err = gq.NewDocumentFromReader(res.Body)
 	if err != nil {
-		log.Fatal(err)
 		return nil, 0, 0, err
 	}
 	return doc, gmYr, nextGmWk, err

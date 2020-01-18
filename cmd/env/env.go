@@ -32,6 +32,7 @@ type environment struct {
 	usersCollection          string
 	logPath                  string
 	botHandle                string
+	serverTz                 string
 }
 
 var e = &environment{}
@@ -99,6 +100,9 @@ func LogPath() string {
 func BotHandle() string {
 	return e.botHandle
 }
+func ServerTz() string {
+	return e.serverTz
+}
 
 func Init(configFile, configPath string) error {
 	viper.SetConfigName(configFile)
@@ -141,6 +145,7 @@ func Init(configFile, configPath string) error {
 	e.leagueSettingsCollection = viper.GetString("league_settings_collection")
 	e.usersCollection = viper.GetString("users_collection")
 	e.botHandle = viper.GetString("bot_handle")
+	e.serverTz = viper.GetString("server_tz")
 
 	return nil
 }

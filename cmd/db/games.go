@@ -24,13 +24,55 @@ func UpsertCurrentGames(games *[]*t.Game) (err error) {
 	return err
 }
 
-func GetCurrentGames() (games *[]*t.Game) {
+func GetGamesCurrentWeek(year int) (int, error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
-	c := conn.DB(env.MongoDb()).C(env.CurrentGamesCollection())
+	c := conn.DB(env.MongoDb()).C(env.GamesCollection())
 
-	games = &[]*t.Game{}
-	c.Find(m.M{}).All(games)
+	maxWk := []*t.GamesAggregateInt{}
+	match := m.M{"$match": m.M{"yr": year}}
+	group := m.M{"$group": m.M{"_id": "$yr", "value": m.M{"$max": "$wk"}}}
+	pipe := []m.M{match, group}
+	if err := m.Aggregate(c, &maxWk, &pipe); err != nil || len(maxWk) == 0 {
+		return 0, err
+	} else {
+		return maxWk[0].Value, nil
+	}
+}
+
+func GetMinGameResultReadyTime() (*time.Time, error) {
+	conn := env.MGOSession().Copy()
+	defer conn.Close()
+	c := conn.DB(env.MongoDb()).C(env.GamesCollection())
+
+	min := []*t.GamesAggregateTime{}
+	match := m.M{"$match": m.M{"log": nil}}
+	group := m.M{"$group": m.M{"_id": "", "value": m.M{"$min": "$gm_res_at"}}}
+	pipe := []m.M{match, group}
+	if err := m.Aggregate(c, &min, &pipe); err != nil || len(min) == 0 {
+		return nil, err
+	} else {
+		return &min[0].Value, nil
+	}
+}
+
+func GetResultReadyGames() (games []*t.Game, err error) {
+	conn := env.MGOSession().Copy()
+	defer conn.Close()
+	c := conn.DB(env.MongoDb()).C(env.GamesCollection())
+
+	games = []*t.Game{}
+	err = m.Find(c, &games, m.M{"log": nil, "gm_res_at": m.M{"$lte": time.Now()}})
+	return
+}
+
+func FindGameById(id string) (game *t.Game, err error) {
+	conn := env.MGOSession().Copy()
+	defer conn.Close()
+	c := conn.DB(env.MongoDb()).C(env.GamesCollection())
+
+	game = &t.Game{}
+	err = m.FindOne(c, game, m.M{"_id": id})
 	return
 }
 

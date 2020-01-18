@@ -3,6 +3,7 @@ package betting
 import (
 	"fmt"
 	"math/rand"
+	"reflect"
 	"time"
 
 	"github.com/satori/go.uuid"
@@ -103,9 +104,119 @@ func CreateBet(proposer *t.User, changes t.BetChanges) (bet *t.Bet, err error) {
 	return
 }
 
+func EvaluateBet(b *t.Bet, g *t.Game) (*t.Bet, error) {
+	bet := *b
+	betComplete := true
+	pWins := true
+	for _, eq := range bet.Equations {
+		eqComplete := true
+		// evaluate expressions involving this game
+		for _, expr := range eq.Expressions {
+			if expr.Game.Id == g.Id {
+				e, err := EvaluateExpression(expr, g)
+				if err != nil {
+					return nil, err
+				}
+				expr = e
+			} else if expr.Value == nil {
+				betComplete = false
+				eqComplete = false
+			}
+		}
+		// evaluate complete equations
+		if eqComplete {
+			e, err := EvaluateEquation(eq)
+			if err != nil {
+				return nil, err
+			}
+			eq = e
+			if !*eq.Result {
+				pWins = false
+			}
+		}
+	}
+	if betComplete {
+		bet.BetStatus = t.BetStatusFromString("Final")
+		winner := bet.Proposer
+		loser := bet.Recipient
+		if !pWins {
+			winner = bet.Recipient
+			loser = bet.Proposer
+		}
+		bet.BetResult = &t.BetResult{
+			Winner:    winner,
+			Loser:     loser,
+			Response:  bet.ResultString(),
+			DecidedAt: time.Now(),
+		}
+	}
+	return &bet, nil
+}
+
+func EvaluateEquation(e *t.Equation) (*t.Equation, error) {
+	eq := *e
+	left, right := 0.0, 0.0
+	for _, expr := range eq.Expressions {
+		if expr.IsLeft {
+			left += *expr.Value
+		} else {
+			right += *expr.Value
+		}
+	}
+
+	t, f := true, false
+	if eq.Operator.Field == "GreaterThan" {
+		if left > right {
+			eq.Result = &t
+		} else {
+			eq.Result = &f
+		}
+	} else if eq.Operator.Field == "LesserThan" {
+		if left < right {
+			eq.Result = &t
+		} else {
+			eq.Result = &f
+		}
+	} else if eq.Operator.Field == "Equal" {
+		if left == right {
+			eq.Result = &t
+		} else {
+			eq.Result = &f
+		}
+	} else {
+		return nil, fmt.Errorf("Unsupported bet operator")
+	}
+	return &eq, nil
+}
+
+func EvaluateExpression(e *t.PlayerExpression, g *t.Game) (expr *t.PlayerExpression, err error) {
+	if err = e.Valid(); err != nil {
+		return nil, err
+	}
+	if e.Game.Id != g.Id {
+		return nil, fmt.Errorf("Game and expression dont match")
+	}
+	if g.GameLog == nil {
+		return nil, fmt.Errorf("Game logs missing")
+	}
+
+	log := g.GameLog.PlayerLogs[e.Player.Id]
+	if log == nil {
+		zero := 0.0
+		e.Value = &zero
+		return e, nil
+	} else {
+		r := reflect.ValueOf(log)
+		r = r.Elem()
+		v := r.FieldByName(e.Metric.Field)
+		value := v.Float()
+		e.Value = &value
+		return e, nil
+	}
+}
+
 // func CalcBetResult(bet *t.Bet) (err error) {
 // 	fmt.Println("calc bet result ", bet.Id, bet.String())
-// 	games := scraper.ScrapeCurrentGames()
 
 // 	responses := []string{}
 // 	proposerWins := true

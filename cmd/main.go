@@ -1,19 +1,19 @@
 package main
 
 import (
-	"bet-hound/cmd/db"
-	"fmt"
+	// "fmt"
 	"log"
 	"os"
 	// "strings"
 	// "time"
 
 	// b "bet-hound/cmd/betting"
+	// "bet-hound/cmd/cron"
 	"bet-hound/cmd/env"
 	// "bet-hound/cmd/nlp"
-	// "bet-hound/cmd/scraper"
+	"bet-hound/cmd/scraper"
 	// t "bet-hound/cmd/types"
-	// "bet-hound/cmd/twitter"
+	// "bet-hound/cmd/db"
 	m "bet-hound/pkg/mongo"
 )
 
@@ -32,28 +32,40 @@ func main() {
 	defer env.Cleanup()
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
 
-	// gameLog, err := scraper.ScrapeGameLog("https://www.pro-football-reference.com/boxscores/202001040htx.htm")
-	// gameLog, err := scraper.ScrapeGameLog("https://www.pro-football-reference.com/boxscores/201912290car.htm")
-	// if err != nil {
-	// 	fmt.Println(err)
+	scraper.ScrapeGames(2019, 19)
+
+	// lgSettings := cron.InitLeagueSettings()
+	// fmt.Println("settings: ", lgSettings)
+
+	// game, _ := db.FindGameById("201919SFOMIN")
+	// gameLog, err := scraper.ScrapeGameLog(game.Url)
+	// fmt.Println(err, gameLog)
+
+	// scraper.ScrapeGames(2019, 19)
+
+	// games, err := db.GetResultReadyGames()
+	// for _, g := range games {
+	// 	fmt.Println(g.Name)
 	// }
-	// fmt.Println(*gameLog)
 
-	// scraper.ScrapeCurrentGames()
-	// settings, err := db.GetLeagueSettings("nfl")
-	// fmt.Println(*settings)
+	// if results, err := cron.CheckGameResults(lgSettings); err != nil {
+	// 	fmt.Println(err)
+	// } else {
+	// 	for _, game := range *results {
+	// 		bets, err := db.FindAcceptedBetsByGame(game.Id)
+	// 		if err != nil {
+	// 			fmt.Println(err)
+	// 			continue
+	// 		}
+	// 		for _, bet := range *bets {
+	// 			fmt.Println(bet.String())
+	// 			b.EvaluateBet(bet, game)
+	// 		}
+	// 	}
+	// }
 
-	name := "henry"
-	players, err := db.SearchPlayersWithGame(&name, nil, nil, 5)
-	if err != nil {
-		fmt.Println(err)
-	}
-	for _, p := range players {
-		fmt.Println(*p)
-		if p.Game != nil {
-			fmt.Println(*p.Game)
-		}
-	}
+	// bet, err := db.FindBetById("26a9c841-1846-4077-8000-33e179c7eb71")
+	// fmt.Println(err)
 
 	// Text samples
 	// pt_to_vrb_txt := "@bettybetbot @richayelfuego yo richardo u wanna bet that Alshon Jeffery scores more ppr points that Saquon Barkley this week?"

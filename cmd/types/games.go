@@ -5,6 +5,14 @@ import (
 	"time"
 )
 
+type GamesAggregateInt struct {
+	Value int `bson:"value"`
+}
+
+type GamesAggregateTime struct {
+	Value time.Time `bson:"value"`
+}
+
 type Game struct {
 	Id            string    `bson:"_id,omitempty" json:"id"`
 	Name          string    `bson:"name,omitempty" json:"name"`
@@ -32,9 +40,9 @@ func (g Game) VsTeamFk(playerTmFk string) string {
 }
 
 type GameLog struct {
-	HomeTeamLog TeamLog              `bson:"h_tm_lg" json:"home_team_log"`
-	AwayTeamLog TeamLog              `bson:"a_tm_lg" json:"away_team_log"`
-	PlayerLogs  map[string]PlayerLog `bson:"p_logs" json:"player_logs"`
+	HomeTeamLog TeamLog               `bson:"h_tm_lg" json:"home_team_log"`
+	AwayTeamLog TeamLog               `bson:"a_tm_lg" json:"away_team_log"`
+	PlayerLogs  map[string]*PlayerLog `bson:"p_logs" json:"player_logs"`
 }
 
 type TeamLog struct {
@@ -46,26 +54,26 @@ type TeamLog struct {
 }
 
 type PlayerLog struct {
-	PassCmp      int     `bson:"p_cmp" json:"pass_cmp"`
-	PassAtt      int     `bson:"p_att" json:"pass_att"`
-	PassYd       int     `bson:"p_yd" json:"pass_yd"`
-	PassTd       int     `bson:"p_td" json:"pass_td"`
-	PassInt      int     `bson:"p_int" json:"pass_int"`
-	PassSacked   int     `bson:"p_skd" json:"pass_sacked"`
-	PassSackedYd int     `bson:"p_skd_yd" json:"pass_sacked_yd"`
-	PassLong     int     `bson:"p_lng" json:"pass_long"`
+	PassCmp      float64 `bson:"p_cmp" json:"pass_cmp"`
+	PassAtt      float64 `bson:"p_att" json:"pass_att"`
+	PassYd       float64 `bson:"p_yd" json:"pass_yd"`
+	PassTd       float64 `bson:"p_td" json:"pass_td"`
+	PassInt      float64 `bson:"p_float64" json:"pass_int"`
+	PassSacked   float64 `bson:"p_skd" json:"pass_sacked"`
+	PassSackedYd float64 `bson:"p_skd_yd" json:"pass_sacked_yd"`
+	PassLong     float64 `bson:"p_lng" json:"pass_long"`
 	PassRating   float64 `bson:"p_rtg" json:"pass_rating"`
-	RushAtt      int     `bson:"r_att" json:"rush_att"`
-	RushYd       int     `bson:"r_yd" json:"rush_yd"`
-	RushTd       int     `bson:"r_td" json:"rush_td"`
-	RushLong     int     `bson:"r_lng" json:"rush_long"`
-	Target       int     `bson:"tgt" json:"target"`
-	Rec          int     `bson:"rec" json:"rec"`
-	RecYd        int     `bson:"rec_yd" json:"rec_yd"`
-	RecTd        int     `bson:"rec_td" json: "rec_td"`
-	RecLong      int     `bson:"rec_lng" json:"rec_long"`
-	Fumble       int     `bson:"fmbl" json:"fumble"`
-	FumbleLost   int     `bson:"fmbl_lst" json:"fumble_lost"`
+	RushAtt      float64 `bson:"r_att" json:"rush_att"`
+	RushYd       float64 `bson:"r_yd" json:"rush_yd"`
+	RushTd       float64 `bson:"r_td" json:"rush_td"`
+	RushLong     float64 `bson:"r_lng" json:"rush_long"`
+	Target       float64 `bson:"tgt" json:"target"`
+	Rec          float64 `bson:"rec" json:"rec"`
+	RecYd        float64 `bson:"rec_yd" json:"rec_yd"`
+	RecTd        float64 `bson:"rec_td" json:"rec_td"`
+	RecLong      float64 `bson:"rec_lng" json:"rec_long"`
+	Fumble       float64 `bson:"fmbl" json:"fumble"`
+	FumbleLost   float64 `bson:"fmbl_lst" json:"fumble_lost"`
 	Fantasy00PPR float64 `bson:"f_00_ppr" json:"fantasy_00_ppr"`
 	Fantasy05PPR float64 `bson:"f_05_ppr" json:"fantasy_05_ppr"`
 	Fantasy10PPR float64 `bson:"f_10_ppr" json:"fantasy_10_ppr"`
@@ -79,15 +87,14 @@ func (s *PlayerLog) CalcFantasyScores() {
 
 func (s PlayerLog) calcFantasyScore(ppr float64) float64 {
 	score := 0.0
-	score += float64(s.PassYd) * 0.04
-	score += float64(s.PassTd) * 4.0
-	score -= float64(s.PassInt) * 2.0
-	// score -= float64(s.PassSackedYd) / 10.0
-	score += float64(s.RushYd) * 0.1
-	score += float64(s.RushTd) * 6.0
-	score += float64(s.Rec) * ppr
-	score += float64(s.RecYd) * 0.1
-	score += float64(s.RecTd) * 6.0
-	score -= float64(s.FumbleLost) * 2.0
+	score += s.PassYd * 0.04
+	score += s.PassTd * 4.0
+	score -= s.PassInt * 2.0
+	score += s.RushYd * 0.1
+	score += s.RushTd * 6.0
+	score += s.Rec * ppr
+	score += s.RecYd * 0.1
+	score += s.RecTd * 6.0
+	score -= s.FumbleLost * 2.0
 	return math.Ceil(score*10) / 10
 }

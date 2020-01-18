@@ -31,6 +31,7 @@ require (
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/opentracing/opentracing-go v1.1.0 // indirect
 	github.com/ridhamtarpara/go-graphql-demo v0.0.0-20190326085507-511d670a8f66
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/rs/cors v1.7.0
 	github.com/satori/go.uuid v1.2.0
 	github.com/sergi/go-diff v1.1.0 // indirect

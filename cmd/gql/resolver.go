@@ -118,6 +118,7 @@ func (r *mutationResolver) Post(ctx context.Context, text string, username strin
 
 // need to change this nfl specific
 func (r *mutationResolver) PostRotoArticle(ctx context.Context) (*types.RotoArticle, error) {
+	fmt.Println("mutationResolver.PostRotoArticle...")
 	if len(r.RotoObserver.Observers) == 0 {
 		return nil, nil
 	}

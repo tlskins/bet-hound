@@ -39,6 +39,27 @@ func UpsertBet(bet *t.Bet) error {
 	return m.Upsert(c, nil, m.M{"_id": bet.Id}, m.M{"$set": bet})
 }
 
+func FindAcceptedBetsByGame(gameId string) (*[]*t.Bet, error) {
+	conn := env.MGOSession().Copy()
+	defer conn.Close()
+	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
+
+	bets := []*t.Bet{}
+	q := m.M{
+		"status": 1,
+		"eqs": m.M{"$elemMatch": m.M{
+			"exprs": m.M{
+				"$elemMatch": m.M{
+					"gm._id": gameId,
+				},
+			},
+		}},
+	}
+	// m.M{"exprs": m.M{"gm._id": gameId}},
+	err := m.Find(c, &bets, q)
+	return &bets, err
+}
+
 func FindBetById(id string) (*t.Bet, error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
