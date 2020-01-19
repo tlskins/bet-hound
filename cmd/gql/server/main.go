@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bet-hound/cmd/scraper"
 	"fmt"
 	"log"
 	"net/http"
@@ -62,6 +63,8 @@ func main() {
 				migration.SeedNflPlayers()
 			} else if arg == "-seed_nfl_settings" {
 				migration.SeedNflLeagueSettings()
+			} else if arg == "-seed_nfl_curr_gms" {
+				scraper.ScrapeGames(2019, 20)
 			}
 		}
 	}
