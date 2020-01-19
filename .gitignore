@@ -17,7 +17,7 @@
 cmd/client/client
 # Ignore envs
 *.env
-config*.json
+*config*.json
 
 ### Go Patch ###
 **/vendor/

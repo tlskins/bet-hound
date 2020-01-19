@@ -53,6 +53,19 @@ func main() {
 	router := chi.NewRouter()
 	router.Use(corsHandler)
 
+	// seed options
+	if args := os.Args; len(args) > 1 {
+		for _, arg := range args {
+			if arg == "-seed_users" {
+				migration.SeedUsers()
+			} else if arg == "-seed_nfl_players" {
+				migration.SeedNflPlayers()
+			} else if arg == "-seed_nfl_settings" {
+				migration.SeedNflLeagueSettings()
+			}
+		}
+	}
+
 	// initialize league settings
 	tz, err := time.LoadLocation(env.ServerTz())
 	if err != nil {
@@ -91,6 +104,17 @@ func main() {
 	go server.ListenAndServe()
 	fmt.Println("Twitter server running")
 
+	// options
+	if args := os.Args; len(args) > 1 {
+		for _, arg := range args {
+			if arg == "-register" {
+				go twt.RegisterWebhook(env.WebhookEnv(), env.WebhookUrl())
+			} else if arg == "-process_events" {
+				ProcessEvents(lgSttgs, logger)()
+			}
+		}
+	}
+
 	// cron
 	cronSrv := cron.New(cron.WithLocation(tz))
 	if _, err := cronSrv.AddFunc("*/30 * * * *", ProcessEvents(lgSttgs, logger)); err != nil {
@@ -101,23 +125,6 @@ func main() {
 	}
 	cronSrv.Start()
 	defer cronSrv.Stop()
-
-	// options
-	if args := os.Args; len(args) > 1 {
-		for _, arg := range args {
-			if arg == "-register" {
-				go twt.RegisterWebhook(env.WebhookEnv(), env.WebhookUrl())
-			} else if arg == "-seed_users" {
-				migration.SeedUsers()
-			} else if arg == "-seed_nfl_players" {
-				migration.SeedNflPlayers()
-			} else if arg == "-seed_nfl_settings" {
-				migration.SeedNflLeagueSettings()
-			} else if arg == "-process_events" {
-				ProcessEvents(lgSttgs, logger)()
-			}
-		}
-	}
 
 	// start graphql server
 	log.Printf("connect to %s for GraphQL playground", env.GqlUrl())
