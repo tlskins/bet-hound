@@ -11,7 +11,7 @@ import (
 	m "bet-hound/pkg/mongo"
 )
 
-func Bets(userId string) (bets []*t.Bet) {
+func Bets(userId string) (bets []*t.Bet, err error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
@@ -24,7 +24,24 @@ func Bets(userId string) (bets []*t.Bet) {
 	}}
 
 	bets = []*t.Bet{}
-	c.Find(q).Sort("-crt_at").All(&bets)
+	err = c.Find(q).Sort("-crt_at").All(&bets)
+	return
+}
+
+func CurrentBets() (bets []*t.Bet, err error) {
+	conn := env.MGOSession().Copy()
+	defer conn.Close()
+	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
+	q := m.M{"$and": []m.M{
+		m.M{"$or": []m.M{
+			m.M{"status": 1},
+			m.M{"status": 2},
+		}},
+		m.M{"eqs": m.M{"$exists": true, "$ne": []m.M{}}},
+	}}
+
+	bets = []*t.Bet{}
+	err = c.Find(q).Sort("-crt_at").All(&bets)
 	return
 }
 
@@ -55,7 +72,6 @@ func FindAcceptedBetsByGame(gameId string) (*[]*t.Bet, error) {
 			},
 		}},
 	}
-	// m.M{"exprs": m.M{"gm._id": gameId}},
 	err := m.Find(c, &bets, q)
 	return &bets, err
 }

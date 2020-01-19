@@ -138,6 +138,7 @@ type RotoArticle {
 type Query {
   signIn(userName: String!, password: String!): User!
   leagueSettings(id: String!): LeagueSettings!
+  currentBets: [Bet!]!
   bets: [Bet!]!
   bet(id: ID!): Bet
   currentRotoArticles(id: String!): [RotoArticle]!

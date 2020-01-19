@@ -166,7 +166,10 @@ func (r *queryResolver) Bets(ctx context.Context) ([]*types.Bet, error) {
 		return []*types.Bet{}, err
 	}
 
-	return db.Bets(user.Id), nil
+	return db.Bets(user.Id)
+}
+func (r *queryResolver) CurrentBets(ctx context.Context) ([]*types.Bet, error) {
+	return db.CurrentBets()
 }
 func (r *queryResolver) Bet(ctx context.Context, id string) (*types.Bet, error) {
 	return db.FindBetById(id)

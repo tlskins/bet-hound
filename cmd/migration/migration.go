@@ -248,7 +248,9 @@ func SeedNflLeagueSettings() {
 }
 
 func SeedNflPlayers() {
-	scraper.ScrapePlayers()
+	if err := scraper.ScrapePlayers(); err != nil {
+		fmt.Println(err)
+	}
 	fmt.Println("Seeded nfl players...")
 }
 

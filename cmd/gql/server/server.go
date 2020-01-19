@@ -163,6 +163,9 @@ func CheckCurrentGames(s *t.LeagueSettings) error {
 	if err := scraper.ScrapeGames(s.CurrentYear, s.CurrentWeek); err != nil {
 		return err
 	}
+	if err := scraper.ScrapePlayers(); err != nil {
+		return err
+	}
 
 	// s.Mu.Lock()
 	s.MaxScrapedWeek = s.CurrentWeek

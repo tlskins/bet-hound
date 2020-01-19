@@ -3,30 +3,31 @@ package scraper
 import (
 	"fmt"
 	gq "github.com/PuerkitoBio/goquery"
-	"log"
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 
 	"bet-hound/cmd/db"
 	t "bet-hound/cmd/types"
 )
 
-func ScrapePlayers() {
+func ScrapePlayers() error {
+	fmt.Printf("%s: Scraping players...\n", time.Now().String())
 	// Request the HTML page.
 	res, err := http.Get("https://www.pro-football-reference.com/years/2019/fantasy.htm")
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
-		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
+		return fmt.Errorf("status code error: %d %s", res.StatusCode, res.Status)
 	}
 
 	// Load the HTML document
 	doc, err := gq.NewDocumentFromReader(res.Body)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	var players []*t.Player
@@ -73,11 +74,8 @@ func ScrapePlayers() {
 			})
 		}
 	})
-
-	for _, player := range players {
-		fmt.Println("player: ", *player)
-	}
 	if err = db.UpsertPlayers(&players); err != nil {
-		log.Fatal(err)
+		return err
 	}
+	return nil
 }

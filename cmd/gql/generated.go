@@ -154,6 +154,7 @@ type ComplexityRoot struct {
 	Query struct {
 		Bet                 func(childComplexity int, id string) int
 		Bets                func(childComplexity int) int
+		CurrentBets         func(childComplexity int) int
 		CurrentGames        func(childComplexity int) int
 		CurrentRotoArticles func(childComplexity int, id string) int
 		FindGames           func(childComplexity int, team *string, gameTime *time.Time, week *int, year *int) int
@@ -207,6 +208,7 @@ type MutationResolver interface {
 type QueryResolver interface {
 	SignIn(ctx context.Context, userName string, password string) (*types.User, error)
 	LeagueSettings(ctx context.Context, id string) (*types.LeagueSettings, error)
+	CurrentBets(ctx context.Context) ([]*types.Bet, error)
 	Bets(ctx context.Context) ([]*types.Bet, error)
 	Bet(ctx context.Context, id string) (*types.Bet, error)
 	CurrentRotoArticles(ctx context.Context, id string) ([]*types.RotoArticle, error)
@@ -767,6 +769,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Bets(childComplexity), true
 
+	case "Query.currentBets":
+		if e.complexity.Query.CurrentBets == nil {
+			break
+		}
+
+		return e.complexity.Query.CurrentBets(childComplexity), true
+
 	case "Query.currentGames":
 		if e.complexity.Query.CurrentGames == nil {
 			break
@@ -1226,6 +1235,7 @@ type RotoArticle {
 type Query {
   signIn(userName: String!, password: String!): User!
   leagueSettings(id: String!): LeagueSettings!
+  currentBets: [Bet!]!
   bets: [Bet!]!
   bet(id: ID!): Bet
   currentRotoArticles(id: String!): [RotoArticle]!
@@ -4047,6 +4057,40 @@ func (ec *executionContext) _Query_leagueSettings(ctx context.Context, field gra
 	return ec.marshalNLeagueSettings2ᚖbetᚑhoundᚋcmdᚋtypesᚐLeagueSettings(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_currentBets(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().CurrentBets(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*types.Bet)
+	fc.Result = res
+	return ec.marshalNBet2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐBetᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_bets(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -6806,6 +6850,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_leagueSettings(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "currentBets":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_currentBets(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
