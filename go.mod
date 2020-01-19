@@ -41,7 +41,6 @@ require (
 	github.com/spf13/viper v1.5.0
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.4.0
-	github.com/tryhungry/hungry-services v0.0.0-20190821194018-f041d4f39acb
 	github.com/urfave/cli v1.22.2 // indirect
 	github.com/vektah/dataloaden v0.3.0 // indirect
 	github.com/vektah/gqlparser v1.2.0

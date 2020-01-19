@@ -239,8 +239,6 @@ github.com/subosito/gotenv v1.2.0 h1:Slr1R9HxAlEKefgq5jn9U+DnETlIUa6HfgEzj0g5d7s
 github.com/subosito/gotenv v1.2.0/go.mod h1:N0PQaV/YGNqwC0u51sEeR/aUtSLEXKX9iv69rRypqCw=
 github.com/tlskins/bet-hound v0.0.0-20191215194042-c24193581974 h1:4PCO1bsfsFYnvnDBdX8SYCeWGYML1RLr6Q6N10RVo8Y=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5/go.mod h1:ncp9v5uamzpCO7NfCPTXjqaC+bZgJeR0sMTm6dMHP7U=
-github.com/tryhungry/hungry-services v0.0.0-20190821194018-f041d4f39acb h1:kOh66XarqgElPfa7qzJ8zNX9byIXXOZfqMWMZaGZLH4=
-github.com/tryhungry/hungry-services v0.0.0-20190821194018-f041d4f39acb/go.mod h1:U/wVIHhnaqSbm9sZVRTsb+Ew0paQBxIFha4aoWS76XA=
 github.com/ugorji/go v1.1.4/go.mod h1:uQMGLiO92mf5W77hV/PUCpI3pbzQx3CRekS0kk+RGrc=
 github.com/urfave/cli v1.20.0 h1:fDqGv3UG/4jbVl/QkFwEdddtEDjh/5Ov6X+0B/3bPaw=
 github.com/urfave/cli v1.20.0/go.mod h1:70zkFmudgCuE/ngEzBv17Jvp/497gISqfk5gWijbERA=
