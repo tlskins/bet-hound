@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"bet-hound/cmd/db"
@@ -48,7 +49,7 @@ func main() {
 		AllowedHeaders:   []string{"*"},
 		AllowCredentials: true,
 		// Debug:            true, // Enable Debugging for testing, consider disabling in production
-		AllowedOrigins: []string{env.AppUrl(), env.GqlUrl()},
+		AllowedOrigins: strings.Split(env.AllowedOrigins(), ","),
 	}
 	corsHandler := cors.New(corsOptions).Handler
 	router := chi.NewRouter()

@@ -41,6 +41,7 @@ type environment struct {
 	logPath                  string
 	botHandle                string
 	serverTz                 string
+	allowedOrigins           string
 }
 
 var e = &environment{}
@@ -135,6 +136,9 @@ func BotHandle() string {
 func ServerTz() string {
 	return e.serverTz
 }
+func AllowedOrigins() string {
+	return e.allowedOrigins
+}
 
 func Init(configFile, configPath string) error {
 	viper.SetConfigName(configFile)
@@ -187,6 +191,7 @@ func Init(configFile, configPath string) error {
 	e.serverTz = viper.GetString("server_tz")
 	e.logName = viper.GetString("log_name")
 	e.logPath = viper.GetString("log_path")
+	e.allowedOrigins = viper.GetString("allowed_origins")
 
 	return nil
 }
