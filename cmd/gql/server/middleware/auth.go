@@ -3,7 +3,7 @@ package middleware
 import (
 	"context"
 	"net/http"
-	"strings"
+	// "strings"
 )
 
 type AuthContextKey string

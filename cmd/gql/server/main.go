@@ -87,7 +87,7 @@ func main() {
 		},
 	})
 	gqlHandler := handler.GraphQL(gql.NewExecutableSchema(gqlConfig), gqlOption, gqlTimeout)
-	gqlWithAuth := mw.AuthMiddleWare(gqlHandler)
+	gqlWithAuth := mw.AuthMiddleWare(gqlHandler, env.AllowedOrigins())
 	gqlWithLg := mw.LeagueMiddleWare(gqlWithAuth, lgSttgs)
 	router.Handle("/query", gqlWithLg)
 	plgWithAuth := mw.AuthMiddleWare(handler.Playground("GraphQL playground", "/query"), env.AppUrl())
