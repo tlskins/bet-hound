@@ -2,8 +2,10 @@ package types
 
 import (
 	"fmt"
-	// "sync"
 	"time"
+	// "sync"
+
+	h "bet-hound/pkg/helpers"
 )
 
 type LeagueSettings struct {
@@ -23,13 +25,7 @@ type LeagueSettings struct {
 }
 
 func (s *LeagueSettings) Print() {
-	fmt.Println("StartDate: ", s.StartDate.String())
-	fmt.Println("StartWeekTwo: ", s.StartWeekTwo.String())
-	fmt.Println("EndDate: ", s.EndDate.String())
-	fmt.Println("MaxScrapedWeek: ", s.MaxScrapedWeek)
-	fmt.Println("MinGameTime: ", s.MinGameTime.String())
-	fmt.Println("CurrentWeek: ", s.CurrentWeek)
-	fmt.Println("Timezone: ", s.Timezone.String())
+	fmt.Println(h.PrettyPrint(*s))
 }
 
 func (s *LeagueSettings) PlayerBetsMap() (betMap map[int]*BetMap) {
