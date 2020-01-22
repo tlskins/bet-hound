@@ -94,6 +94,11 @@ func main() {
 	plgWithLg := mw.LeagueMiddleWare(plgWithAuth, lgSttgs)
 	router.Handle("/", plgWithLg)
 
+	// health check
+	router.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("ok"))
+	})
+
 	// twitter server
 	twt := env.TwitterClient()
 	hookHandler := tw.WebhookHandlerWrapper(env.BotHandle())
