@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
@@ -20,7 +21,6 @@ import (
 
 	"github.com/99designs/gqlgen/handler"
 	"github.com/go-chi/chi"
-	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	cron "github.com/robfig/cron/v3"
 	"github.com/rs/cors"
@@ -56,17 +56,16 @@ func main() {
 	router.Use(corsHandler)
 
 	// seed options
-	if args := os.Args; len(args) > 1 {
-		for _, arg := range args {
-			if arg == "-seed_users" {
-				migration.SeedUsers()
-			} else if arg == "-seed_nfl_players" {
-				migration.SeedNflPlayers()
-			} else if arg == "-seed_nfl_settings" {
-				migration.SeedNflLeagueSettings()
-			} else if arg == "-seed_nfl_curr_gms" {
-				scraper.ScrapeGames(2019, 20)
-			}
+	args := os.Args
+	for _, arg := range args {
+		if arg == "-seed_users" {
+			migration.SeedUsers()
+		} else if arg == "-seed_nfl_players" {
+			migration.SeedNflPlayers()
+		} else if arg == "-seed_nfl_settings" {
+			migration.SeedNflLeagueSettings()
+		} else if arg == "-seed_nfl_curr_gms" {
+			scraper.ScrapeGames(2019, 20)
 		}
 	}
 
@@ -78,7 +77,7 @@ func main() {
 	lgSttgs = InitLeagueSettings(tz, "nfl", env.LeagueStart(), env.LeagueStart2(), env.LeagueEnd())
 	lgSttgs.Print()
 
-	// initialize graphql server
+	// init graphql server
 	gqlConfig := gql.New()
 	gqlTimeout := handler.WebsocketKeepAliveDuration(10 * time.Second)
 	gqlOption := handler.WebsocketUpgrader(websocket.Upgrader{
@@ -90,9 +89,21 @@ func main() {
 	gqlWithAuth := mw.AuthMiddleWare(gqlHandler, env.AllowedOrigins())
 	gqlWithLg := mw.LeagueMiddleWare(gqlWithAuth, lgSttgs)
 	router.Handle("/query", gqlWithLg)
+
+	// init graphql playground
 	plgWithAuth := mw.AuthMiddleWare(handler.Playground("GraphQL playground", "/query"), env.AppUrl())
 	plgWithLg := mw.LeagueMiddleWare(plgWithAuth, lgSttgs)
-	router.Handle("/", plgWithLg)
+	router.Handle("/playground", plgWithLg)
+
+	// init twitter server
+	twt := env.TwitterClient()
+	hookHandler := tw.WebhookHandlerWrapper(env.BotHandle())
+	router.Get("/webhook/twitter", tw.CrcCheck(env.ConsumerSecret()))
+	router.Post("/webhook/twitter", hookHandler(twt.Client))
+	router.HandleFunc("/", func(writer http.ResponseWriter, _ *http.Request) {
+		writer.WriteHeader(200)
+		fmt.Fprintf(writer, "Server is up and running")
+	})
 
 	// health check
 	router.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
@@ -100,29 +111,18 @@ func main() {
 	})
 
 	// twitter server
-	twt := env.TwitterClient()
-	hookHandler := tw.WebhookHandlerWrapper(env.BotHandle())
-	m := mux.NewRouter()
-	m.HandleFunc("/", func(writer http.ResponseWriter, _ *http.Request) {
-		writer.WriteHeader(200)
-		fmt.Fprintf(writer, "Server is up and running")
-	})
-	m.HandleFunc("/webhook/twitter", tw.CrcCheck(env.ConsumerSecret())).Methods("GET")
-	m.HandleFunc("/webhook/twitter", hookHandler(twt.Client)).Methods("POST")
-	server := &http.Server{Handler: m, Addr: ":" + env.TwitterPort()}
-	go server.ListenAndServe()
-	fmt.Println("Twitter server running")
-
-	// options
-	if args := os.Args; len(args) > 1 {
-		for _, arg := range args {
-			if arg == "-register" {
-				go twt.RegisterWebhook(env.WebhookEnv(), env.WebhookUrl())
-			} else if arg == "-process_events" {
-				ProcessEvents(lgSttgs, logger)()
-			}
-		}
-	}
+	// twt := env.TwitterClient()
+	// hookHandler := tw.WebhookHandlerWrapper(env.BotHandle())
+	// m := mux.NewRouter()
+	// m.HandleFunc("/", func(writer http.ResponseWriter, _ *http.Request) {
+	// 	writer.WriteHeader(200)
+	// 	fmt.Fprintf(writer, "Server is up and running")
+	// })
+	// m.HandleFunc("/webhook/twitter", tw.CrcCheck(env.ConsumerSecret())).Methods("GET")
+	// m.HandleFunc("/webhook/twitter", hookHandler(twt.Client)).Methods("POST")
+	// server := &http.Server{Handler: m, Addr: ":" + env.TwitterPort()}
+	// go server.ListenAndServe()
+	// fmt.Println("Twitter server running")
 
 	// cron
 	cronSrv := cron.New(cron.WithLocation(tz))
@@ -136,7 +136,23 @@ func main() {
 	defer cronSrv.Stop()
 
 	// start graphql server
-	log.Printf("connect to %s for GraphQL playground", env.GqlUrl())
-	http.ListenAndServe(":"+env.GqlPort(), router)
-	log.Fatal(http.ListenAndServe(":"+env.GqlPort(), nil))
+	go func() {
+		log.Printf("connect to %s for GraphQL playground", env.GqlUrl())
+		if err := http.ListenAndServe(":"+env.GqlPort(), router); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	// server options
+	for _, arg := range args {
+		if arg == "-register" {
+			fmt.Println("registering... ", env.WebhookEnv(), env.WebhookUrl())
+			go twt.RegisterWebhook(env.WebhookEnv(), env.WebhookUrl())
+		} else if arg == "-process_events" {
+			ProcessEvents(lgSttgs, logger)()
+		}
+	}
+
+	runtime.Goexit()
+	fmt.Println("Exit")
 }

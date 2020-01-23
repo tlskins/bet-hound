@@ -66,20 +66,16 @@ func (c *TwitterClient) SendTweet(text string, replyId *string) (responseTweet *
 }
 
 func (c *TwitterClient) RegisterWebhook(webhookEnv, webhookUrl string) {
-	fmt.Println("Registering webhook...")
-
 	//Set parameters
 	path := fmt.Sprintf("https://api.twitter.com/1.1/account_activity/all/%s/webhooks.json", webhookEnv)
-	hook_url := fmt.Sprintf("%s/webhook/twitter", webhookUrl)
+	hookUrl := fmt.Sprintf("%s/webhook/twitter", webhookUrl)
 	values := url.Values{}
-	values.Set("url", hook_url)
+	values.Set("url", hookUrl)
+	fmt.Println("Registering webhook... ", path, values, hookUrl)
 
 	//Make Oauth Post with parameters
 	resp, err := c.Client.PostForm(path, values)
-	if err != nil {
-		fmt.Println("httpClient.PostForm err", err)
-	}
-	fmt.Println("resp", resp)
+	fmt.Println("resp ", resp, err)
 	defer resp.Body.Close()
 
 	//Parse response and check response
@@ -90,8 +86,12 @@ func (c *TwitterClient) RegisterWebhook(webhookEnv, webhookUrl string) {
 		panic(err)
 	}
 	fmt.Println("data", data)
-	fmt.Println("Webhook id of " + data["id"].(string) + " has been registered")
-	subscribeWebhook(webhookEnv, c.Client)
+	if data["id"] != nil {
+		fmt.Println("Webhook id of " + data["id"].(string) + " has been registered")
+		subscribeWebhook(webhookEnv, c.Client)
+	} else {
+		fmt.Println("register webhook failed")
+	}
 }
 
 // private helpers

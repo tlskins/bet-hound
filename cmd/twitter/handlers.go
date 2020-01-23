@@ -17,7 +17,9 @@ func CrcCheck(consumerSecret string) func(writer http.ResponseWriter, request *h
 	return func(writer http.ResponseWriter, request *http.Request) {
 		writer.Header().Set("Content-Type", "application/json")
 		token := request.URL.Query()["crc_token"]
+		fmt.Println("CRC token... ", token)
 		if len(token) < 1 {
+			fmt.Println("no CRC token... ")
 			fmt.Fprintf(writer, "No crc_token given")
 			return
 		}
