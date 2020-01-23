@@ -74,6 +74,7 @@ func TwitterPort() string {
 	return e.twitterPort
 }
 func Cleanup() {
+	fmt.Println("closing mongo session...")
 	e.m.Close()
 }
 func TwitterClient() *tw.TwitterClient {
