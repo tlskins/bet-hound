@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"runtime"
 	"strings"
 	"time"
 
@@ -153,6 +152,5 @@ func main() {
 		}
 	}
 
-	runtime.Goexit()
-	fmt.Println("Exit")
+	select {} // block forever
 }
