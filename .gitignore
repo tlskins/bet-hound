@@ -32,3 +32,4 @@ id_rsa.pub
 # **/node_modules
 
 *.log
+**/supervisord.conf
