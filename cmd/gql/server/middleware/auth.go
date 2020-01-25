@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	// "strings"
 )
@@ -38,15 +39,14 @@ func (w *AuthResponseWriter) DeleteSession(appHost string) bool {
 func AuthMiddleWare(next http.Handler, allowOrigin string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		// for _, origin := range strings.Split(allowOrigin, ",") {
-		// 	w.Header().Set("Access-Control-Allow-Origin", origin)
-		// }
+		// w.Header().Set("Access-Control-Allow-Origin", "*")
 
 		arw := AuthResponseWriter{w, ""}
 		userIDAuthContextKey := AuthContextKey("userID")
 
 		c, _ := r.Cookie("auth")
 		if c != nil {
+			fmt.Println("cookie: * ", *c)
 			arw.UserId = c.Value
 		}
 		ctx := context.WithValue(r.Context(), userIDAuthContextKey, &arw)
