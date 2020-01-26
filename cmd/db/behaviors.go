@@ -34,15 +34,7 @@ func EnsureIndexes(db *mgo.Database) (err error) {
 		return err
 	}
 	if err = uDb.EnsureIndex(mgo.Index{
-		Key:        []string{"usr_nm"},
-		Unique:     true,
-		DropDups:   true,
-		Background: false,
-	}); err != nil {
-		return err
-	}
-	if err = uDb.EnsureIndex(mgo.Index{
-		Key:        []string{"twt.scrn_nm"},
+		Key:        []string{"usr_nm", "twt.scrn_nm"},
 		Unique:     true,
 		DropDups:   true,
 		Background: false,

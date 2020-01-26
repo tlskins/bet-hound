@@ -52,7 +52,7 @@ func FindOrCreateBetRecipient(rcp *t.BetRecipient) (*t.User, error) {
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.UsersCollection())
 
-	var user *t.User
+	var user t.User
 	var query m.M
 	if rcp.Id != nil {
 		query = m.M{"_id": *rcp.Id}
@@ -61,13 +61,12 @@ func FindOrCreateBetRecipient(rcp *t.BetRecipient) (*t.User, error) {
 	} else {
 		return nil, fmt.Errorf("No recipient provided")
 	}
-	err := m.FindOne(c, user, query)
-	if err == nil && user != nil {
-		return user, nil
+	if err := m.FindOne(c, &user, query); err == nil {
+		return &user, nil
 	}
 
 	// create if not found and twitter name provided
-	if user == nil && rcp.TwitterScreenName != nil {
+	if rcp.TwitterScreenName != nil {
 		newUser := t.User{
 			Id: uuid.NewV4().String(),
 			TwitterUser: &t.TwitterUser{

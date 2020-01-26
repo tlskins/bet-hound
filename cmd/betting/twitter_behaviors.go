@@ -19,7 +19,8 @@ func TweetBetProposal(bet *t.Bet) (*t.Tweet, error) {
 	}
 	client := env.TwitterClient()
 
-	txt := fmt.Sprintf("@%s %s. Do you accept?", bet.Recipient.TwitterUser.ScreenName, bet.String())
+	betUrl := fmt.Sprintf("%s/bet/%s", env.AppUrl(), bet.Id)
+	txt := fmt.Sprintf("@%s %s. Do you accept? %s", bet.Recipient.TwitterUser.ScreenName, bet.String(), betUrl)
 	resp, err := client.SendTweet(txt, nil)
 	if err != nil {
 		return nil, err
@@ -38,7 +39,6 @@ func ReplyToTweet(tweet *t.Tweet) error {
 	// check if bet reply
 	if tweet.InReplyToStatusIdStr != "" {
 		if bet, err := db.FindBetByReply(tweet); err == nil && bet != nil {
-			fmt.Println("found bet", bet)
 			return replyToApproval(bet, tweet)
 		}
 	}
@@ -80,7 +80,6 @@ func replyToUserRegistration(tweet *t.Tweet) error {
 	}
 
 	userName := userNameMatch[1]
-	fmt.Println("register username: ", userName)
 	if _, err := db.FindUserByUserName(userName); err == nil {
 		response := fmt.Sprintf("@%s User name already exists", tweet.TwitterUser.ScreenName)
 		if _, err := client.SendTweet(response, &tweet.IdStr); err != nil {
@@ -121,13 +120,11 @@ func replyToApproval(bet *t.Bet, tweet *t.Tweet) error {
 	var noRgx = regexp.MustCompile(`(?i)^(n(a|o)\S*|pass)`)
 	text := strings.TrimSpace(nlp.RemoveReservedTwitterWords(tweet.GetText()))
 
-	fmt.Println("replyToApproval", bet, tweet)
 	// process response
 	if yesRgx.Match([]byte(text)) {
 		twtUsr := tweet.TwitterUser
 		rcpTwt := bet.Recipient.TwitterUser
 		prpTwt := bet.Proposer.TwitterUser
-		fmt.Println("twt, rcp: ", twtUsr, rcpTwt)
 		if (prpTwt.IdStr == twtUsr.IdStr) || (prpTwt.ScreenName == twtUsr.ScreenName) {
 			bet.ProposerReplyFk = &tweet.IdStr
 			if err := db.SyncTwitterUser(&twtUsr); err != nil {
