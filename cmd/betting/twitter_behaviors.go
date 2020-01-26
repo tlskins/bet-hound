@@ -86,32 +86,44 @@ func replyToUserRegistration(tweet *t.Tweet) error {
 			return err
 		}
 		return fmt.Errorf(response)
-	} else if usr, err := db.FindUserByTwitterId(tweet.TwitterUser.IdStr); err == nil {
-		response := fmt.Sprintf("@%s Already registered under username: %s", tweet.TwitterUser.ScreenName, usr.UserName)
-		if _, err := client.SendTweet(response, &tweet.IdStr); err != nil {
-			return err
-		}
-		return fmt.Errorf(response)
 	} else {
-		pwd := randString(8)
-		newUser := t.User{
-			Name:        tweet.TwitterUser.Name,
-			UserName:    userName,
-			Password:    pwd,
-			TwitterUser: &tweet.TwitterUser,
-		}
+		usr, _ := db.FindUserByTwitterId(tweet.TwitterUser.IdStr)
+		if len(usr.UserName) > 0 {
+			response := fmt.Sprintf("@%s Already registered under username: %s", tweet.TwitterUser.ScreenName, usr.UserName)
+			if _, err := client.SendTweet(response, &tweet.IdStr); err != nil {
+				return err
+			}
+			return fmt.Errorf(response)
+		} else {
+			pwd := randString(8)
+			if usr == nil {
+				usr = &t.User{
+					Name:        tweet.TwitterUser.Name,
+					UserName:    userName,
+					Password:    pwd,
+					TwitterUser: &tweet.TwitterUser,
+				}
+			} else {
+				// twitter user only exists
+				usr.Password = pwd
+				usr.Name = tweet.TwitterUser.Name
+				usr.UserName = userName
+				usr.TwitterUser = &tweet.TwitterUser
+			}
 
-		// register existing user
-		if existing, _ := db.FindUserByTwitterScreenName(tweet.TwitterUser.ScreenName); existing != nil {
-			newUser.Id = existing.Id
-		}
+			// register existing user
+			if existing, _ := db.FindUserByTwitterScreenName(tweet.TwitterUser.ScreenName); existing != nil {
+				usr.Id = existing.Id
+			}
 
-		response := fmt.Sprintf("You have been registered with username: %s. Your temporary password is: %s", userName, pwd)
-		if _, err = client.SendDirectMessage(response, tweet.TwitterUser.IdStr); err != nil {
+			response := fmt.Sprintf("You have been registered with username: %s. Your temporary password is: %s", userName, pwd)
+			if _, err = client.SendDirectMessage(response, tweet.TwitterUser.IdStr); err != nil {
+				return err
+			}
+			client.SendTweet(fmt.Sprintf("@%s Registration successful! Please check your DMs!", tweet.TwitterUser.ScreenName), &tweet.IdStr)
+			_, err = db.UpsertUser(usr)
 			return err
 		}
-		_, err = db.UpsertUser(&newUser)
-		return err
 	}
 }
 
