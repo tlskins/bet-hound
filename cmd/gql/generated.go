@@ -126,7 +126,7 @@ type ComplexityRoot struct {
 		Post            func(childComplexity int, text string, username string, roomName string) int
 		PostRotoArticle func(childComplexity int) int
 		SignOut         func(childComplexity int) int
-		UpdateUser      func(childComplexity int, name *string, userName *string, password *string) int
+		UpdateUser      func(childComplexity int, changes types.ProfileChanges) int
 	}
 
 	Player struct {
@@ -201,7 +201,7 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	SignOut(ctx context.Context) (bool, error)
-	UpdateUser(ctx context.Context, name *string, userName *string, password *string) (*types.User, error)
+	UpdateUser(ctx context.Context, changes types.ProfileChanges) (*types.User, error)
 	CreateBet(ctx context.Context, changes types.BetChanges) (*types.Bet, error)
 	AcceptBet(ctx context.Context, id string, accept bool) (bool, error)
 	Post(ctx context.Context, text string, username string, roomName string) (*types.Message, error)
@@ -643,7 +643,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateUser(childComplexity, args["name"].(*string), args["userName"].(*string), args["password"].(*string)), true
+		return e.complexity.Mutation.UpdateUser(childComplexity, args["changes"].(types.ProfileChanges)), true
 
 	case "Player.firstName":
 		if e.complexity.Player.FirstName == nil {
@@ -1267,7 +1267,7 @@ type Query {
 
 type Mutation {
   signOut: Boolean!
-  updateUser(name: String, userName: String, password: String): User!
+  updateUser(changes: ProfileChanges!): User!
   createBet(changes: BetChanges!): Bet
   acceptBet(id: ID!, accept: Boolean!): Boolean!
   post(text: String!, username: String!, roomName: String!): Message!
@@ -1280,6 +1280,12 @@ type Subscription {
 }
 
 # inputs
+
+input ProfileChanges {
+  name: String
+  userName: String
+  password: String
+}
 
 input BetChanges {
   recipientId: String!
@@ -1397,30 +1403,14 @@ func (ec *executionContext) field_Mutation_post_args(ctx context.Context, rawArg
 func (ec *executionContext) field_Mutation_updateUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *string
-	if tmp, ok := rawArgs["name"]; ok {
-		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+	var arg0 types.ProfileChanges
+	if tmp, ok := rawArgs["changes"]; ok {
+		arg0, err = ec.unmarshalNProfileChanges2betᚑhoundᚋcmdᚋtypesᚐProfileChanges(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["name"] = arg0
-	var arg1 *string
-	if tmp, ok := rawArgs["userName"]; ok {
-		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["userName"] = arg1
-	var arg2 *string
-	if tmp, ok := rawArgs["password"]; ok {
-		arg2, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["password"] = arg2
+	args["changes"] = arg0
 	return args, nil
 }
 
@@ -3342,7 +3332,7 @@ func (ec *executionContext) _Mutation_updateUser(ctx context.Context, field grap
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateUser(rctx, args["name"].(*string), args["userName"].(*string), args["password"].(*string))
+		return ec.resolvers.Mutation().UpdateUser(rctx, args["changes"].(types.ProfileChanges))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6397,6 +6387,36 @@ func (ec *executionContext) unmarshalInputPlayerExpressionChanges(ctx context.Co
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputProfileChanges(ctx context.Context, obj interface{}) (types.ProfileChanges, error) {
+	var it types.ProfileChanges
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "name":
+			var err error
+			it.Name, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "userName":
+			var err error
+			it.UserName, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "password":
+			var err error
+			it.Password, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -7819,6 +7839,10 @@ func (ec *executionContext) marshalNPlayer2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐPla
 	}
 	wg.Wait()
 	return ret
+}
+
+func (ec *executionContext) unmarshalNProfileChanges2betᚑhoundᚋcmdᚋtypesᚐProfileChanges(ctx context.Context, v interface{}) (types.ProfileChanges, error) {
+	return ec.unmarshalInputProfileChanges(ctx, v)
 }
 
 func (ec *executionContext) marshalNRotoArticle2betᚑhoundᚋcmdᚋtypesᚐRotoArticle(ctx context.Context, sel ast.SelectionSet, v types.RotoArticle) graphql.Marshaler {

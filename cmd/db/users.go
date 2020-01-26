@@ -21,6 +21,16 @@ func UpsertUser(user *t.User) (*t.User, error) {
 	return user, err
 }
 
+func UpdateUserProfile(id string, update *t.ProfileChanges) (*t.User, error) {
+	conn := env.MGOSession().Copy()
+	defer conn.Close()
+	c := conn.DB(env.MongoDb()).C(env.UsersCollection())
+
+	var user t.User
+	err := m.Upsert(c, &user, m.M{"_id": id}, m.M{"$set": update})
+	return &user, err
+}
+
 func FindUser(search string, numResults int) (users []*t.User, err error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()

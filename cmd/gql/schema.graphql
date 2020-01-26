@@ -156,7 +156,7 @@ type Query {
 
 type Mutation {
   signOut: Boolean!
-  updateUser(name: String, userName: String, password: String): User!
+  updateUser(changes: ProfileChanges!): User!
   createBet(changes: BetChanges!): Bet
   acceptBet(id: ID!, accept: Boolean!): Boolean!
   post(text: String!, username: String!, roomName: String!): Message!
@@ -169,6 +169,12 @@ type Subscription {
 }
 
 # inputs
+
+input ProfileChanges {
+  name: String
+  userName: String
+  password: String
+}
 
 input BetChanges {
   recipientId: String!

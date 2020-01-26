@@ -8,3 +8,9 @@ type User struct {
 	Email       string       `bson:"em" json:"email"`
 	TwitterUser *TwitterUser `bson:"twt" json:"twitter_user"`
 }
+
+type ProfileChanges struct {
+	Name     *string `bson:"nm,omitempty" json:"name,omitempty"`
+	UserName *string `bson:"usr_nm,omitempty" json:"user_name,omitempty"`
+	Password *string `bson:"pwd,omitempty" json:"password,omitempty"`
+}
