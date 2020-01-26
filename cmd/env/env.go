@@ -34,6 +34,7 @@ type environment struct {
 	currentGamesCollection   string
 	leagueSettingsCollection string
 	usersCollection          string
+	betMapsCollection        string
 	leagueStart              string
 	leagueStart2             string
 	leagueEnd                string
@@ -74,7 +75,6 @@ func TwitterPort() string {
 	return e.twitterPort
 }
 func Cleanup() {
-	fmt.Println("closing mongo session...")
 	e.m.Close()
 }
 func TwitterClient() *tw.TwitterClient {
@@ -115,6 +115,9 @@ func LeagueSettingsCollection() string {
 }
 func UsersCollection() string {
 	return e.usersCollection
+}
+func BetMapsCollection() string {
+	return e.betMapsCollection
 }
 func LeagueStart() string {
 	return e.leagueStart
@@ -185,6 +188,7 @@ func Init(configFile, configPath string) error {
 	e.currentGamesCollection = viper.GetString("current_games_collection")
 	e.leagueSettingsCollection = viper.GetString("league_settings_collection")
 	e.usersCollection = viper.GetString("users_collection")
+	e.betMapsCollection = viper.GetString("bet_maps_collection")
 	e.botHandle = viper.GetString("bot_handle")
 	e.leagueStart = viper.GetString("league_start")
 	e.leagueStart2 = viper.GetString("league_start2")

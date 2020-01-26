@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	// "strings"
 )
@@ -46,7 +45,6 @@ func AuthMiddleWare(next http.Handler, allowOrigin string) http.Handler {
 
 		c, _ := r.Cookie("auth")
 		if c != nil {
-			fmt.Println("cookie: * ", *c)
 			arw.UserId = c.Value
 		}
 		ctx := context.WithValue(r.Context(), userIDAuthContextKey, &arw)

@@ -34,6 +34,7 @@ type PlayerExpressionChanges struct {
 
 type BetMap struct {
 	Id         int    `bson:"id" json:"id"`
+	League     string `bson:"lg" json:"league"`
 	Name       string `bson:"n" json:"name"`
 	Field      string `bson:"f" json:"field"`
 	FieldType  string `bson:"ft" json:"field_type"`

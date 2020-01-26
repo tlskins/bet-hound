@@ -2,14 +2,14 @@ package db
 
 import (
 	"github.com/globalsign/mgo/bson"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 
 	"bet-hound/cmd/env"
 	t "bet-hound/cmd/types"
 	m "bet-hound/pkg/mongo"
 )
 
-func UpsertUser(user *t.User) error {
+func UpsertUser(user *t.User) (*t.User, error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.UsersCollection())
@@ -17,7 +17,8 @@ func UpsertUser(user *t.User) error {
 		user.Id = uuid.NewV4().String()
 	}
 
-	return m.Upsert(c, nil, m.M{"_id": user.Id}, m.M{"$set": user})
+	err := m.Upsert(c, user, m.M{"_id": user.Id}, m.M{"$set": user})
+	return user, err
 }
 
 func FindUser(search string, numResults int) (users []*t.User, err error) {

@@ -39,8 +39,6 @@ func main() {
 	defer env.Cleanup()
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
 	logger = SetUpLogger(env.LogPath(), env.LogName())
-
-	// ensure indexes
 	mSess := env.MGOSession()
 	db.EnsureIndexes(mSess.DB(env.MongoDb()))
 
@@ -108,20 +106,6 @@ func main() {
 	router.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))
 	})
-
-	// twitter server
-	// twt := env.TwitterClient()
-	// hookHandler := tw.WebhookHandlerWrapper(env.BotHandle())
-	// m := mux.NewRouter()
-	// m.HandleFunc("/", func(writer http.ResponseWriter, _ *http.Request) {
-	// 	writer.WriteHeader(200)
-	// 	fmt.Fprintf(writer, "Server is up and running")
-	// })
-	// m.HandleFunc("/webhook/twitter", tw.CrcCheck(env.ConsumerSecret())).Methods("GET")
-	// m.HandleFunc("/webhook/twitter", hookHandler(twt.Client)).Methods("POST")
-	// server := &http.Server{Handler: m, Addr: ":" + env.TwitterPort()}
-	// go server.ListenAndServe()
-	// fmt.Println("Twitter server running")
 
 	// cron
 	cronSrv := cron.New(cron.WithLocation(tz))

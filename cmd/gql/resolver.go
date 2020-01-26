@@ -72,6 +72,24 @@ func (r *mutationResolver) SignOut(ctx context.Context) (bool, error) {
 	authPointer := ctx.Value(mw.AuthContextKey("userID")).(*mw.AuthResponseWriter)
 	return authPointer.DeleteSession(env.AppHost()), nil
 }
+func (r *mutationResolver) UpdateUser(ctx context.Context, name *string, userName *string, password *string) (*types.User, error) {
+	user, err := userFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if name != nil {
+		user.Name = *name
+	}
+	if userName != nil {
+		user.UserName = *userName
+	}
+	if password != nil {
+		user.Password = *password
+	}
+
+	return db.UpsertUser(user)
+}
 func (r *mutationResolver) CreateBet(ctx context.Context, changes types.BetChanges) (bet *types.Bet, err error) {
 	user, err := userFromContext(ctx)
 	if err != nil {

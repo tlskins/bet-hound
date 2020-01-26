@@ -126,6 +126,7 @@ type ComplexityRoot struct {
 		Post            func(childComplexity int, text string, username string, roomName string) int
 		PostRotoArticle func(childComplexity int) int
 		SignOut         func(childComplexity int) int
+		UpdateUser      func(childComplexity int, name *string, userName *string, password *string) int
 	}
 
 	Player struct {
@@ -200,6 +201,7 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	SignOut(ctx context.Context) (bool, error)
+	UpdateUser(ctx context.Context, name *string, userName *string, password *string) (*types.User, error)
 	CreateBet(ctx context.Context, changes types.BetChanges) (*types.Bet, error)
 	AcceptBet(ctx context.Context, id string, accept bool) (bool, error)
 	Post(ctx context.Context, text string, username string, roomName string) (*types.Message, error)
@@ -630,6 +632,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.SignOut(childComplexity), true
+
+	case "Mutation.updateUser":
+		if e.complexity.Mutation.UpdateUser == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateUser_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateUser(childComplexity, args["name"].(*string), args["userName"].(*string), args["password"].(*string)), true
 
 	case "Player.firstName":
 		if e.complexity.Player.FirstName == nil {
@@ -1253,6 +1267,7 @@ type Query {
 
 type Mutation {
   signOut: Boolean!
+  updateUser(name: String, userName: String, password: String): User!
   createBet(changes: BetChanges!): Bet
   acceptBet(id: ID!, accept: Boolean!): Boolean!
   post(text: String!, username: String!, roomName: String!): Message!
@@ -1376,6 +1391,36 @@ func (ec *executionContext) field_Mutation_post_args(ctx context.Context, rawArg
 		}
 	}
 	args["roomName"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["name"]; ok {
+		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["name"] = arg0
+	var arg1 *string
+	if tmp, ok := rawArgs["userName"]; ok {
+		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["userName"] = arg1
+	var arg2 *string
+	if tmp, ok := rawArgs["password"]; ok {
+		arg2, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["password"] = arg2
 	return args, nil
 }
 
@@ -3271,6 +3316,47 @@ func (ec *executionContext) _Mutation_signOut(ctx context.Context, field graphql
 	res := resTmp.(bool)
 	fc.Result = res
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_updateUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_updateUser_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateUser(rctx, args["name"].(*string), args["userName"].(*string), args["password"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*types.User)
+	fc.Result = res
+	return ec.marshalNUser2ᚖbetᚑhoundᚋcmdᚋtypesᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createBet(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -6682,6 +6768,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = graphql.MarshalString("Mutation")
 		case "signOut":
 			out.Values[i] = ec._Mutation_signOut(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "updateUser":
+			out.Values[i] = ec._Mutation_updateUser(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

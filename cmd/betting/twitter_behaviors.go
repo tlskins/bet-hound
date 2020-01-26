@@ -104,7 +104,7 @@ func replyToUserRegistration(tweet *t.Tweet) error {
 		if _, err = client.SendDirectMessage(response, tweet.TwitterUser.IdStr); err != nil {
 			return err
 		}
-		err = db.UpsertUser(&newUser)
+		_, err = db.UpsertUser(&newUser)
 		return err
 	}
 }
