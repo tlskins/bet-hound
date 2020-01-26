@@ -140,7 +140,9 @@ func (b Bet) minGameTime() *time.Time {
 	var minTime *time.Time
 	for _, eq := range b.Equations {
 		for _, expr := range eq.Expressions {
-			if minTime == nil || expr.Game.GameTime.Before(*minTime) {
+			gmTime := expr.Game.GameTime
+			// find earliest game start time that hasnt been played at the time of bet creation
+			if minTime == nil || (gmTime.Before(*minTime) && gmTime.After(time.Now())) {
 				minTime = &expr.Game.GameTime
 			}
 		}
@@ -153,7 +155,9 @@ func (b Bet) maxFinalizedGameTime() *time.Time {
 	var maxTime *time.Time
 	for _, eq := range b.Equations {
 		for _, expr := range eq.Expressions {
-			if maxTime == nil || expr.Game.GameResultsAt.After(*maxTime) {
+			gmTime := expr.Game.GameResultsAt
+			// find latest game result time that hasnt been played at the time of bet creation
+			if maxTime == nil || (gmTime.After(*maxTime) && gmTime.After(time.Now())) {
 				maxTime = &expr.Game.GameResultsAt
 			}
 		}

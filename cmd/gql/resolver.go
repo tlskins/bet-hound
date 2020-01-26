@@ -85,8 +85,12 @@ func (r *mutationResolver) CreateBet(ctx context.Context, changes types.BetChang
 	if err != nil {
 		return nil, err
 	}
+	sttgs, err := leagueFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-	return betting.CreateBet(user, changes)
+	return betting.CreateBet(user, &changes, sttgs)
 }
 func (r *mutationResolver) AcceptBet(ctx context.Context, id string, accept bool) (bool, error) {
 	user, err := userFromContext(ctx)

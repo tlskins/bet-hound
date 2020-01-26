@@ -48,7 +48,7 @@ func AcceptBet(user *t.User, betId string, accept bool) (bool, error) {
 	return true, nil
 }
 
-func CreateBet(proposer *t.User, changes t.BetChanges) (bet *t.Bet, err error) {
+func CreateBet(proposer *t.User, changes *t.BetChanges, settings *t.LeagueSettings) (bet *t.Bet, err error) {
 	now := time.Now()
 	rand.Seed(now.UnixNano())
 	recipient, err := db.FindOrCreateBetRecipient(&changes.BetRecipient)
@@ -66,10 +66,6 @@ func CreateBet(proposer *t.User, changes t.BetChanges) (bet *t.Bet, err error) {
 	}
 
 	// get bet map lookups
-	settings, err := db.GetLeagueSettings("nfl")
-	if err != nil {
-		return nil, err
-	}
 	opMap := settings.BetEquationsMap()
 	metricMap := settings.PlayerBetsMap()
 

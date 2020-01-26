@@ -62,14 +62,14 @@ func FindGameById(id string) (game *t.Game, err error) {
 	return
 }
 
-func FindCurrentGame(settings *t.LeagueSettings, fk string) (game *t.Game, err error) {
+func FindCurrentGame(settings *t.LeagueSettings, fk string) (*t.Game, error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.GamesCollection())
 
-	game = &t.Game{}
-	err = m.FindOne(c, game, m.M{"fk": fk, "wk": settings.CurrentWeek, "yr": settings.CurrentYear})
-	return
+	var game t.Game
+	err := m.FindOne(c, &game, m.M{"fk": fk, "wk": settings.CurrentWeek, "yr": settings.CurrentYear})
+	return &game, err
 }
 
 func GetCurrentGames(settings *t.LeagueSettings) (games []*t.Game, err error) {
