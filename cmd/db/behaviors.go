@@ -33,6 +33,30 @@ func EnsureIndexes(db *mgo.Database) (err error) {
 	}); err != nil {
 		return err
 	}
+	if err = uDb.EnsureIndex(mgo.Index{
+		Key:        []string{"usr_nm"},
+		Unique:     true,
+		DropDups:   true,
+		Background: false,
+	}); err != nil {
+		return err
+	}
+	if err = uDb.EnsureIndex(mgo.Index{
+		Key:        []string{"twt.scrn_nm"},
+		Unique:     true,
+		DropDups:   true,
+		Background: false,
+	}); err != nil {
+		return err
+	}
+	if err = uDb.EnsureIndex(mgo.Index{
+		Key:        []string{"twt._id"},
+		Unique:     true,
+		DropDups:   true,
+		Background: false,
+	}); err != nil {
+		return err
+	}
 
 	// players indexes
 	pDb := db.C(env.PlayersCollection())

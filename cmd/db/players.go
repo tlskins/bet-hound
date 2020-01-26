@@ -69,15 +69,10 @@ func SearchPlayers(name, team, position *string, numResults int) (players []*t.P
 	return
 }
 
-func SearchPlayersWithGame(name, team, position *string, numResults int) (players []*t.Player, err error) {
+func SearchPlayersWithGame(settings *t.LeagueSettings, name, team, position *string, numResults int) (players []*t.Player, err error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.PlayersCollection())
-
-	settings, err := GetLeagueSettings("nfl")
-	if err != nil {
-		return players, err
-	}
 
 	// match pipe
 	match := m.M{}

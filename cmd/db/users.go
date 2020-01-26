@@ -1,6 +1,7 @@
 package db
 
 import (
+	"fmt"
 	"github.com/globalsign/mgo/bson"
 	uuid "github.com/satori/go.uuid"
 
@@ -46,6 +47,38 @@ func FindUser(search string, numResults int) (users []*t.User, err error) {
 	return
 }
 
+func FindOrCreateBetRecipient(rcp *t.BetRecipient) (*t.User, error) {
+	conn := env.MGOSession().Copy()
+	defer conn.Close()
+	c := conn.DB(env.MongoDb()).C(env.UsersCollection())
+
+	var user *t.User
+	var query m.M
+	if rcp.Id != nil {
+		query = m.M{"_id": *rcp.Id}
+	} else if rcp.TwitterScreenName != nil {
+		query = m.M{"twt.scrn_nm": *rcp.TwitterScreenName}
+	} else {
+		return nil, fmt.Errorf("No recipient provided")
+	}
+	err := m.FindOne(c, user, query)
+	if err == nil && user != nil {
+		return user, nil
+	}
+
+	// create if not found and twitter name provided
+	if user == nil && rcp.TwitterScreenName != nil {
+		newUser := t.User{
+			Id: uuid.NewV4().String(),
+			TwitterUser: &t.TwitterUser{
+				ScreenName: *rcp.TwitterScreenName,
+			},
+		}
+		return UpsertUser(&newUser)
+	}
+	return nil, fmt.Errorf("User not found")
+}
+
 func FindUserById(id string) (*t.User, error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
@@ -56,6 +89,26 @@ func FindUserById(id string) (*t.User, error) {
 	return &user, err
 }
 
+func SyncTwitterUser(twtUser *t.TwitterUser) error {
+	conn := env.MGOSession().Copy()
+	defer conn.Close()
+	c := conn.DB(env.MongoDb()).C(env.UsersCollection())
+	fmt.Println("syncing... ", *twtUser)
+
+	query := m.M{"$or": []m.M{
+		m.M{"twt.scrn_nm": twtUser.ScreenName},
+		m.M{"twt._id": twtUser.Id},
+	}}
+	var user t.User
+	if err := m.FindOne(c, &user, query); err != nil {
+		return err
+	}
+
+	user.TwitterUser = twtUser
+	_, err := UpsertUser(&user)
+	return err
+}
+
 func FindUserByTwitterId(twtUserId string) (*t.User, error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
@@ -63,6 +116,16 @@ func FindUserByTwitterId(twtUserId string) (*t.User, error) {
 
 	var user t.User
 	err := m.FindOne(c, &user, m.M{"twt.id_str": twtUserId})
+	return &user, err
+}
+
+func FindUserByTwitterScreenName(screenName string) (*t.User, error) {
+	conn := env.MGOSession().Copy()
+	defer conn.Close()
+	c := conn.DB(env.MongoDb()).C(env.UsersCollection())
+
+	var user t.User
+	err := m.FindOne(c, &user, m.M{"twt.scrn_nm": screenName})
 	return &user, err
 }
 

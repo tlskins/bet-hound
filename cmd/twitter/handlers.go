@@ -33,28 +33,26 @@ func CrcCheck(consumerSecret string) func(writer http.ResponseWriter, request *h
 	}
 }
 
-func WebhookHandlerWrapper(botHandle string) func(httpClient *http.Client) func(writer http.ResponseWriter, request *http.Request) {
-	return func(httpClient *http.Client) func(writer http.ResponseWriter, request *http.Request) {
-		return func(writer http.ResponseWriter, request *http.Request) {
-			fmt.Println("WebhookHandlerWrapper called")
-			body, _ := ioutil.ReadAll(request.Body)
-			var load t.WebhookLoad
-			if err := json.Unmarshal(body, &load); err != nil {
-				fmt.Println(err)
-			}
+func WebhookHandlerWrapper(botHandle string) func(writer http.ResponseWriter, request *http.Request) {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		fmt.Println("WebhookHandlerWrapper called")
+		body, _ := ioutil.ReadAll(request.Body)
+		var load t.WebhookLoad
+		if err := json.Unmarshal(body, &load); err != nil {
+			fmt.Println(err)
+		}
 
-			if len(load.TweetCreateEvent) < 1 {
-				return
-			}
-			newTweet := load.TweetCreateEvent[0]
-			if len(newTweet.IdStr) == 0 || newTweet.TwitterUser.ScreenName == botHandle {
-				return
-			}
+		if len(load.TweetCreateEvent) < 1 {
+			return
+		}
+		newTweet := load.TweetCreateEvent[0]
+		if len(newTweet.IdStr) == 0 || newTweet.TwitterUser.ScreenName == botHandle {
+			return
+		}
 
-			fmt.Println("incoming tweet text, id, replyTo: ", newTweet.GetText(), newTweet.IdStr, newTweet.InReplyToStatusIdStr)
-			if err := b.ReplyToTweet(&newTweet); err != nil {
-				fmt.Println(err)
-			}
+		fmt.Println("incoming tweet text, id, replyTo: ", newTweet.GetText(), newTweet.IdStr, newTweet.InReplyToStatusIdStr)
+		if err := b.ReplyToTweet(&newTweet); err != nil {
+			fmt.Println(err)
 		}
 	}
 }

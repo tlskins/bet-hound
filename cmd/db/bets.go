@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/satori/go.uuid"
-
 	"bet-hound/cmd/env"
 	t "bet-hound/cmd/types"
 	m "bet-hound/pkg/mongo"
+
+	uuid "github.com/satori/go.uuid"
 )
 
 func Bets(userId string) (bets []*t.Bet, err error) {
@@ -97,13 +97,8 @@ func FindBetByReply(tweet *t.Tweet) (*t.Bet, error) {
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
 
-	authorId := tweet.TwitterUser.IdStr
 	var bet t.Bet
-	q := m.M{"$or": []m.M{
-		m.M{"acc_fk": tweet.InReplyToStatusIdStr, "status": 0, "proposer.twt.id_str": authorId, "pr_fk": nil},
-		m.M{"acc_fk": tweet.InReplyToStatusIdStr, "status": 0, "recipient.twt.id_str": authorId, "rr_fk": nil},
-	}}
-	err := m.FindOne(c, &bet, q)
+	err := m.FindOne(c, &bet, m.M{"acc_fk": tweet.InReplyToStatusIdStr, "status": 0})
 	return &bet, err
 }
 

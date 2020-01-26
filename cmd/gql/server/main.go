@@ -93,10 +93,8 @@ func main() {
 	router.Handle("/playground", plgWithLg)
 
 	// init twitter server
-	twt := env.TwitterClient()
-	hookHandler := tw.WebhookHandlerWrapper(env.BotHandle())
 	router.Get("/webhook/twitter", tw.CrcCheck(env.ConsumerSecret()))
-	router.Post("/webhook/twitter", hookHandler(twt.Client))
+	router.Post("/webhook/twitter", tw.WebhookHandlerWrapper(env.BotHandle()))
 	router.HandleFunc("/", func(writer http.ResponseWriter, _ *http.Request) {
 		writer.WriteHeader(200)
 		fmt.Fprintf(writer, "Server is up and running")
@@ -129,8 +127,9 @@ func main() {
 	// server options
 	for _, arg := range args {
 		if arg == "-register" {
-			fmt.Println("registering... ", env.WebhookEnv(), env.WebhookUrl())
-			go twt.RegisterWebhook(env.WebhookEnv(), env.WebhookUrl())
+			twtClient := env.TwitterClient()
+			time.Sleep(5 * time.Second)
+			twtClient.RegisterWebhook(env.WebhookEnv(), env.WebhookUrl())
 		} else if arg == "-process_events" {
 			ProcessEvents(lgSttgs, logger)()
 		}

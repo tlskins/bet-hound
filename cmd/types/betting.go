@@ -8,8 +8,13 @@ import (
 
 // Changes
 
+type BetRecipient struct {
+	Id                *string `json:"id"`
+	TwitterScreenName *string `json:"sn"`
+}
+
 type BetChanges struct {
-	RecipientId      string             `json:"recipientId"`
+	BetRecipient     BetRecipient       `json:"recipient"`
 	EquationsChanges []*EquationChanges `json:"equationsChanges"`
 	Delete           bool               `json:"delete"`
 }

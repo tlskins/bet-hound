@@ -176,8 +176,13 @@ input ProfileChanges {
   password: String
 }
 
+input BetRecipient {
+  id: String
+  twitterScreenName: String
+}
+
 input BetChanges {
-  recipientId: String!
+  betRecipient: BetRecipient!
   equationsChanges: [EquationChanges]!
 }
 

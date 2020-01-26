@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 
 	"bet-hound/cmd/db"
 	t "bet-hound/cmd/types"
@@ -51,7 +51,7 @@ func AcceptBet(user *t.User, betId string, accept bool) (bool, error) {
 func CreateBet(proposer *t.User, changes t.BetChanges) (bet *t.Bet, err error) {
 	now := time.Now()
 	rand.Seed(now.UnixNano())
-	recipient, err := db.FindUserById(changes.RecipientId)
+	recipient, err := db.FindOrCreateBetRecipient(&changes.BetRecipient)
 	if err != nil {
 		return nil, err
 	}
@@ -88,11 +88,15 @@ func CreateBet(proposer *t.User, changes t.BetChanges) (bet *t.Bet, err error) {
 			}
 			// add player
 			if exprChg.PlayerFk != nil {
-				expr.Player, _ = db.FindPlayer(*exprChg.PlayerFk)
+				if expr.Player, err = db.FindPlayer(*exprChg.PlayerFk); err != nil {
+					return nil, err
+				}
 			}
 			// add game
 			if exprChg.GameFk != nil {
-				expr.Game, _ = db.FindCurrentGame(settings, *exprChg.GameFk)
+				if expr.Game, _ = db.FindCurrentGame(settings, *exprChg.GameFk); err != nil {
+					return nil, err
+				}
 			}
 			// add metric
 			if exprChg.MetricId != nil {

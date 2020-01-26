@@ -38,6 +38,7 @@ func ReplyToTweet(tweet *t.Tweet) error {
 	// check if bet reply
 	if tweet.InReplyToStatusIdStr != "" {
 		if bet, err := db.FindBetByReply(tweet); err == nil && bet != nil {
+			fmt.Println("found bet", bet)
 			return replyToApproval(bet, tweet)
 		}
 	}
@@ -100,6 +101,12 @@ func replyToUserRegistration(tweet *t.Tweet) error {
 			Password:    pwd,
 			TwitterUser: &tweet.TwitterUser,
 		}
+
+		// register existing user
+		if existing, _ := db.FindUserByTwitterScreenName(tweet.TwitterUser.ScreenName); existing != nil {
+			newUser.Id = existing.Id
+		}
+
 		response := fmt.Sprintf("You have been registered with username: %s. Your temporary password is: %s", userName, pwd)
 		if _, err = client.SendDirectMessage(response, tweet.TwitterUser.IdStr); err != nil {
 			return err
@@ -114,12 +121,23 @@ func replyToApproval(bet *t.Bet, tweet *t.Tweet) error {
 	var noRgx = regexp.MustCompile(`(?i)^(n(a|o)\S*|pass)`)
 	text := strings.TrimSpace(nlp.RemoveReservedTwitterWords(tweet.GetText()))
 
+	fmt.Println("replyToApproval", bet, tweet)
 	// process response
 	if yesRgx.Match([]byte(text)) {
-		if bet.Proposer.TwitterUser.IdStr == tweet.TwitterUser.IdStr {
+		twtUsr := tweet.TwitterUser
+		rcpTwt := bet.Recipient.TwitterUser
+		prpTwt := bet.Proposer.TwitterUser
+		fmt.Println("twt, rcp: ", twtUsr, rcpTwt)
+		if (prpTwt.IdStr == twtUsr.IdStr) || (prpTwt.ScreenName == twtUsr.ScreenName) {
 			bet.ProposerReplyFk = &tweet.IdStr
-		} else if bet.Recipient.TwitterUser.IdStr == tweet.TwitterUser.IdStr {
+			if err := db.SyncTwitterUser(&twtUsr); err != nil {
+				fmt.Println("error syncing: ", err)
+			}
+		} else if (rcpTwt.IdStr == twtUsr.IdStr) || (rcpTwt.ScreenName == twtUsr.ScreenName) {
 			bet.RecipientReplyFk = &tweet.IdStr
+			if err := db.SyncTwitterUser(&twtUsr); err != nil {
+				fmt.Println("error syncing: ", err)
+			}
 		}
 		if bet.ProposerReplyFk != nil && bet.RecipientReplyFk != nil {
 			bet.BetStatus = t.BetStatusFromString("Accepted")
@@ -135,7 +153,7 @@ func replyToApproval(bet *t.Bet, tweet *t.Tweet) error {
 		if bet.ProposerReplyFk == nil {
 			pends = "proposer and " + pends
 		}
-		txt = fmt.Sprintf("Pending approval from %s", pends)
+		txt = fmt.Sprintf("%s Pending approval from %s", bet.TwitterHandles(), pends)
 	}
 	client := env.TwitterClient()
 	if resp, err := client.SendTweet(txt, &tweet.IdStr); err == nil {

@@ -187,7 +187,11 @@ func (r *queryResolver) FindGames(ctx context.Context, team *string, gameTime *t
 }
 func (r *queryResolver) FindPlayers(ctx context.Context, name *string, team *string, position *string, withGame *bool) ([]*types.Player, error) {
 	if withGame != nil && *withGame {
-		return db.SearchPlayersWithGame(name, team, position, 10)
+		settings, err := leagueFromContext(ctx)
+		if err != nil {
+			return []*types.Player{}, err
+		}
+		return db.SearchPlayersWithGame(settings, name, team, position, 10)
 	} else {
 		return db.SearchPlayers(name, team, position, 10)
 	}

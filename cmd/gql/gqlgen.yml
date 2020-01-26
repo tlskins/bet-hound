@@ -44,6 +44,8 @@ models:
     model: bet-hound/cmd/types.LeagueSettings
   BetChanges:
     model: bet-hound/cmd/types.BetChanges
+  BetRecipient:
+    model: bet-hound/cmd/types.BetRecipient
   EquationChanges:
     model: bet-hound/cmd/types.EquationChanges
   PlayerExpressionChanges:

@@ -1287,8 +1287,13 @@ input ProfileChanges {
   password: String
 }
 
+input BetRecipient {
+  id: String
+  twitterScreenName: String
+}
+
 input BetChanges {
-  recipientId: String!
+  betRecipient: BetRecipient!
   equationsChanges: [EquationChanges]!
 }
 
@@ -6285,15 +6290,39 @@ func (ec *executionContext) unmarshalInputBetChanges(ctx context.Context, obj in
 
 	for k, v := range asMap {
 		switch k {
-		case "recipientId":
+		case "betRecipient":
 			var err error
-			it.RecipientId, err = ec.unmarshalNString2string(ctx, v)
+			it.BetRecipient, err = ec.unmarshalNBetRecipient2betᚑhoundᚋcmdᚋtypesᚐBetRecipient(ctx, v)
 			if err != nil {
 				return it, err
 			}
 		case "equationsChanges":
 			var err error
 			it.EquationsChanges, err = ec.unmarshalNEquationChanges2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐEquationChanges(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputBetRecipient(ctx context.Context, obj interface{}) (types.BetRecipient, error) {
+	var it types.BetRecipient
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+			it.Id, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "twitterScreenName":
+			var err error
+			it.TwitterScreenName, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -7587,6 +7616,10 @@ func (ec *executionContext) marshalNBetMap2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐBet
 	}
 	wg.Wait()
 	return ret
+}
+
+func (ec *executionContext) unmarshalNBetRecipient2betᚑhoundᚋcmdᚋtypesᚐBetRecipient(ctx context.Context, v interface{}) (types.BetRecipient, error) {
+	return ec.unmarshalInputBetRecipient(ctx, v)
 }
 
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
