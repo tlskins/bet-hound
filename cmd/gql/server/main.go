@@ -110,7 +110,7 @@ func main() {
 	if _, err := cronSrv.AddFunc("*/30 * * * *", ProcessEvents(lgSttgs, logger)); err != nil {
 		fmt.Println(err)
 	}
-	if _, err := cronSrv.AddFunc("*/10 * * * *", ProcessRotoNfl(&gqlConfig)); err != nil {
+	if _, err := cronSrv.AddFunc("*/30 * * * *", ProcessRotoNfl(&gqlConfig)); err != nil {
 		fmt.Println(err)
 	}
 	cronSrv.Start()

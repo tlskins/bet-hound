@@ -16,6 +16,8 @@ models:
     model: bet-hound/cmd/types.Bet
   User:
     model: bet-hound/cmd/types.User
+  Notification:
+    model: bet-hound/cmd/types.Notification
   ProfileChanges:
     model: bet-hound/cmd/types.ProfileChanges
   TwitterUser:

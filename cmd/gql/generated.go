@@ -121,12 +121,21 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AcceptBet       func(childComplexity int, id string, accept bool) int
-		CreateBet       func(childComplexity int, changes types.BetChanges) int
-		Post            func(childComplexity int, text string, username string, roomName string) int
-		PostRotoArticle func(childComplexity int) int
-		SignOut         func(childComplexity int) int
-		UpdateUser      func(childComplexity int, changes types.ProfileChanges) int
+		AcceptBet            func(childComplexity int, id string, accept bool) int
+		CreateBet            func(childComplexity int, changes types.BetChanges) int
+		Post                 func(childComplexity int, text string, username string, roomName string) int
+		PostRotoArticle      func(childComplexity int) int
+		PostUserNotification func(childComplexity int, userID string, sentAt time.Time, title string, typeArg string, message *string) int
+		SignOut              func(childComplexity int) int
+		UpdateUser           func(childComplexity int, changes types.ProfileChanges) int
+	}
+
+	Notification struct {
+		Id      func(childComplexity int) int
+		Message func(childComplexity int) int
+		SentAt  func(childComplexity int) int
+		Title   func(childComplexity int) int
+		Type    func(childComplexity int) int
 	}
 
 	Player struct {
@@ -179,7 +188,7 @@ type ComplexityRoot struct {
 
 	Subscription struct {
 		MessageAdded     func(childComplexity int, roomName string) int
-		RotoArticleAdded func(childComplexity int) int
+		UserNotification func(childComplexity int) int
 	}
 
 	TwitterUser struct {
@@ -206,6 +215,7 @@ type MutationResolver interface {
 	AcceptBet(ctx context.Context, id string, accept bool) (bool, error)
 	Post(ctx context.Context, text string, username string, roomName string) (*types.Message, error)
 	PostRotoArticle(ctx context.Context) (*types.RotoArticle, error)
+	PostUserNotification(ctx context.Context, userID string, sentAt time.Time, title string, typeArg string, message *string) (*types.Notification, error)
 }
 type QueryResolver interface {
 	SignIn(ctx context.Context, userName string, password string) (*types.User, error)
@@ -222,7 +232,7 @@ type QueryResolver interface {
 }
 type SubscriptionResolver interface {
 	MessageAdded(ctx context.Context, roomName string) (<-chan *types.Message, error)
-	RotoArticleAdded(ctx context.Context) (<-chan *types.RotoArticle, error)
+	UserNotification(ctx context.Context) (<-chan *types.Notification, error)
 }
 
 type executableSchema struct {
@@ -626,6 +636,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.PostRotoArticle(childComplexity), true
 
+	case "Mutation.postUserNotification":
+		if e.complexity.Mutation.PostUserNotification == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_postUserNotification_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.PostUserNotification(childComplexity, args["userId"].(string), args["sentAt"].(time.Time), args["title"].(string), args["type"].(string), args["message"].(*string)), true
+
 	case "Mutation.signOut":
 		if e.complexity.Mutation.SignOut == nil {
 			break
@@ -644,6 +666,41 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.UpdateUser(childComplexity, args["changes"].(types.ProfileChanges)), true
+
+	case "Notification.id":
+		if e.complexity.Notification.Id == nil {
+			break
+		}
+
+		return e.complexity.Notification.Id(childComplexity), true
+
+	case "Notification.message":
+		if e.complexity.Notification.Message == nil {
+			break
+		}
+
+		return e.complexity.Notification.Message(childComplexity), true
+
+	case "Notification.sentAt":
+		if e.complexity.Notification.SentAt == nil {
+			break
+		}
+
+		return e.complexity.Notification.SentAt(childComplexity), true
+
+	case "Notification.title":
+		if e.complexity.Notification.Title == nil {
+			break
+		}
+
+		return e.complexity.Notification.Title(childComplexity), true
+
+	case "Notification.type":
+		if e.complexity.Notification.Type == nil {
+			break
+		}
+
+		return e.complexity.Notification.Type(childComplexity), true
 
 	case "Player.firstName":
 		if e.complexity.Player.FirstName == nil {
@@ -949,12 +1006,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Subscription.MessageAdded(childComplexity, args["roomName"].(string)), true
 
-	case "Subscription.rotoArticleAdded":
-		if e.complexity.Subscription.RotoArticleAdded == nil {
+	case "Subscription.userNotification":
+		if e.complexity.Subscription.UserNotification == nil {
 			break
 		}
 
-		return e.complexity.Subscription.RotoArticleAdded(childComplexity), true
+		return e.complexity.Subscription.UserNotification(childComplexity), true
 
 	case "TwitterUser.id":
 		if e.complexity.TwitterUser.Id == nil {
@@ -1217,6 +1274,13 @@ type User {
   twitterUser: TwitterUser
 }
 
+type Notification {
+  id: ID
+  sentAt: Timestamp!
+  title: String!
+  type: String!
+  message: String
+}
 # chatting
 
 type Chatroom {
@@ -1272,11 +1336,18 @@ type Mutation {
   acceptBet(id: ID!, accept: Boolean!): Boolean!
   post(text: String!, username: String!, roomName: String!): Message!
   postRotoArticle: RotoArticle!
+  postUserNotification(
+    userId: String!
+    sentAt: Timestamp!
+    title: String!
+    type: String!
+    message: String
+  ): Notification!
 }
 
 type Subscription {
   messageAdded(roomName: String!): Message!
-  rotoArticleAdded: RotoArticle!
+  userNotification: Notification!
 }
 
 # inputs
@@ -1372,6 +1443,52 @@ func (ec *executionContext) field_Mutation_createBet_args(ctx context.Context, r
 		}
 	}
 	args["changes"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_postUserNotification_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["userId"]; ok {
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["userId"] = arg0
+	var arg1 time.Time
+	if tmp, ok := rawArgs["sentAt"]; ok {
+		arg1, err = ec.unmarshalNTimestamp2timeᚐTime(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["sentAt"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["title"]; ok {
+		arg2, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["title"] = arg2
+	var arg3 string
+	if tmp, ok := rawArgs["type"]; ok {
+		arg3, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["type"] = arg3
+	var arg4 *string
+	if tmp, ok := rawArgs["message"]; ok {
+		arg4, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["message"] = arg4
 	return args, nil
 }
 
@@ -3508,6 +3625,211 @@ func (ec *executionContext) _Mutation_postRotoArticle(ctx context.Context, field
 	return ec.marshalNRotoArticle2ᚖbetᚑhoundᚋcmdᚋtypesᚐRotoArticle(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Mutation_postUserNotification(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_postUserNotification_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().PostUserNotification(rctx, args["userId"].(string), args["sentAt"].(time.Time), args["title"].(string), args["type"].(string), args["message"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*types.Notification)
+	fc.Result = res
+	return ec.marshalNNotification2ᚖbetᚑhoundᚋcmdᚋtypesᚐNotification(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Notification_id(ctx context.Context, field graphql.CollectedField, obj *types.Notification) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Notification",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Id, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalOID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Notification_sentAt(ctx context.Context, field graphql.CollectedField, obj *types.Notification) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Notification",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SentAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTimestamp2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Notification_title(ctx context.Context, field graphql.CollectedField, obj *types.Notification) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Notification",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Title, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Notification_type(ctx context.Context, field graphql.CollectedField, obj *types.Notification) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Notification",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Type, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Notification_message(ctx context.Context, field graphql.CollectedField, obj *types.Notification) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Notification",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Message, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Player_id(ctx context.Context, field graphql.CollectedField, obj *types.Player) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -4857,7 +5179,7 @@ func (ec *executionContext) _Subscription_messageAdded(ctx context.Context, fiel
 	}
 }
 
-func (ec *executionContext) _Subscription_rotoArticleAdded(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
+func (ec *executionContext) _Subscription_userNotification(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -4874,7 +5196,7 @@ func (ec *executionContext) _Subscription_rotoArticleAdded(ctx context.Context, 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Subscription().RotoArticleAdded(rctx)
+		return ec.resolvers.Subscription().UserNotification(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4887,7 +5209,7 @@ func (ec *executionContext) _Subscription_rotoArticleAdded(ctx context.Context, 
 		return nil
 	}
 	return func() graphql.Marshaler {
-		res, ok := <-resTmp.(<-chan *types.RotoArticle)
+		res, ok := <-resTmp.(<-chan *types.Notification)
 		if !ok {
 			return nil
 		}
@@ -4895,7 +5217,7 @@ func (ec *executionContext) _Subscription_rotoArticleAdded(ctx context.Context, 
 			w.Write([]byte{'{'})
 			graphql.MarshalString(field.Alias).MarshalGQL(w)
 			w.Write([]byte{':'})
-			ec.marshalNRotoArticle2ᚖbetᚑhoundᚋcmdᚋtypesᚐRotoArticle(ctx, field.Selections, res).MarshalGQL(w)
+			ec.marshalNNotification2ᚖbetᚑhoundᚋcmdᚋtypesᚐNotification(ctx, field.Selections, res).MarshalGQL(w)
 			w.Write([]byte{'}'})
 		})
 	}
@@ -6842,6 +7164,52 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "postUserNotification":
+			out.Values[i] = ec._Mutation_postUserNotification(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var notificationImplementors = []string{"Notification"}
+
+func (ec *executionContext) _Notification(ctx context.Context, sel ast.SelectionSet, obj *types.Notification) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, notificationImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Notification")
+		case "id":
+			out.Values[i] = ec._Notification_id(ctx, field, obj)
+		case "sentAt":
+			out.Values[i] = ec._Notification_sentAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "title":
+			out.Values[i] = ec._Notification_title(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "type":
+			out.Values[i] = ec._Notification_type(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "message":
+			out.Values[i] = ec._Notification_message(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7192,8 +7560,8 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 	switch fields[0].Name {
 	case "messageAdded":
 		return ec._Subscription_messageAdded(ctx, fields[0])
-	case "rotoArticleAdded":
-		return ec._Subscription_rotoArticleAdded(ctx, fields[0])
+	case "userNotification":
+		return ec._Subscription_userNotification(ctx, fields[0])
 	default:
 		panic("unknown field " + strconv.Quote(fields[0].Name))
 	}
@@ -7837,6 +8205,20 @@ func (ec *executionContext) marshalNMessage2ᚖbetᚑhoundᚋcmdᚋtypesᚐMessa
 	return ec._Message(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNNotification2betᚑhoundᚋcmdᚋtypesᚐNotification(ctx context.Context, sel ast.SelectionSet, v types.Notification) graphql.Marshaler {
+	return ec._Notification(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNNotification2ᚖbetᚑhoundᚋcmdᚋtypesᚐNotification(ctx context.Context, sel ast.SelectionSet, v *types.Notification) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Notification(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNPlayer2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐPlayer(ctx context.Context, sel ast.SelectionSet, v []*types.Player) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -8404,6 +8786,14 @@ func (ec *executionContext) marshalOGame2ᚖbetᚑhoundᚋcmdᚋtypesᚐGame(ctx
 		return graphql.Null
 	}
 	return ec._Game(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOID2string(ctx context.Context, v interface{}) (string, error) {
+	return graphql.UnmarshalID(v)
+}
+
+func (ec *executionContext) marshalOID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	return graphql.MarshalID(v)
 }
 
 func (ec *executionContext) unmarshalOInt2int(ctx context.Context, v interface{}) (int, error) {

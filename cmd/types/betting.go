@@ -109,6 +109,26 @@ type Bet struct {
 	BetResult        *BetResult  `bson:"rslt" json:"result"`
 }
 
+func (b Bet) ProposerName() string {
+	if len(b.Proposer.UserName) > 0 {
+		return b.Proposer.UserName
+	} else if b.Proposer.TwitterUser != nil {
+		return b.Proposer.TwitterUser.ScreenName
+	} else {
+		return "?"
+	}
+}
+
+func (b Bet) RecipientName() string {
+	if len(b.Recipient.UserName) > 0 {
+		return b.Recipient.UserName
+	} else if b.Recipient.TwitterUser != nil {
+		return b.Recipient.TwitterUser.ScreenName
+	} else {
+		return "?"
+	}
+}
+
 func (b Bet) TwitterHandles() (result string) {
 	handles := []string{}
 	if b.Proposer.TwitterUser != nil {

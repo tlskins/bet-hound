@@ -12,14 +12,14 @@ import (
 	t "bet-hound/cmd/types"
 )
 
-func AcceptBet(user *t.User, betId string, accept bool) (bool, error) {
+func AcceptBet(user *t.User, betId string, accept bool) (*t.Bet, *t.Notification, error) {
 	bet, err := db.FindBetById(betId)
 	if err != nil {
-		return false, err
+		return nil, nil, err
 	} else if bet.BetStatus.String() != "Pending Approval" {
-		return false, fmt.Errorf("Cannot accept a bet with status: %s", bet.BetStatus.String())
+		return nil, nil, fmt.Errorf("Cannot accept a bet with status: %s", bet.BetStatus.String())
 	} else if bet.Recipient.Id != user.Id && bet.Proposer.Id != user.Id {
-		return false, fmt.Errorf("You are not involved with this bet")
+		return nil, nil, fmt.Errorf("You are not involved with this bet")
 	}
 
 	var status t.BetStatus
@@ -43,17 +43,18 @@ func AcceptBet(user *t.User, betId string, accept bool) (bool, error) {
 	}
 	bet.BetStatus = status
 	if err = db.UpsertBet(bet); err != nil {
-		return false, err
+		return nil, nil, err
 	}
-	return true, nil
+	note, _ := db.SyncBetWithUsers("Update", bet)
+	return bet, note, nil
 }
 
-func CreateBet(proposer *t.User, changes *t.BetChanges, settings *t.LeagueSettings) (bet *t.Bet, err error) {
+func CreateBet(proposer *t.User, changes *t.BetChanges, settings *t.LeagueSettings) (bet *t.Bet, note *t.Notification, err error) {
 	now := time.Now()
 	rand.Seed(now.UnixNano())
 	recipient, err := db.FindOrCreateBetRecipient(&changes.BetRecipient)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	pReplyFk := "-1"
 	bet = &t.Bet{
@@ -85,13 +86,13 @@ func CreateBet(proposer *t.User, changes *t.BetChanges, settings *t.LeagueSettin
 			// add player
 			if exprChg.PlayerFk != nil {
 				if expr.Player, err = db.FindPlayer(*exprChg.PlayerFk); err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 			}
 			// add game
 			if exprChg.GameFk != nil {
 				if expr.Game, _ = db.FindCurrentGame(settings, *exprChg.GameFk); err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 			}
 			// add metric
@@ -106,17 +107,18 @@ func CreateBet(proposer *t.User, changes *t.BetChanges, settings *t.LeagueSettin
 	// validate and upsert
 	bet.PostProcess()
 	if err = bet.Valid(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if err = db.UpsertBet(bet); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if bet.Recipient.TwitterUser != nil {
 		if _, err = TweetBetProposal(bet); err != nil {
-			return bet, err
+			return bet, nil, err
 		}
 	}
-	return
+	note, _ = db.SyncBetWithUsers("Create", bet)
+	return bet, note, nil
 }
 
 func EvaluateBet(b *t.Bet, g *t.Game) (*t.Bet, error) {

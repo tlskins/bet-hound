@@ -12,8 +12,3 @@ type RotoArticle struct {
 	Article    string    `bson:"art" json:"article"`
 	ScrapedAt  time.Time `bson:"scp_at" json:"scraped_at"`
 }
-
-type RotoObserver struct {
-	Observers []chan *RotoArticle
-	Title     string
-}

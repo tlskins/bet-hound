@@ -17,11 +17,16 @@ import (
 
 // THIS CODE IS A STARTING POINT ONLY. IT WILL NOT BE UPDATED WITH SCHEMA CHANGES.
 
+type UserObserver struct {
+	Observer chan *types.Notification
+}
+
 type resolver struct {
-	Rooms        map[string]*types.Chatroom
-	RotoObserver *types.RotoObserver
-	RotoArticles map[string][]*types.RotoArticle
-	mu           sync.Mutex
+	Rooms         map[string]*types.Chatroom
+	UserObservers map[string]*UserObserver
+	RotoArticles  map[string][]*types.RotoArticle
+	LastRotoTitle string
+	mu            sync.Mutex
 }
 
 func (r *resolver) Mutation() MutationResolver {
@@ -39,9 +44,9 @@ func (r *resolver) Subscription() SubscriptionResolver {
 func New() Config {
 	return Config{
 		Resolvers: &resolver{
-			Rooms:        map[string]*types.Chatroom{},
-			RotoObserver: &types.RotoObserver{},
-			RotoArticles: map[string][]*types.RotoArticle{},
+			Rooms:         map[string]*types.Chatroom{},
+			UserObservers: map[string]*UserObserver{},
+			RotoArticles:  map[string][]*types.RotoArticle{},
 		},
 	}
 }
@@ -89,16 +94,40 @@ func (r *mutationResolver) CreateBet(ctx context.Context, changes types.BetChang
 	if err != nil {
 		return nil, err
 	}
+	bet, note, err := betting.CreateBet(user, &changes, sttgs)
+	if err != nil {
+		return nil, err
+	}
+	// push notifications if online
+	for _, userId := range []string{bet.Proposer.Id, bet.Recipient.Id} {
+		if r.UserObservers[userId] != nil {
+			r.mu.Lock()
+			r.UserObservers[userId].Observer <- note
+			r.mu.Unlock()
+		}
+	}
 
-	return betting.CreateBet(user, &changes, sttgs)
+	return
 }
 func (r *mutationResolver) AcceptBet(ctx context.Context, id string, accept bool) (bool, error) {
 	user, err := userFromContext(ctx)
 	if err != nil {
 		return false, err
 	}
+	bet, note, err := betting.AcceptBet(user, id, accept)
+	if err != nil {
+		return false, err
+	}
+	// push notifications if online
+	for _, userId := range []string{bet.Proposer.Id, bet.Recipient.Id} {
+		if r.UserObservers[userId] != nil {
+			r.mu.Lock()
+			r.UserObservers[userId].Observer <- note
+			r.mu.Unlock()
+		}
+	}
 
-	return betting.AcceptBet(user, id, accept)
+	return true, nil
 }
 func (r *mutationResolver) Post(ctx context.Context, text string, username string, roomName string) (*types.Message, error) {
 	r.mu.Lock()
@@ -133,10 +162,9 @@ func (r *mutationResolver) Post(ctx context.Context, text string, username strin
 	return &message, nil
 }
 
-// need to change this nfl specific
 func (r *mutationResolver) PostRotoArticle(ctx context.Context) (*types.RotoArticle, error) {
-	fmt.Println("mutationResolver.PostRotoArticle...")
-	if len(r.RotoObserver.Observers) == 0 {
+	fmt.Println("mutationResolver.PostRotoArticle... userObservers:", r.UserObservers)
+	if len(r.UserObservers) == 0 {
 		return nil, nil
 	}
 	articles, err := scraper.RotoNflArticles(10)
@@ -144,19 +172,54 @@ func (r *mutationResolver) PostRotoArticle(ctx context.Context) (*types.RotoArti
 		return nil, err
 	}
 	last := articles[0] // last article is first in array
-	if last == nil || last.Title == r.RotoObserver.Title {
+	if last == nil || last.Title == r.LastRotoTitle {
 		return nil, nil
 	}
 
 	r.mu.Lock()
 	r.RotoArticles["nfl"] = articles
-	r.RotoObserver.Title = last.Title
-	for _, observer := range r.RotoObserver.Observers {
-		observer <- last
+	r.LastRotoTitle = last.Title
+	for _, userObserver := range r.UserObservers {
+		userObserver.Observer <- &types.Notification{
+			Title:   last.Title,
+			Type:    "RotoAlert",
+			SentAt:  time.Now(),
+			Message: last.Article,
+		}
 	}
 	r.mu.Unlock()
 
 	return last, nil
+}
+
+// not in use...
+func (r *mutationResolver) PostUserNotification(ctx context.Context, userId string, sentAt time.Time, title string, typeArg string, message *string) (*types.Notification, error) {
+	fmt.Println("mutationResolver.PostUserNotification...")
+	if len(r.UserObservers) == 0 {
+		return nil, nil
+	}
+
+	sent := false
+	note := &types.Notification{
+		Title:  title,
+		Type:   typeArg,
+		SentAt: sentAt,
+	}
+	r.mu.Lock()
+	if message != nil {
+		note.Message = *message
+	}
+	if r.UserObservers[userId] != nil {
+		r.UserObservers[userId].Observer <- note
+		sent = true
+	}
+	r.mu.Unlock()
+
+	if sent {
+		return note, nil
+	} else {
+		return nil, nil
+	}
 }
 
 type queryResolver struct{ *resolver }
@@ -277,11 +340,15 @@ func (r *subscriptionResolver) MessageAdded(ctx context.Context, roomName string
 	return events, nil
 }
 
-func (r *subscriptionResolver) RotoArticleAdded(ctx context.Context) (<-chan *types.RotoArticle, error) {
-	events := make(chan *types.RotoArticle, 1)
+func (r *subscriptionResolver) UserNotification(ctx context.Context) (<-chan *types.Notification, error) {
+	user, err := userFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	events := make(chan *types.Notification, 1)
 
 	r.mu.Lock()
-	r.RotoObserver.Observers = append(r.RotoObserver.Observers, events)
+	r.UserObservers[user.Id] = &UserObserver{Observer: events}
 	r.mu.Unlock()
 
 	return events, nil

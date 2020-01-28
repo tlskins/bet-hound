@@ -2,6 +2,8 @@ package db
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/globalsign/mgo/bson"
 	uuid "github.com/satori/go.uuid"
 
@@ -146,4 +148,59 @@ func SignInUser(username, password string) (*t.User, error) {
 	var user t.User
 	err := m.FindOne(c, &user, m.M{"usr_nm": username, "pwd": password})
 	return &user, err
+}
+
+func SyncBetWithUsers(event string, bet *t.Bet) (*t.Notification, error) {
+	conn := env.MGOSession().Copy()
+	defer conn.Close()
+	c := conn.DB(env.MongoDb()).C(env.UsersCollection())
+
+	// notification
+	note := t.Notification{
+		Id:     uuid.NewV4().String(),
+		Type:   "BetCreated",
+		SentAt: time.Now(),
+	}
+	var pUpdate, rUpdate m.M
+
+	if event == "Create" {
+		note.Title = fmt.Sprintf("%s proposed a bet with %s", bet.ProposerName(), bet.RecipientName())
+		note.Message = bet.String()
+
+		pUpdate = m.M{"$push": m.M{
+			"pnd_t_bts": bet.Id,
+			"notes":     m.M{"$each": []t.Notification{note}, "$slice": -10},
+		}}
+		rUpdate = m.M{"$push": m.M{
+			"pnd_u_bts": bet.Id,
+			"notes":     m.M{"$each": []t.Notification{note}, "$slice": -10},
+		}}
+	} else {
+		note.Title = fmt.Sprintf("%s's bet with %s was %s", bet.ProposerName(), bet.RecipientName(), bet.BetStatus.String())
+		note.Message = bet.BetStatus.String() + ": " + bet.String()
+
+		var prgBetId *string
+		if bet.BetStatus.String() == "Accepted" {
+			prgBetId = &bet.Id
+		}
+		pUpdate = m.M{
+			"$push": m.M{
+				"notes":   m.M{"$each": []t.Notification{note}, "$slice": -10},
+				"prg_bts": prgBetId,
+			},
+			"$pull": m.M{"pnd_u_bts": bet.Id, "pnd_t_bts": bet.Id},
+		}
+		rUpdate = m.M{
+			"$push": m.M{
+				"notes":   m.M{"$each": []t.Notification{note}, "$slice": -10},
+				"prg_bts": prgBetId,
+			},
+			"$pull": m.M{"pnd_u_bts": bet.Id, "pnd_t_bts": bet.Id},
+		}
+	}
+
+	c.Update(m.M{"_id": bet.Proposer.Id}, pUpdate)
+	c.Update(m.M{"_id": bet.Recipient.Id}, rUpdate)
+
+	return &note, nil
 }

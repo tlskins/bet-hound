@@ -20,7 +20,9 @@ func TweetBetProposal(bet *t.Bet) (*t.Tweet, error) {
 	client := env.TwitterClient()
 
 	betUrl := fmt.Sprintf("%s/bet/%s", env.AppUrl(), bet.Id)
-	txt := fmt.Sprintf("@%s %s. Do you accept? %s", bet.Recipient.TwitterUser.ScreenName, bet.String(), betUrl)
+	rcpt := bet.Recipient.TwitterUser.ScreenName
+	prps := bet.Proposer.TwitterUser.ScreenName
+	txt := fmt.Sprintf("@%s @%s %s. Do you accept? %s", prps, rcpt, bet.String(), betUrl)
 	resp, err := client.SendTweet(txt, nil)
 	if err != nil {
 		return nil, err

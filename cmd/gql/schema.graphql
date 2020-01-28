@@ -106,6 +106,13 @@ type User {
   twitterUser: TwitterUser
 }
 
+type Notification {
+  id: ID
+  sentAt: Timestamp!
+  title: String!
+  type: String!
+  message: String
+}
 # chatting
 
 type Chatroom {
@@ -161,11 +168,18 @@ type Mutation {
   acceptBet(id: ID!, accept: Boolean!): Boolean!
   post(text: String!, username: String!, roomName: String!): Message!
   postRotoArticle: RotoArticle!
+  postUserNotification(
+    userId: String!
+    sentAt: Timestamp!
+    title: String!
+    type: String!
+    message: String
+  ): Notification!
 }
 
 type Subscription {
   messageAdded(roomName: String!): Message!
-  rotoArticleAdded: RotoArticle!
+  userNotification: Notification!
 }
 
 # inputs
