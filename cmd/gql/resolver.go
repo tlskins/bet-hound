@@ -229,7 +229,6 @@ func (r *subscriptionResolver) SubscribeUserNotifications(ctx context.Context) (
 // Helper functions
 
 func (r *mutationResolver) pushUserProfileNotification(newProf *types.User) {
-	fmt.Println("pushing user profile note:", newProf.Id, r.UserObservers)
 	if r.UserObservers[newProf.Id] == nil {
 		return
 	}
@@ -241,7 +240,6 @@ func (r *mutationResolver) pushUserProfileNotification(newProf *types.User) {
 		fmt.Println("push user profile timeout!")
 	}
 	r.mu.Unlock()
-	fmt.Println("post pushing user profile note:", newProf.Id)
 }
 
 func userFromContext(ctx context.Context) (*types.User, error) {
