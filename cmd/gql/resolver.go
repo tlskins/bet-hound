@@ -3,7 +3,6 @@ package gql
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"sync"
 	"time"
 
@@ -18,12 +17,10 @@ import (
 // THIS CODE IS A STARTING POINT ONLY. IT WILL NOT BE UPDATED WITH SCHEMA CHANGES.
 
 type UserObserver struct {
-	Notifications chan *types.Notification
-	Profile       chan *types.User
+	Profile chan *types.User
 }
 
 type resolver struct {
-	Rooms         map[string]*types.Chatroom
 	UserObservers map[string]*UserObserver
 	RotoArticles  map[string][]*types.RotoArticle
 	LastRotoTitle string
@@ -45,7 +42,6 @@ func (r *resolver) Subscription() SubscriptionResolver {
 func New() Config {
 	return Config{
 		Resolvers: &resolver{
-			Rooms:         map[string]*types.Chatroom{},
 			UserObservers: map[string]*UserObserver{},
 			RotoArticles:  map[string][]*types.RotoArticle{},
 		},
@@ -58,13 +54,20 @@ func (r *mutationResolver) SignOut(ctx context.Context) (bool, error) {
 	authPointer := ctx.Value(mw.AuthContextKey("userID")).(*mw.AuthResponseWriter)
 	return authPointer.DeleteSession(env.AppHost()), nil
 }
-func (r *mutationResolver) ViewProfile(ctx context.Context) (*types.User, error) {
+func (r *mutationResolver) ViewProfile(ctx context.Context, sync bool) (*types.User, error) {
 	user, err := userFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return db.ViewUserProfile(user.Id)
+	if sync {
+		return db.ViewUserProfile(user.Id)
+	} else if users, err := db.FindUserByIds([]string{user.Id}); err != nil {
+		return nil, err
+	} else if len(users) > 0 {
+		return users[0], nil
+	}
+	return nil, nil
 }
 func (r *mutationResolver) UpdateUser(ctx context.Context, changes types.ProfileChanges) (*types.User, error) {
 	user, err := userFromContext(ctx)
@@ -112,51 +115,18 @@ func (r *mutationResolver) AcceptBet(ctx context.Context, id string, accept bool
 
 	return true, nil
 }
-func (r *mutationResolver) Post(ctx context.Context, text string, username string, roomName string) (*types.Message, error) {
-	r.mu.Lock()
-	room := r.Rooms[roomName]
-	if room == nil {
-		room = &types.Chatroom{
-			Name: roomName,
-			Observers: map[string]struct {
-				Username string
-				Message  chan *types.Message
-			}{},
-		}
-		r.Rooms[roomName] = room
-	}
-	r.mu.Unlock()
-
-	message := types.Message{
-		ID:        randString(8),
-		CreatedAt: time.Now(),
-		Text:      text,
-		CreatedBy: username,
-	}
-
-	room.Messages = append(room.Messages, message)
-	r.mu.Lock()
-	for _, observer := range room.Observers {
-		if observer.Username == "" || observer.Username == message.CreatedBy {
-			observer.Message <- &message
-		}
-	}
-	r.mu.Unlock()
-	return &message, nil
-}
-
-func (r *mutationResolver) PostRotoArticle(ctx context.Context) (*types.RotoArticle, error) {
+func (r *mutationResolver) PostRotoArticle(ctx context.Context) (bool, error) {
 	fmt.Println("mutationResolver.PostRotoArticle... userObservers:", r.UserObservers)
 	if len(r.UserObservers) == 0 {
-		return nil, nil
+		return false, nil
 	}
 	articles, err := scraper.RotoNflArticles(10)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 	last := articles[0] // last article is first in array
 	if last == nil || last.Title == r.LastRotoTitle {
-		return nil, nil
+		return false, nil
 	}
 
 	r.mu.Lock()
@@ -173,7 +143,7 @@ func (r *mutationResolver) PostRotoArticle(ctx context.Context) (*types.RotoArti
 	}
 	r.mu.Unlock()
 
-	return last, nil
+	return true, nil
 }
 
 type queryResolver struct{ *resolver }
@@ -220,23 +190,6 @@ func (r *queryResolver) FindPlayers(ctx context.Context, name *string, team *str
 func (r *queryResolver) FindUsers(ctx context.Context, search string) ([]*types.User, error) {
 	return db.FindUser(search, 10)
 }
-func (r *queryResolver) Room(ctx context.Context, name string) (*types.Chatroom, error) {
-	r.mu.Lock()
-	room := r.Rooms[name]
-	if room == nil {
-		room = &types.Chatroom{
-			Name: name,
-			Observers: map[string]struct {
-				Username string
-				Message  chan *types.Message
-			}{},
-		}
-		r.Rooms[name] = room
-	}
-	r.mu.Unlock()
-
-	return room, nil
-}
 func (r *queryResolver) CurrentRotoArticles(ctx context.Context, id string) (articles []*types.RotoArticle, err error) {
 	articles = r.RotoArticles[id]
 	if len(articles) == 0 {
@@ -259,53 +212,6 @@ func (r *queryResolver) CurrentGames(ctx context.Context) ([]*types.Game, error)
 
 type subscriptionResolver struct{ *resolver }
 
-func (r *subscriptionResolver) MessageAdded(ctx context.Context, roomName string) (<-chan *types.Message, error) {
-	r.mu.Lock()
-	room := r.Rooms[roomName]
-	if room == nil {
-		room = &types.Chatroom{
-			Name: roomName,
-			Observers: map[string]struct {
-				Username string
-				Message  chan *types.Message
-			}{},
-		}
-		r.Rooms[roomName] = room
-	}
-	r.mu.Unlock()
-
-	id := randString(8)
-	events := make(chan *types.Message, 1)
-
-	go func() {
-		<-ctx.Done()
-		r.mu.Lock()
-		delete(room.Observers, id)
-		r.mu.Unlock()
-	}()
-
-	r.mu.Lock()
-	room.Observers[id] = struct {
-		Username string
-		Message  chan *types.Message
-	}{Username: getUsername(ctx), Message: events}
-	r.mu.Unlock()
-
-	return events, nil
-}
-func (r *subscriptionResolver) SubscribeNotifications(ctx context.Context) (<-chan *types.Notification, error) {
-	user, err := userFromContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	events := make(chan *types.Notification, 1)
-
-	r.mu.Lock()
-	r.UserObservers[user.Id] = &UserObserver{Notifications: events}
-	r.mu.Unlock()
-
-	return events, nil
-}
 func (r *subscriptionResolver) SubscribeUserNotifications(ctx context.Context) (<-chan *types.User, error) {
 	user, err := userFromContext(ctx)
 	if err != nil {
@@ -338,29 +244,6 @@ func (r *mutationResolver) pushUserProfileNotification(newProf *types.User) {
 	fmt.Println("post pushing user profile note:", newProf.Id)
 }
 
-func (r *mutationResolver) pushUserNotification(userId string, note *types.Notification) {
-	fmt.Println("pushing user note:", r.UserObservers)
-	if r.UserObservers[userId] == nil {
-		return
-	}
-
-	r.mu.Lock()
-	select {
-	case r.UserObservers[userId].Notifications <- note:
-	case <-time.After(3 * time.Second):
-		fmt.Println("push user notification timeout!")
-	}
-	r.mu.Unlock()
-	fmt.Println("post pushing user note:", userId)
-}
-
-func getUsername(ctx context.Context) string {
-	if username, ok := ctx.Value("username").(string); ok {
-		return username
-	}
-	return ""
-}
-
 func userFromContext(ctx context.Context) (*types.User, error) {
 	authPointer := ctx.Value(mw.AuthContextKey("userID")).(*mw.AuthResponseWriter)
 	if users, err := db.FindUserByIds([]string{authPointer.UserId}); err == nil && len(users) > 0 {
@@ -372,14 +255,4 @@ func userFromContext(ctx context.Context) (*types.User, error) {
 func leagueFromContext(ctx context.Context) (*types.LeagueSettings, error) {
 	lgPointer := ctx.Value(mw.LgContextKey("league")).(*types.LeagueSettings)
 	return lgPointer, nil
-}
-
-var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
-func randString(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letterRunes[rand.Intn(len(letterRunes))]
-	}
-	return string(b)
 }

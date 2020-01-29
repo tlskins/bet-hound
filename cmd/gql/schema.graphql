@@ -120,19 +120,6 @@ type Notification {
   type: String!
   message: String
 }
-# chatting
-
-type Chatroom {
-  name: String!
-  messages: [Message!]!
-}
-
-type Message {
-  id: ID!
-  text: String!
-  createdBy: String!
-  createdAt: Timestamp!
-}
 
 # rotoworld
 
@@ -165,22 +152,18 @@ type Query {
     withGame: Boolean
   ): [Player]!
   findUsers(search: String!): [User]!
-  room(name: String!): Chatroom
 }
 
 type Mutation {
   signOut: Boolean!
-  viewProfile: User!
+  viewProfile(sync: Boolean!): User!
   updateUser(changes: ProfileChanges!): User!
   createBet(changes: BetChanges!): Bet
   acceptBet(id: ID!, accept: Boolean!): Boolean!
-  post(text: String!, username: String!, roomName: String!): Message!
-  postRotoArticle: RotoArticle!
+  postRotoArticle: Boolean!
 }
 
 type Subscription {
-  messageAdded(roomName: String!): Message!
-  subscribeNotifications: Notification!
   subscribeUserNotifications: User!
 }
 
