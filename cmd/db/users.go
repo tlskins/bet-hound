@@ -196,14 +196,14 @@ func SyncBetWithUsers(event string, bet *t.Bet) (*t.Notification, error) {
 		}
 		pUpdate = m.M{
 			"$push": m.M{
-				"notes":   m.M{"$each": []t.Notification{note}, "$slice": -10, "$position": 0},
+				"notes":   m.M{"$each": []t.Notification{note}, "$slice": -10, "$sort": 1},
 				"prg_bts": prgBetId,
 			},
 			"$pull": m.M{"pnd_u_bts": bet.Id, "pnd_t_bts": bet.Id},
 		}
 		rUpdate = m.M{
 			"$push": m.M{
-				"notes":   m.M{"$each": []t.Notification{note}, "$slice": -10, "$position": 0},
+				"notes":   m.M{"$each": []t.Notification{note}, "$slice": -10, "$sort": 1},
 				"prg_bts": prgBetId,
 			},
 			"$pull": m.M{"pnd_u_bts": bet.Id, "pnd_t_bts": bet.Id},

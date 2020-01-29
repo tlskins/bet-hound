@@ -83,14 +83,13 @@ func (r *mutationResolver) CreateBet(ctx context.Context, changes types.BetChang
 	if err != nil {
 		return nil, err
 	}
-	bet, note, err := betting.CreateBet(user, &changes, sttgs)
+	bet, _, err = betting.CreateBet(user, &changes, sttgs)
 	if err != nil {
 		return nil, err
 	}
 	// push notifications if online
 	users, err := db.FindUserByIds([]string{bet.Proposer.Id, bet.Recipient.Id})
 	for _, user := range users {
-		r.pushUserNotification(user.Id, note)
 		r.pushUserProfileNotification(user)
 	}
 
@@ -101,14 +100,13 @@ func (r *mutationResolver) AcceptBet(ctx context.Context, id string, accept bool
 	if err != nil {
 		return false, err
 	}
-	bet, note, err := betting.AcceptBet(user, id, accept)
+	bet, _, err := betting.AcceptBet(user, id, accept)
 	if err != nil {
 		return false, err
 	}
 	// push notifications if online
 	users, err := db.FindUserByIds([]string{bet.Proposer.Id, bet.Recipient.Id})
 	for _, user := range users {
-		r.pushUserNotification(user.Id, note)
 		r.pushUserProfileNotification(user)
 	}
 
@@ -164,13 +162,14 @@ func (r *mutationResolver) PostRotoArticle(ctx context.Context) (*types.RotoArti
 	r.mu.Lock()
 	r.RotoArticles["nfl"] = articles
 	r.LastRotoTitle = last.Title
+	note := &types.Notification{
+		Title:   last.Title,
+		Type:    "RotoAlert",
+		SentAt:  time.Now(),
+		Message: last.Article,
+	}
 	for _, userObserver := range r.UserObservers {
-		userObserver.Notifications <- &types.Notification{
-			Title:   last.Title,
-			Type:    "RotoAlert",
-			SentAt:  time.Now(),
-			Message: last.Article,
-		}
+		userObserver.Profile <- &types.User{Notifications: []*types.Notification{note}}
 	}
 	r.mu.Unlock()
 
@@ -324,35 +323,33 @@ func (r *subscriptionResolver) SubscribeUserNotifications(ctx context.Context) (
 // Helper functions
 
 func (r *mutationResolver) pushUserProfileNotification(newProf *types.User) {
-	fmt.Println("pushing user profile note:", r.UserObservers)
-	if r.UserObservers[newProf.Id] == nil || r.UserObservers[newProf.Id].Profile == nil {
+	fmt.Println("pushing user profile note:", newProf.Id, r.UserObservers)
+	if r.UserObservers[newProf.Id] == nil {
 		return
 	}
 
 	r.mu.Lock()
-	r.UserObservers[newProf.Id].Profile <- newProf
-	// select {
-	// case r.UserObservers[newProf.Id].Profile <- newProf:
-	// case <-time.After(3 * time.Second):
-	// 	fmt.Println("push user profile timeout!")
-	// }
+	select {
+	case r.UserObservers[newProf.Id].Profile <- newProf:
+	case <-time.After(3 * time.Second):
+		fmt.Println("push user profile timeout!")
+	}
 	r.mu.Unlock()
 	fmt.Println("post pushing user profile note:", newProf.Id)
 }
 
 func (r *mutationResolver) pushUserNotification(userId string, note *types.Notification) {
 	fmt.Println("pushing user note:", r.UserObservers)
-	if r.UserObservers[userId] == nil || r.UserObservers[userId].Notifications == nil {
+	if r.UserObservers[userId] == nil {
 		return
 	}
 
 	r.mu.Lock()
-	r.UserObservers[userId].Notifications <- note
-	// select {
-	// case r.UserObservers[userId].Notifications <- note:
-	// case <-time.After(3 * time.Second):
-	// 	fmt.Println("push user notification timeout!")
-	// }
+	select {
+	case r.UserObservers[userId].Notifications <- note:
+	case <-time.After(3 * time.Second):
+		fmt.Println("push user notification timeout!")
+	}
 	r.mu.Unlock()
 	fmt.Println("post pushing user note:", userId)
 }
