@@ -108,11 +108,15 @@ func SearchPlayersWithGame(settings *t.LeagueSettings, name, team, position *str
 	// addfield pipe
 	addField := m.M{"gm": m.M{"$arrayElemAt": []interface{}{"$lk_gms", 0}}}
 
+	// filter no games
+	match2 := m.M{"gm": m.M{"$ne": nil}}
+
 	players = make([]*t.Player, 0, numResults)
 	err = m.Aggregate(c, &players, []m.M{
 		m.M{"$match": match},
 		m.M{"$lookup": lookup},
 		m.M{"$addFields": addField},
+		m.M{"$match": match2},
 	})
 	return
 }
