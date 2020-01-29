@@ -102,8 +102,15 @@ type User {
   id: ID!
   name: String
   userName: String!
-  Email: String
+  email: String
   twitterUser: TwitterUser
+  notifications: [Notification]!
+  viewedProfileLast: Timestamp
+  betsWon: Int!
+  betsLost: Int!
+  inProgressBetIds: [String]!
+  pendingYouBetIds: [String]!
+  pendingThemBetIds: [String]!
 }
 
 type Notification {
@@ -163,23 +170,18 @@ type Query {
 
 type Mutation {
   signOut: Boolean!
+  viewProfile: User!
   updateUser(changes: ProfileChanges!): User!
   createBet(changes: BetChanges!): Bet
   acceptBet(id: ID!, accept: Boolean!): Boolean!
   post(text: String!, username: String!, roomName: String!): Message!
   postRotoArticle: RotoArticle!
-  postUserNotification(
-    userId: String!
-    sentAt: Timestamp!
-    title: String!
-    type: String!
-    message: String
-  ): Notification!
 }
 
 type Subscription {
   messageAdded(roomName: String!): Message!
-  userNotification: Notification!
+  subscribeNotifications: Notification!
+  subscribeUserNotifications: User!
 }
 
 # inputs

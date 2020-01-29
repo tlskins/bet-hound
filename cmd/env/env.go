@@ -38,6 +38,7 @@ type environment struct {
 	leagueStart              string
 	leagueStart2             string
 	leagueEnd                string
+	leagueLastWeek           int
 	logName                  string
 	logPath                  string
 	botHandle                string
@@ -128,6 +129,9 @@ func LeagueStart2() string {
 func LeagueEnd() string {
 	return e.leagueEnd
 }
+func LeagueLastWeek() int {
+	return e.leagueLastWeek
+}
 func LogName() string {
 	return e.logName
 }
@@ -142,6 +146,9 @@ func ServerTz() string {
 }
 func AllowedOrigins() string {
 	return e.allowedOrigins
+}
+func DisableTwitter() {
+	e.tc.Disabled = true
 }
 
 func Init(configFile, configPath string) error {
@@ -193,6 +200,7 @@ func Init(configFile, configPath string) error {
 	e.leagueStart = viper.GetString("league_start")
 	e.leagueStart2 = viper.GetString("league_start2")
 	e.leagueEnd = viper.GetString("league_end")
+	e.leagueLastWeek = viper.GetInt("league_last_week")
 	e.serverTz = viper.GetString("server_tz")
 	e.logName = viper.GetString("log_name")
 	e.logPath = viper.GetString("log_path")

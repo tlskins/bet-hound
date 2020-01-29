@@ -10,16 +10,16 @@ import (
 
 type LeagueSettings struct {
 	Id             string     `bson:"_id" json:"id"`
-	StartDate      *time.Time `bson:"lg_st" json:"league_start_date"`
-	StartWeekTwo   *time.Time `bson:"lg_st_wk_two" json:"league_start_week_two"`
-	EndDate        *time.Time `bson:"lg_end" json:"league_end_date"`
-	MaxScrapedWeek int        `bson:"mx_wk" json:"max_scraped_week"`
-	MinGameTime    *time.Time `bson:"min_gm" json:"min_game_time"`
-	CurrentYear    int        `bson:"c_yr" json:"current_year"`
-	CurrentWeek    int        `bson:"c_wk" json:"current_week"`
-	PlayerBets     []*BetMap  `bson:"p_bts" json:"player_bets"`
-	TeamBets       []*BetMap  `bson:"t_bts" json:"team_bets"`
-	BetEquations   []*BetMap  `bson:"b_eqs" json:"bet_equations"`
+	StartDate      *time.Time `bson:"lg_st,omitempty" json:"league_start_date"`
+	StartWeekTwo   *time.Time `bson:"lg_st_wk_two,omitempty" json:"league_start_week_two"`
+	EndDate        *time.Time `bson:"lg_end,omitempty" json:"league_end_date"`
+	MaxScrapedWeek int        `bson:"mx_wk,omitempty" json:"max_scraped_week"`
+	MinGameTime    *time.Time `bson:"min_gm,omitempty" json:"min_game_time"`
+	CurrentYear    int        `bson:"c_yr,omitempty" json:"current_year"`
+	CurrentWeek    int        `bson:"c_wk,omitempty" json:"current_week"`
+	PlayerBets     []*BetMap  `bson:"p_bts,omitempty" json:"player_bets"`
+	TeamBets       []*BetMap  `bson:"t_bts,omitempty" json:"team_bets"`
+	BetEquations   []*BetMap  `bson:"b_eqs,omitempty" json:"bet_equations"`
 	Timezone       *time.Location
 	// Mu             sync.Mutex
 }

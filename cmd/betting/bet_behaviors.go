@@ -56,6 +56,9 @@ func CreateBet(proposer *t.User, changes *t.BetChanges, settings *t.LeagueSettin
 	if err != nil {
 		return nil, nil, err
 	}
+	if proposer.Id == recipient.Id {
+		return nil, nil, fmt.Errorf("Can't make a bet with yourself!")
+	}
 	pReplyFk := "-1"
 	bet = &t.Bet{
 		Id:              uuid.NewV4().String(),

@@ -14,7 +14,8 @@ import (
 )
 
 type TwitterClient struct {
-	Client *http.Client
+	Client   *http.Client
+	Disabled bool
 }
 
 func CreateClient(consumerKey, consumerSecret, accessKey, accessSecret string) *TwitterClient {
@@ -24,6 +25,10 @@ func CreateClient(consumerKey, consumerSecret, accessKey, accessSecret string) *
 }
 
 func (c *TwitterClient) SendDirectMessage(text, twtUsrId string) (*t.DirectMessage, error) {
+	if c.Disabled {
+		return nil, nil
+	}
+
 	fmt.Println("Sending DM ", text, twtUsrId)
 	dm := createDirectMessage(text, twtUsrId)
 	dmBytes, _ := json.Marshal(dm)
@@ -42,6 +47,10 @@ func (c *TwitterClient) SendDirectMessage(text, twtUsrId string) (*t.DirectMessa
 }
 
 func (c *TwitterClient) SendTweet(text string, replyId *string) (responseTweet *t.Tweet, err error) {
+	if c.Disabled {
+		return nil, nil
+	}
+
 	fmt.Println("SendTweet: ", text)
 	params := url.Values{}
 	params.Set("status", text)
@@ -66,6 +75,10 @@ func (c *TwitterClient) SendTweet(text string, replyId *string) (responseTweet *
 }
 
 func (c *TwitterClient) RegisterWebhook(webhookEnv, webhookUrl string) {
+	if c.Disabled {
+		return
+	}
+
 	//Set parameters
 	path := fmt.Sprintf("https://api.twitter.com/1.1/account_activity/all/%s/webhooks.json", webhookEnv)
 	hookUrl := fmt.Sprintf("%s/webhook/twitter", webhookUrl)

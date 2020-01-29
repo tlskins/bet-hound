@@ -18,7 +18,8 @@ import (
 // THIS CODE IS A STARTING POINT ONLY. IT WILL NOT BE UPDATED WITH SCHEMA CHANGES.
 
 type UserObserver struct {
-	Observer chan *types.Notification
+	Notifications chan *types.Notification
+	Profile       chan *types.User
 }
 
 type resolver struct {
@@ -51,31 +52,19 @@ func New() Config {
 	}
 }
 
-func getUsername(ctx context.Context) string {
-	if username, ok := ctx.Value("username").(string); ok {
-		return username
-	}
-	return ""
-}
-
-func userFromContext(ctx context.Context) (*types.User, error) {
-	authPointer := ctx.Value(mw.AuthContextKey("userID")).(*mw.AuthResponseWriter)
-	if user, err := db.FindUserById(authPointer.UserId); err == nil {
-		return user, nil
-	}
-	return nil, fmt.Errorf("Access denied")
-}
-
-func leagueFromContext(ctx context.Context) (*types.LeagueSettings, error) {
-	lgPointer := ctx.Value(mw.LgContextKey("league")).(*types.LeagueSettings)
-	return lgPointer, nil
-}
-
 type mutationResolver struct{ *resolver }
 
 func (r *mutationResolver) SignOut(ctx context.Context) (bool, error) {
 	authPointer := ctx.Value(mw.AuthContextKey("userID")).(*mw.AuthResponseWriter)
 	return authPointer.DeleteSession(env.AppHost()), nil
+}
+func (r *mutationResolver) ViewProfile(ctx context.Context) (*types.User, error) {
+	user, err := userFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return db.ViewUserProfile(user.Id)
 }
 func (r *mutationResolver) UpdateUser(ctx context.Context, changes types.ProfileChanges) (*types.User, error) {
 	user, err := userFromContext(ctx)
@@ -99,12 +88,10 @@ func (r *mutationResolver) CreateBet(ctx context.Context, changes types.BetChang
 		return nil, err
 	}
 	// push notifications if online
-	for _, userId := range []string{bet.Proposer.Id, bet.Recipient.Id} {
-		if r.UserObservers[userId] != nil {
-			r.mu.Lock()
-			r.UserObservers[userId].Observer <- note
-			r.mu.Unlock()
-		}
+	users, err := db.FindUserByIds([]string{bet.Proposer.Id, bet.Recipient.Id})
+	for _, user := range users {
+		r.pushUserNotification(user.Id, note)
+		r.pushUserProfileNotification(user)
 	}
 
 	return
@@ -119,12 +106,10 @@ func (r *mutationResolver) AcceptBet(ctx context.Context, id string, accept bool
 		return false, err
 	}
 	// push notifications if online
-	for _, userId := range []string{bet.Proposer.Id, bet.Recipient.Id} {
-		if r.UserObservers[userId] != nil {
-			r.mu.Lock()
-			r.UserObservers[userId].Observer <- note
-			r.mu.Unlock()
-		}
+	users, err := db.FindUserByIds([]string{bet.Proposer.Id, bet.Recipient.Id})
+	for _, user := range users {
+		r.pushUserNotification(user.Id, note)
+		r.pushUserProfileNotification(user)
 	}
 
 	return true, nil
@@ -180,7 +165,7 @@ func (r *mutationResolver) PostRotoArticle(ctx context.Context) (*types.RotoArti
 	r.RotoArticles["nfl"] = articles
 	r.LastRotoTitle = last.Title
 	for _, userObserver := range r.UserObservers {
-		userObserver.Observer <- &types.Notification{
+		userObserver.Notifications <- &types.Notification{
 			Title:   last.Title,
 			Type:    "RotoAlert",
 			SentAt:  time.Now(),
@@ -190,36 +175,6 @@ func (r *mutationResolver) PostRotoArticle(ctx context.Context) (*types.RotoArti
 	r.mu.Unlock()
 
 	return last, nil
-}
-
-// not in use...
-func (r *mutationResolver) PostUserNotification(ctx context.Context, userId string, sentAt time.Time, title string, typeArg string, message *string) (*types.Notification, error) {
-	fmt.Println("mutationResolver.PostUserNotification...")
-	if len(r.UserObservers) == 0 {
-		return nil, nil
-	}
-
-	sent := false
-	note := &types.Notification{
-		Title:  title,
-		Type:   typeArg,
-		SentAt: sentAt,
-	}
-	r.mu.Lock()
-	if message != nil {
-		note.Message = *message
-	}
-	if r.UserObservers[userId] != nil {
-		r.UserObservers[userId].Observer <- note
-		sent = true
-	}
-	r.mu.Unlock()
-
-	if sent {
-		return note, nil
-	} else {
-		return nil, nil
-	}
 }
 
 type queryResolver struct{ *resolver }
@@ -339,8 +294,7 @@ func (r *subscriptionResolver) MessageAdded(ctx context.Context, roomName string
 
 	return events, nil
 }
-
-func (r *subscriptionResolver) UserNotification(ctx context.Context) (<-chan *types.Notification, error) {
+func (r *subscriptionResolver) SubscribeNotifications(ctx context.Context) (<-chan *types.Notification, error) {
 	user, err := userFromContext(ctx)
 	if err != nil {
 		return nil, err
@@ -348,10 +302,79 @@ func (r *subscriptionResolver) UserNotification(ctx context.Context) (<-chan *ty
 	events := make(chan *types.Notification, 1)
 
 	r.mu.Lock()
-	r.UserObservers[user.Id] = &UserObserver{Observer: events}
+	r.UserObservers[user.Id] = &UserObserver{Notifications: events}
 	r.mu.Unlock()
 
 	return events, nil
+}
+func (r *subscriptionResolver) SubscribeUserNotifications(ctx context.Context) (<-chan *types.User, error) {
+	user, err := userFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	events := make(chan *types.User, 1)
+
+	r.mu.Lock()
+	r.UserObservers[user.Id] = &UserObserver{Profile: events}
+	r.mu.Unlock()
+
+	return events, nil
+}
+
+// Helper functions
+
+func (r *mutationResolver) pushUserProfileNotification(newProf *types.User) {
+	fmt.Println("pushing user profile note:", r.UserObservers)
+	if r.UserObservers[newProf.Id] == nil || r.UserObservers[newProf.Id].Profile == nil {
+		return
+	}
+
+	r.mu.Lock()
+	r.UserObservers[newProf.Id].Profile <- newProf
+	// select {
+	// case r.UserObservers[newProf.Id].Profile <- newProf:
+	// case <-time.After(3 * time.Second):
+	// 	fmt.Println("push user profile timeout!")
+	// }
+	r.mu.Unlock()
+	fmt.Println("post pushing user profile note:", newProf.Id)
+}
+
+func (r *mutationResolver) pushUserNotification(userId string, note *types.Notification) {
+	fmt.Println("pushing user note:", r.UserObservers)
+	if r.UserObservers[userId] == nil || r.UserObservers[userId].Notifications == nil {
+		return
+	}
+
+	r.mu.Lock()
+	r.UserObservers[userId].Notifications <- note
+	// select {
+	// case r.UserObservers[userId].Notifications <- note:
+	// case <-time.After(3 * time.Second):
+	// 	fmt.Println("push user notification timeout!")
+	// }
+	r.mu.Unlock()
+	fmt.Println("post pushing user note:", userId)
+}
+
+func getUsername(ctx context.Context) string {
+	if username, ok := ctx.Value("username").(string); ok {
+		return username
+	}
+	return ""
+}
+
+func userFromContext(ctx context.Context) (*types.User, error) {
+	authPointer := ctx.Value(mw.AuthContextKey("userID")).(*mw.AuthResponseWriter)
+	if users, err := db.FindUserByIds([]string{authPointer.UserId}); err == nil && len(users) > 0 {
+		return users[0], nil
+	}
+	return nil, fmt.Errorf("Access denied")
+}
+
+func leagueFromContext(ctx context.Context) (*types.LeagueSettings, error) {
+	lgPointer := ctx.Value(mw.LgContextKey("league")).(*types.LeagueSettings)
+	return lgPointer, nil
 }
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")

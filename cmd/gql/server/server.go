@@ -16,7 +16,7 @@ import (
 	t "bet-hound/cmd/types"
 )
 
-func InitLeagueSettings(tz *time.Location, leagueId, lgStartTxt, lgStart2Txt, lgEndTxt string) *t.LeagueSettings {
+func InitLeagueSettings(tz *time.Location, leagueId, lgStartTxt, lgStart2Txt, lgEndTxt string, lgLastWk int) *t.LeagueSettings {
 	s, err := db.GetLeagueSettings(leagueId)
 	if err != nil {
 		panic(err)
@@ -26,9 +26,6 @@ func InitLeagueSettings(tz *time.Location, leagueId, lgStartTxt, lgStart2Txt, lg
 	lgStart2, _ := time.ParseInLocation(longForm, lgStart2Txt, tz)
 	lgEnd, _ := time.ParseInLocation(longForm, lgEndTxt, tz)
 
-	s.StartDate = &lgStart
-	s.StartWeekTwo = &lgStart2
-	s.EndDate = &lgEnd
 	s.MaxScrapedWeek, err = db.GetGamesCurrentWeek(lgStart.Year())
 	if err != nil {
 		panic(err)
@@ -37,9 +34,16 @@ func InitLeagueSettings(tz *time.Location, leagueId, lgStartTxt, lgStart2Txt, lg
 	if err != nil {
 		panic(err)
 	}
+	s.CurrentWeek = currentWeek(&lgStart, &lgStart2, &lgEnd)
+	if s.CurrentWeek > lgLastWk {
+		s.CurrentWeek = lgLastWk
+	}
+
+	s.StartDate = &lgStart
+	s.StartWeekTwo = &lgStart2
+	s.EndDate = &lgEnd
 	s.CurrentYear = lgStart.Year()
 	s.Timezone = tz
-	s.CurrentWeek = currentWeek(s.StartDate, s.StartWeekTwo, s.EndDate)
 
 	return s
 }
@@ -71,21 +75,23 @@ func ProcessEvents(s *t.LeagueSettings, logger *log.Logger) func() {
 		}
 		if games, err := CheckGameResults(s); err != nil || games == nil {
 			logger.Println(err)
-		} else {
-			if err = ProcessBets(s, games); err != nil {
-				logger.Println(err)
-			}
+		} else if err = ProcessBets(s, games); err != nil {
+			logger.Println(err)
 		}
 	}
 }
 
 func ProcessBets(s *t.LeagueSettings, games *[]*t.Game) error {
+	client := env.TwitterClient()
+	if client.Disabled {
+		return nil
+	}
+
 	for _, game := range *games {
 		bets, err := db.FindAcceptedBetsByGame(game.Id)
 		if err != nil {
 			return err
 		}
-		client := env.TwitterClient()
 		for _, bet := range *bets {
 			if err := bet.Valid(); err != nil {
 				fmt.Println("skipping invalid bet ", bet.Id)

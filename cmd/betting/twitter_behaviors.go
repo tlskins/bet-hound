@@ -17,19 +17,23 @@ func TweetBetProposal(bet *t.Bet) (*t.Tweet, error) {
 	if bet.Recipient.TwitterUser == nil {
 		return nil, fmt.Errorf("Bet recipient does not have a twitter account linked.")
 	}
+	// send tweet
 	client := env.TwitterClient()
-
 	betUrl := fmt.Sprintf("%s/bet/%s", env.AppUrl(), bet.Id)
 	rcpt := bet.Recipient.TwitterUser.ScreenName
 	prps := bet.Proposer.TwitterUser.ScreenName
-	txt := fmt.Sprintf("@%s @%s %s. Do you accept? %s", prps, rcpt, bet.String(), betUrl)
+	txt := fmt.Sprintf("@%s has proposed a bet to @%s %s. Do you accept? %s", prps, rcpt, bet.String(), betUrl)
 	resp, err := client.SendTweet(txt, nil)
 	if err != nil {
 		return nil, err
 	}
-	bet.AcceptFk = resp.IdStr
-	if err = db.UpsertTweet(resp); err != nil {
-		fmt.Println(err)
+	// update bet
+	bet.AcceptFk = "-1" // no resp or err means twitter
+	if resp != nil {
+		bet.AcceptFk = resp.IdStr
+		if err = db.UpsertTweet(resp); err != nil {
+			fmt.Println(err)
+		}
 	}
 	if err = db.UpsertBet(bet); err != nil {
 		return nil, err
@@ -167,14 +171,14 @@ func replyToApproval(bet *t.Bet, tweet *t.Tweet) error {
 		txt = fmt.Sprintf("%s Pending approval from %s", bet.TwitterHandles(), pends)
 	}
 	client := env.TwitterClient()
-	if resp, err := client.SendTweet(txt, &tweet.IdStr); err == nil {
+	if resp, err := client.SendTweet(txt, &tweet.IdStr); err != nil {
+		return nil
+	} else if resp != nil {
 		if err = db.UpsertTweet(resp); err != nil {
 			fmt.Println(err)
 		}
-		if err = db.UpsertBet(bet); err != nil {
-			return err
-		}
-	} else {
+	}
+	if err := db.UpsertBet(bet); err != nil {
 		return err
 	}
 	return nil

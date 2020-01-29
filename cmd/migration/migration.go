@@ -244,7 +244,6 @@ func SeedNflLeagueSettings() {
 	if err := db.UpsertLeagueSettings(&setting); err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println("Seeded nfl league settings...")
 }
 
 func SeedNflPlayers() {

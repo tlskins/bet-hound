@@ -11,7 +11,7 @@ type User struct {
 	Password          string          `bson:"pwd" json:"password"`
 	Email             string          `bson:"em" json:"email"`
 	TwitterUser       *TwitterUser    `bson:"twt" json:"twitter_user"`
-	ViewedProfileLast *time.Time      `bson:"lstView" json:"viewed_profile_last"`
+	ViewedProfileLast *time.Time      `bson:"lst_vw" json:"viewed_profile_last"`
 	Notifications     []*Notification `bson:"notes" json:"notificiations"`
 	BetsWon           int             `bson:"bts_wn" json:"bets_won"`
 	BetsLost          int             `bson:"bts_lst" json:"bets_lost"`

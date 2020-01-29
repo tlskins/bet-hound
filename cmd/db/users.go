@@ -80,14 +80,14 @@ func FindOrCreateBetRecipient(rcp *t.BetRecipient) (*t.User, error) {
 	return nil, fmt.Errorf("User not found")
 }
 
-func FindUserById(id string) (*t.User, error) {
+func FindUserByIds(ids []string) ([]*t.User, error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.UsersCollection())
 
-	var user t.User
-	err := m.FindOne(c, &user, m.M{"_id": id})
-	return &user, err
+	var users []*t.User
+	err := m.Find(c, &users, m.M{"_id": m.M{"$in": ids}})
+	return users, err
 }
 
 func SyncTwitterUser(twtUser *t.TwitterUser) error {
@@ -150,6 +150,16 @@ func SignInUser(username, password string) (*t.User, error) {
 	return &user, err
 }
 
+func ViewUserProfile(userId string) (*t.User, error) {
+	conn := env.MGOSession().Copy()
+	defer conn.Close()
+	c := conn.DB(env.MongoDb()).C(env.UsersCollection())
+
+	var user t.User
+	err := m.Upsert(c, &user, m.M{"_id": userId}, m.M{"$set": m.M{"lst_vw": time.Now()}})
+	return &user, err
+}
+
 func SyncBetWithUsers(event string, bet *t.Bet) (*t.Notification, error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
@@ -158,7 +168,6 @@ func SyncBetWithUsers(event string, bet *t.Bet) (*t.Notification, error) {
 	// notification
 	note := t.Notification{
 		Id:     uuid.NewV4().String(),
-		Type:   "BetCreated",
 		SentAt: time.Now(),
 	}
 	var pUpdate, rUpdate m.M
@@ -166,6 +175,7 @@ func SyncBetWithUsers(event string, bet *t.Bet) (*t.Notification, error) {
 	if event == "Create" {
 		note.Title = fmt.Sprintf("%s proposed a bet with %s", bet.ProposerName(), bet.RecipientName())
 		note.Message = bet.String()
+		note.Type = "BetCreated"
 
 		pUpdate = m.M{"$push": m.M{
 			"pnd_t_bts": bet.Id,
@@ -178,6 +188,7 @@ func SyncBetWithUsers(event string, bet *t.Bet) (*t.Notification, error) {
 	} else {
 		note.Title = fmt.Sprintf("%s's bet with %s was %s", bet.ProposerName(), bet.RecipientName(), bet.BetStatus.String())
 		note.Message = bet.BetStatus.String() + ": " + bet.String()
+		note.Type = "BetUpdated"
 
 		var prgBetId *string
 		if bet.BetStatus.String() == "Accepted" {
@@ -185,14 +196,14 @@ func SyncBetWithUsers(event string, bet *t.Bet) (*t.Notification, error) {
 		}
 		pUpdate = m.M{
 			"$push": m.M{
-				"notes":   m.M{"$each": []t.Notification{note}, "$slice": -10},
+				"notes":   m.M{"$each": []t.Notification{note}, "$slice": -10, "$position": 0},
 				"prg_bts": prgBetId,
 			},
 			"$pull": m.M{"pnd_u_bts": bet.Id, "pnd_t_bts": bet.Id},
 		}
 		rUpdate = m.M{
 			"$push": m.M{
-				"notes":   m.M{"$each": []t.Notification{note}, "$slice": -10},
+				"notes":   m.M{"$each": []t.Notification{note}, "$slice": -10, "$position": 0},
 				"prg_bts": prgBetId,
 			},
 			"$pull": m.M{"pnd_u_bts": bet.Id, "pnd_t_bts": bet.Id},

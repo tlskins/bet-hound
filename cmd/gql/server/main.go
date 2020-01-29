@@ -52,17 +52,25 @@ func main() {
 	router := chi.NewRouter()
 	router.Use(corsHandler)
 
-	// seed options
+	// seed and settings options
 	args := os.Args
+	fmt.Println("args=", args)
 	for _, arg := range args {
 		if arg == "-seed_users" {
+			fmt.Println("seeding users...")
 			migration.SeedUsers()
 		} else if arg == "-seed_nfl_players" {
+			fmt.Println("seeding nfl players...")
 			migration.SeedNflPlayers()
 		} else if arg == "-seed_nfl_settings" {
+			fmt.Println("seeding nfl settings...")
 			migration.SeedNflLeagueSettings()
 		} else if arg == "-seed_nfl_curr_gms" {
+			fmt.Println("seeding current games...")
 			scraper.ScrapeGames(2019, 20)
+		} else if arg == "-disable_twitter" {
+			fmt.Println("disabling twitter...")
+			env.DisableTwitter()
 		}
 	}
 
@@ -71,7 +79,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	lgSttgs = InitLeagueSettings(tz, "nfl", env.LeagueStart(), env.LeagueStart2(), env.LeagueEnd())
+	lgSttgs = InitLeagueSettings(tz, "nfl", env.LeagueStart(), env.LeagueStart2(), env.LeagueEnd(), env.LeagueLastWeek())
 	lgSttgs.Print()
 
 	// init graphql server
