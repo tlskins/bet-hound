@@ -78,6 +78,7 @@ func SearchTeamsWithGame(settings *t.LeagueSettings, name, location *string, num
 		m.M{"$lookup": lookup},
 		m.M{"$addFields": addField},
 		m.M{"$match": match2},
+		m.M{"$limit": numResults},
 	})
 	return
 }
