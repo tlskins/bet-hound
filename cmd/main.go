@@ -32,7 +32,7 @@ func main() {
 	defer env.Cleanup()
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
 
-	scraper.ScrapeGames(2019, 19)
+	scraper.ScrapeNflTeams()
 
 	// lgSettings := cron.InitLeagueSettings()
 	// fmt.Println("settings: ", lgSettings)

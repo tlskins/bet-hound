@@ -4,6 +4,7 @@ package types
 
 type Player struct {
 	Id        string `bson:"_id" json:"id"`
+	LeagueId  string `bson:"lg_id,omitempty" json:"league_id"`
 	Name      string `bson:"name,omitempty" json:"name"`
 	FirstName string `bson:"f_name,omitempty" json:"first_name"`
 	LastName  string `bson:"l_name,omitempty" json:"last_name"`

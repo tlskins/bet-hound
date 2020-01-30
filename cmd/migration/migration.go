@@ -176,39 +176,31 @@ func SeedNflLeagueSettings() {
 	// team metrics
 	teamBets := make([]*t.BetMap, 5)
 	teamBets[0] = &t.BetMap{
-		Id:         24,
-		Name:       "Home Team Win",
-		Field:      "HomeTeamWin",
-		FieldType:  "Func",
-		ResultType: "int",
+		Id:       24,
+		Name:     "Win",
+		Field:    "Win",
+		LeftOnly: true,
 	}
 	teamBets[1] = &t.BetMap{
-		Id:         25,
-		Name:       "Away Team Win",
-		Field:      "AwayTeamWin",
-		FieldType:  "Func",
-		ResultType: "int",
+		Id:    25,
+		Name:  "Win By",
+		Field: "WinBy",
 	}
 	teamBets[2] = &t.BetMap{
-		Id:         26,
-		Name:       "Home Team Lose",
-		Field:      "AwayTeamWin",
-		FieldType:  "Func",
-		ResultType: "int",
+		Id:       26,
+		Name:     "Lose",
+		Field:    "Lose",
+		LeftOnly: true,
 	}
 	teamBets[3] = &t.BetMap{
-		Id:         27,
-		Name:       "Away Team Lose",
-		Field:      "HomeTeamWin",
-		FieldType:  "Func",
-		ResultType: "int",
+		Id:    27,
+		Name:  "Lose By",
+		Field: "LoseBy",
 	}
 	teamBets[4] = &t.BetMap{
-		Id:         28,
-		Name:       "Points Scored",
-		Field:      "Score",
-		FieldType:  "Field",
-		ResultType: "int",
+		Id:    28,
+		Name:  "Points Scored",
+		Field: "Score",
 	}
 
 	// equalities

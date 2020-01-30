@@ -1,7 +1,6 @@
 package db
 
 import (
-	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 
 	"bet-hound/cmd/env"
@@ -33,38 +32,38 @@ func FindPlayer(fk string) (player *t.Player, err error) {
 	return
 }
 
-func SearchPlayers(name, team, position *string, numResults int) (players []*t.Player, err error) {
-	conn := env.MGOSession().Copy()
-	defer conn.Close()
-	c := conn.DB(env.MongoDb()).C(env.PlayersCollection())
+// func SearchPlayers(name, team, position *string, numResults int) (players []*t.Player, err error) {
+// 	conn := env.MGOSession().Copy()
+// 	defer conn.Close()
+// 	c := conn.DB(env.MongoDb()).C(env.PlayersCollection())
 
-	// TODO : set indexes somewhere else
-	index := mgo.Index{Key: []string{"$text:f_name", "$text:l_name", "$text:name"}}
-	m.CreateIndex(c, index)
+// 	// TODO : set indexes somewhere else
+// 	index := mgo.Index{Key: []string{"$text:f_name", "$text:l_name", "$text:name"}}
+// 	m.CreateIndex(c, index)
 
-	query := m.M{}
-	if name != nil {
-		// query["$text"] = m.M{"$search": *name}
-		query["name"] = bson.RegEx{*name, "i"}
-	}
-	if team != nil {
-		teamSrch := *team + "*"
-		query["$or"] = []m.M{
-			m.M{"team_fk": bson.RegEx{teamSrch, "i"}},
-			m.M{"team_name": bson.RegEx{teamSrch, "i"}},
-			m.M{"team_short": bson.RegEx{teamSrch, "i"}},
-		}
-	}
-	if position != nil {
-		query["pos"] = bson.RegEx{*position + "*", "i"}
-	}
+// 	query := m.M{}
+// 	if name != nil {
+// 		// query["$text"] = m.M{"$search": *name}
+// 		query["name"] = bson.RegEx{*name, "i"}
+// 	}
+// 	if team != nil {
+// 		teamSrch := *team + "*"
+// 		query["$or"] = []m.M{
+// 			m.M{"team_fk": bson.RegEx{teamSrch, "i"}},
+// 			m.M{"team_name": bson.RegEx{teamSrch, "i"}},
+// 			m.M{"team_short": bson.RegEx{teamSrch, "i"}},
+// 		}
+// 	}
+// 	if position != nil {
+// 		query["pos"] = bson.RegEx{*position + "*", "i"}
+// 	}
 
-	players = make([]*t.Player, 0, numResults)
-	sel := m.M{"score": m.M{"$meta": "textScore"}}
-	err = c.Find(query).Select(sel).Sort("$textScore:score").All(&players)
+// 	players = make([]*t.Player, 0, numResults)
+// 	sel := m.M{"score": m.M{"$meta": "textScore"}}
+// 	err = c.Find(query).Select(sel).Sort("$textScore:score").All(&players)
 
-	return
-}
+// 	return
+// }
 
 func SearchPlayersWithGame(settings *t.LeagueSettings, name, team, position *string, numResults int) (players []*t.Player, err error) {
 	conn := env.MGOSession().Copy()

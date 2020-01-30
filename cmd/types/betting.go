@@ -38,12 +38,13 @@ type PlayerExpressionChanges struct {
 // Bet Maps
 
 type BetMap struct {
-	Id         int    `bson:"id" json:"id"`
-	League     string `bson:"lg" json:"league"`
-	Name       string `bson:"n" json:"name"`
-	Field      string `bson:"f" json:"field"`
-	FieldType  string `bson:"ft" json:"field_type"`
-	ResultType string `bson:"rt" json:"result_type"`
+	Id       int    `bson:"id" json:"id"`
+	League   string `bson:"lg" json:"league"`
+	Name     string `bson:"n" json:"name"`
+	Field    string `bson:"f" json:"field"`
+	LeftOnly bool   `bson:"lft" json:"left_only"`
+	// FieldType  string `bson:"ft" json:"field_type"`
+	// ResultType string `bson:"rt" json:"result_type"`
 }
 
 // Bet status
@@ -208,6 +209,15 @@ func (b Bet) Valid() error {
 	// if b.FinalizedAt.Before(time.Now()) {
 	// 	errs = append(errs, "Invalid bet, games are already final.")
 	// }
+	if len(b.Proposer.Id) == 0 {
+		errs = append(errs, "No Proposer found.")
+	}
+	if len(b.Recipient.Id) == 0 {
+		errs = append(errs, "No Proposer found.")
+	}
+	if b.Proposer.Id == b.Recipient.Id {
+		errs = append(errs, "Proposer cant be the same as the recipient.")
+	}
 	for _, eq := range b.Equations {
 		err := eq.Valid()
 		if err != nil {
@@ -233,7 +243,7 @@ type Equation struct {
 func (e Equation) LeftExpressions() (exprs []*PlayerExpression) {
 	exprs = []*PlayerExpression{}
 	for _, expr := range e.Expressions {
-		if expr.IsLeft {
+		if expr.IsLeft() {
 			exprs = append(exprs, expr)
 		}
 	}
@@ -243,7 +253,7 @@ func (e Equation) LeftExpressions() (exprs []*PlayerExpression) {
 func (e Equation) RightExpressions() (exprs []*PlayerExpression) {
 	exprs = []*PlayerExpression{}
 	for _, expr := range e.Expressions {
-		if !expr.IsLeft {
+		if !expr.IsLeft() {
 			exprs = append(exprs, expr)
 		}
 	}
@@ -270,7 +280,7 @@ func (e Equation) Valid() error {
 func (e Equation) String() (result string) {
 	left, right := []string{}, []string{}
 	for _, expr := range e.Expressions {
-		if expr.IsLeft {
+		if expr.Left {
 			left = append(left, expr.String())
 		} else {
 			right = append(right, expr.String())
@@ -289,53 +299,4 @@ func (e Equation) ResultString() string {
 		return e.String()
 	}
 	return fmt.Sprintf("%s (%t)", e.ResultString(), *e.Result)
-}
-
-// Expression
-
-// Evaluates to a value. Metric and Player descendent of Action. Operator descendent of Metric.
-type PlayerExpression struct {
-	Id     int      `bson:"id" json:"id"`
-	IsLeft bool     `bson:"lft" json:"is_left"`
-	Player *Player  `bson:"player" json:"player"`
-	Game   *Game    `bson:"gm" json:"game"`
-	Value  *float64 `bson:"val" json:"value"`
-	Metric *BetMap  `bson:"mtc" json:"metric"`
-}
-
-func (e PlayerExpression) Valid() error {
-	if e.Player == nil {
-		return fmt.Errorf("Player not found.")
-	} else if e.Game == nil {
-		return fmt.Errorf("Game not found for player %s.", e.Player.Name)
-	} else if e.Metric == nil {
-		return fmt.Errorf("Metric not found for player %s.", e.Player.Name)
-	} else {
-		return nil
-	}
-}
-
-func (e PlayerExpression) String() (desc string) {
-	if e.Player == nil || e.Game == nil {
-		return "?"
-	}
-	vsTeam := e.Game.HomeTeamName
-	if e.Player.TeamFk == e.Game.HomeTeamFk {
-		vsTeam = e.Game.AwayTeamName
-	}
-	return fmt.Sprintf("%s.%s (%s-%s) %s vs %s",
-		e.Player.FirstName[:1],
-		e.Player.LastName,
-		e.Player.TeamShort,
-		e.Player.Position,
-		e.Metric.Name,
-		vsTeam,
-	)
-}
-
-func (e PlayerExpression) ResultString() string {
-	if e.Value == nil {
-		return e.String()
-	}
-	return fmt.Sprintf("%s (%s)", e.String(), fmt.Sprintf("%.2f", *e.Value))
 }

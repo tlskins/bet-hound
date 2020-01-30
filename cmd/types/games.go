@@ -15,6 +15,7 @@ type GamesAggregateTime struct {
 
 type Game struct {
 	Id            string    `bson:"_id,omitempty" json:"id"`
+	LeagueId      string    `bson:"lg_id,omitempty" json:"league_id"`
 	Name          string    `bson:"name,omitempty" json:"name"`
 	Fk            string    `bson:"fk,omitempty" json:"fk"`
 	Url           string    `bson:"url,omitempty" json:"url"`
@@ -46,11 +47,13 @@ type GameLog struct {
 }
 
 type TeamLog struct {
-	Fk         string `bson:"fk" json:"fk"`
-	TeamName   string `bson:"tm_nm" json:"team_name"`
-	Score      int    `bson:"scr" json:"score"`
-	ScoreByQtr []int  `bson:"scr_q" json:"score_by_qtr"`
-	Win        int    `bson:"w" json:"win"` // -1 lose, 0 tie, 1 win
+	Fk         string    `bson:"fk" json:"fk"`
+	TeamName   string    `bson:"tm_nm" json:"team_name"`
+	Score      float64   `bson:"scr" json:"score"`
+	ScoreByQtr []float64 `bson:"scr_q" json:"score_by_qtr"`
+	Win        float64   `bson:"w" json:"win"` // -1 lose, 0 tie, 1 win
+	WinBy      float64   `bson:"w_by" json:"win_by"`
+	LoseBy     float64   `bson:"l_by" json:"lose_by"`
 }
 
 type PlayerLog struct {

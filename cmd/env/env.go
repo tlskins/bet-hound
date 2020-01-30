@@ -31,7 +31,7 @@ type environment struct {
 	playersCollection        string
 	tweetsCollection         string
 	gamesCollection          string
-	currentGamesCollection   string
+	teamsCollection          string
 	leagueSettingsCollection string
 	usersCollection          string
 	betMapsCollection        string
@@ -108,9 +108,6 @@ func TweetsCollection() string {
 func GamesCollection() string {
 	return e.gamesCollection
 }
-func CurrentGamesCollection() string {
-	return e.currentGamesCollection
-}
 func LeagueSettingsCollection() string {
 	return e.leagueSettingsCollection
 }
@@ -119,6 +116,9 @@ func UsersCollection() string {
 }
 func BetMapsCollection() string {
 	return e.betMapsCollection
+}
+func TeamsCollection() string {
+	return e.teamsCollection
 }
 func LeagueStart() string {
 	return e.leagueStart
@@ -192,10 +192,10 @@ func Init(configFile, configPath string) error {
 	e.playersCollection = viper.GetString("players_collection")
 	e.tweetsCollection = viper.GetString("tweets_collection")
 	e.gamesCollection = viper.GetString("games_collection")
-	e.currentGamesCollection = viper.GetString("current_games_collection")
 	e.leagueSettingsCollection = viper.GetString("league_settings_collection")
 	e.usersCollection = viper.GetString("users_collection")
 	e.betMapsCollection = viper.GetString("bet_maps_collection")
+	e.teamsCollection = viper.GetString(("teams_collection"))
 	e.botHandle = viper.GetString("bot_handle")
 	e.leagueStart = viper.GetString("league_start")
 	e.leagueStart2 = viper.GetString("league_start2")

@@ -34,7 +34,7 @@ func InitLeagueSettings(tz *time.Location, leagueId, lgStartTxt, lgStart2Txt, lg
 	if err != nil {
 		panic(err)
 	}
-	s.CurrentWeek = currentWeek(&lgStart, &lgStart2, &lgEnd)
+	s.CurrentWeek = CurrentWeek(&lgStart, &lgStart2, &lgEnd)
 	if s.CurrentWeek > lgLastWk {
 		s.CurrentWeek = lgLastWk
 	}
@@ -70,6 +70,11 @@ func ProcessEvents(s *t.LeagueSettings, logger *log.Logger) func() {
 	return func() {
 		fmt.Printf("Processing events @ %s\n", time.Now().In(s.Timezone).String())
 		logger.Printf("Processing events @ %s\n", time.Now().In(s.Timezone).String())
+		if currentWk := CurrentWeek(s.StartDate, s.StartWeekTwo, s.EndDate); currentWk != s.CurrentWeek {
+			s.CurrentWeek = currentWk
+			fmt.Println("updated week to: ", currentWk)
+		}
+
 		if err := CheckCurrentGames(s); err != nil {
 			logger.Println(err)
 		}
@@ -180,7 +185,7 @@ func CheckCurrentGames(s *t.LeagueSettings) error {
 	return nil
 }
 
-func currentWeek(startDate, startWeekTwo, endDate *time.Time) (wk int) {
+func CurrentWeek(startDate, startWeekTwo, endDate *time.Time) (wk int) {
 	now := time.Now()
 	if now.After(*startDate) && now.Before(*endDate) {
 		if now.Before(*startWeekTwo) {
