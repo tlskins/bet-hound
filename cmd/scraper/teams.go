@@ -54,6 +54,7 @@ func ScrapeNflTeams() error {
 			}
 
 			if len(teamId) > 0 {
+				now := time.Now()
 				team := &t.Team{
 					Id:        teamId,
 					LeagueId:  "nfl",
@@ -62,6 +63,7 @@ func ScrapeNflTeams() error {
 					Name:      name,
 					ShortName: teamId,
 					Location:  location,
+					UpdatedAt: &now,
 				}
 				fmt.Println(utils.PrettyPrint(team))
 				teams = append(teams, team)

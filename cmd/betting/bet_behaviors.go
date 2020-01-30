@@ -84,7 +84,7 @@ func CreateBet(proposer *t.User, changes *t.BetChanges, settings *t.LeagueSettin
 		for _, exprChg := range eqChg.ExpressionChanges {
 			expr := &t.PlayerExpression{Id: rand.Intn(9999999)}
 			if exprChg.IsLeft != nil {
-				expr.Left = *exprChg.IsLeft
+				expr.IsLeft = *exprChg.IsLeft
 			}
 			// add player
 			if exprChg.PlayerFk != nil {
@@ -177,7 +177,7 @@ func EvaluateEquation(e *t.Equation) (*t.Equation, error) {
 	eq := *e
 	left, right := 0.0, 0.0
 	for _, expr := range eq.Expressions {
-		if expr.IsLeft() {
+		if expr.IsLeft {
 			left += *expr.ResultValue()
 		} else {
 			right += *expr.ResultValue()

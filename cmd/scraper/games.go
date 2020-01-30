@@ -178,6 +178,7 @@ func ScrapeGames(gmYr, gmWk int) error {
 		gameUrls[awayTeamFk] = url
 		name := strings.Join([]string{awayTeam, homeTeam}, " at ")
 
+		now := time.Now()
 		games = append(games, &t.Game{
 			Id:           strconv.Itoa(gmYr) + strconv.Itoa(gmWk) + homeTeamFk + awayTeamFk,
 			LeagueId:     "nfl",
@@ -189,6 +190,7 @@ func ScrapeGames(gmYr, gmWk int) error {
 			HomeTeamFk:   homeTeamFk,
 			HomeTeamName: homeTeam,
 			Final:        false,
+			UpdatedAt:    &now,
 		})
 	})
 

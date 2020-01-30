@@ -52,22 +52,17 @@ type PlayerExpression {
   metric: BetMap
 }
 
-type Player {
-  id: ID!
-  name: String!
-  firstName: String!
-  lastName: String!
-  fk: String!
-  teamFk: String
-  teamName: String
-  teamShort: String
-  position: String
-  url: String
-  game: Game
+type BetResult {
+  winner: User!
+  loser: User!
+  response: String!
+  responseFk: String
+  decidedAt: Timestamp!
 }
 
 type Game {
   id: ID!
+  leagueId: String!
   name: String!
   fk: String
   url: String
@@ -82,13 +77,49 @@ type Game {
   year: Int
 }
 
-type BetResult {
-  winner: User!
-  loser: User!
-  response: String!
-  responseFk: String
-  decidedAt: Timestamp!
+# Subjects
+
+interface Subject {
+  id: ID!
+  leagueId: String!
+  fk: String!
+  name: String!
+  url: String!
+  updatedAt: Timestamp
+  game: Game
 }
+
+type Player implements Subject {
+  id: ID!
+  leagueId: String!
+  fk: String!
+  name: String!
+  url: String!
+  updatedAt: Timestamp
+  game: Game
+  firstName: String!
+  lastName: String!
+  teamFk: String
+  teamName: String
+  teamShort: String
+  position: String
+}
+
+type Team implements Subject {
+  id: ID!
+  leagueId: String!
+  fk: String!
+  name: String!
+  url: String!
+  updatedAt: Timestamp
+  game: Game
+  shortName: String!
+  location: String!
+}
+
+union SubjectUnion @goModel(model: "SubjectUnion") = Player | Team
+
+# users
 
 type TwitterUser {
   id: Int!
@@ -145,13 +176,9 @@ type Query {
   currentRotoArticles(id: String!): [RotoArticle]!
   currentGames: [Game]
   findGames(team: String, gameTime: Timestamp, week: Int, year: Int): [Game]!
-  findPlayers(
-    name: String
-    team: String
-    position: String
-    withGame: Boolean
-  ): [Player]!
+  findPlayers(name: String, team: String, position: String): [Player]!
   findUsers(search: String!): [User]!
+  searchSubjects(search: String!): [SubjectUnion]!
 }
 
 type Mutation {
@@ -205,4 +232,15 @@ scalar Timestamp
 
 scalar BetStatus
 
-directive @user(username: String!) on SUBSCRIPTION
+# directive @makeNil on FIELD_DEFINITION
+# directive @makeTypedNil on FIELD_DEFINITION
+
+directive @goModel(
+  model: String
+  models: [String!]
+) on OBJECT | INPUT_OBJECT | SCALAR | ENUM | INTERFACE | UNION
+
+# directive @goField(
+#   forceResolver: Boolean
+#   name: String
+# ) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION

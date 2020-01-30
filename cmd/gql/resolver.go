@@ -176,16 +176,12 @@ func (r *queryResolver) Bet(ctx context.Context, id string) (*types.Bet, error) 
 func (r *queryResolver) FindGames(ctx context.Context, team *string, gameTime *time.Time, week *int, year *int) ([]*types.Game, error) {
 	return db.SearchGames(team, gameTime, week, year, 10)
 }
-func (r *queryResolver) FindPlayers(ctx context.Context, name *string, team *string, position *string, withGame *bool) ([]*types.Player, error) {
-	if withGame != nil && *withGame {
-		settings, err := leagueFromContext(ctx)
-		if err != nil {
-			return []*types.Player{}, err
-		}
-		return db.SearchPlayersWithGame(settings, name, team, position, 10)
-	} else {
-		return db.SearchPlayers(name, team, position, 10)
+func (r *queryResolver) FindPlayers(ctx context.Context, name *string, team *string, position *string) ([]*types.Player, error) {
+	settings, err := leagueFromContext(ctx)
+	if err != nil {
+		return []*types.Player{}, err
 	}
+	return db.SearchPlayersWithGame(settings, name, team, position, 10)
 }
 func (r *queryResolver) FindUsers(ctx context.Context, search string) ([]*types.User, error) {
 	return db.FindUser(search, 10)
@@ -206,8 +202,12 @@ func (r *queryResolver) CurrentRotoArticles(ctx context.Context, id string) (art
 	return articles, nil
 }
 func (r *queryResolver) CurrentGames(ctx context.Context) ([]*types.Game, error) {
-	lgPointer := ctx.Value(mw.LgContextKey("league")).(*types.LeagueSettings)
-	return db.GetCurrentGames(lgPointer)
+	settings := ctx.Value(mw.LgContextKey("league")).(*types.LeagueSettings)
+	return db.GetCurrentGames(settings)
+}
+func (r *queryResolver) SearchSubjects(ctx context.Context, search string) ([]types.SubjectUnion, error) {
+	settings := ctx.Value(mw.LgContextKey("league")).(*types.LeagueSettings)
+	return db.SearchSubjects(settings, search)
 }
 
 type subscriptionResolver struct{ *resolver }

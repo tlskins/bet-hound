@@ -30,6 +30,12 @@ models:
     model: bet-hound/cmd/types.Word
   PlayerExpression:
     model: bet-hound/cmd/types.PlayerExpression
+  Subject:
+    model: bet-hound/cmd/types.Subject
+  SubjectUnion:
+    model: bet-hound/cmd/types.SubjectUnion
+  Team:
+    model: bet-hound/cmd/types.Team
   Player:
     model: bet-hound/cmd/types.Player
   Game:

@@ -60,6 +60,7 @@ func ScrapePlayers() error {
 			}
 
 			fmt.Printf("Player %d: %s %s %s %s %s %s\n", i, name, id, teamId, teamName, position, url)
+			now := time.Now()
 			players = append(players, &t.Player{
 				Id:        id,
 				LeagueId:  "nfl",
@@ -72,6 +73,7 @@ func ScrapePlayers() error {
 				TeamShort: teamShort,
 				Position:  position,
 				Url:       url,
+				UpdatedAt: &now,
 			})
 		}
 	})
