@@ -65,8 +65,8 @@ func CreateBet(proposer *t.User, newBet *t.NewBet, settings *t.LeagueSettings) (
 		BetStatus:       t.BetStatusFromString("Pending Approval"),
 		ProposerReplyFk: &pReplyFk,
 		CreatedAt:       &now,
-		Proposer:        *proposer,
-		Recipient:       *recipient,
+		Proposer:        *proposer.IndexUser(),
+		Recipient:       *recipient.IndexUser(),
 	}
 
 	// get bet map lookups

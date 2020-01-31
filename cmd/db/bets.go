@@ -37,7 +37,6 @@ func CurrentBets() (bets []*t.Bet, err error) {
 			m.M{"status": 1},
 			m.M{"status": 2},
 		}},
-		m.M{"eqs": m.M{"$exists": true, "$ne": []m.M{}}},
 	}}
 
 	bets = []*t.Bet{}

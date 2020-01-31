@@ -24,8 +24,8 @@ type Bet {
   id: ID!
   createdAt: Timestamp
   sourceFk: String!
-  proposer: User
-  recipient: User
+  proposer: IndexUser
+  recipient: IndexUser
   acceptFk: String
   proposerReplyFk: String
   recipientReplyFk: String
@@ -44,8 +44,8 @@ type Equation {
 }
 
 type BetResult {
-  winner: User!
-  loser: User!
+  winner: IndexUser!
+  loser: IndexUser!
   response: String!
   responseFk: String
   decidedAt: Timestamp!
@@ -172,6 +172,13 @@ type User {
   inProgressBetIds: [String]!
   pendingYouBetIds: [String]!
   pendingThemBetIds: [String]!
+}
+
+type IndexUser {
+  id: ID!
+  name: String
+  userName: String!
+  twitterUser: TwitterUser
 }
 
 type Notification {

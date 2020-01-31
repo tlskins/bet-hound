@@ -100,6 +100,13 @@ type ComplexityRoot struct {
 		Year          func(childComplexity int) int
 	}
 
+	IndexUser struct {
+		Id          func(childComplexity int) int
+		Name        func(childComplexity int) int
+		TwitterUser func(childComplexity int) int
+		UserName    func(childComplexity int) int
+	}
+
 	LeagueSettings struct {
 		BetEquations func(childComplexity int) int
 		CurrentWeek  func(childComplexity int) int
@@ -536,6 +543,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Game.Year(childComplexity), true
+
+	case "IndexUser.id":
+		if e.complexity.IndexUser.Id == nil {
+			break
+		}
+
+		return e.complexity.IndexUser.Id(childComplexity), true
+
+	case "IndexUser.name":
+		if e.complexity.IndexUser.Name == nil {
+			break
+		}
+
+		return e.complexity.IndexUser.Name(childComplexity), true
+
+	case "IndexUser.twitterUser":
+		if e.complexity.IndexUser.TwitterUser == nil {
+			break
+		}
+
+		return e.complexity.IndexUser.TwitterUser(childComplexity), true
+
+	case "IndexUser.userName":
+		if e.complexity.IndexUser.UserName == nil {
+			break
+		}
+
+		return e.complexity.IndexUser.UserName(childComplexity), true
 
 	case "LeagueSettings.betEquations":
 		if e.complexity.LeagueSettings.BetEquations == nil {
@@ -1341,8 +1376,8 @@ type Bet {
   id: ID!
   createdAt: Timestamp
   sourceFk: String!
-  proposer: User
-  recipient: User
+  proposer: IndexUser
+  recipient: IndexUser
   acceptFk: String
   proposerReplyFk: String
   recipientReplyFk: String
@@ -1361,8 +1396,8 @@ type Equation {
 }
 
 type BetResult {
-  winner: User!
-  loser: User!
+  winner: IndexUser!
+  loser: IndexUser!
   response: String!
   responseFk: String
   decidedAt: Timestamp!
@@ -1489,6 +1524,13 @@ type User {
   inProgressBetIds: [String]!
   pendingYouBetIds: [String]!
   pendingThemBetIds: [String]!
+}
+
+type IndexUser {
+  id: ID!
+  name: String
+  userName: String!
+  twitterUser: TwitterUser
 }
 
 type Notification {
@@ -1997,9 +2039,9 @@ func (ec *executionContext) _Bet_proposer(ctx context.Context, field graphql.Col
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(types.User)
+	res := resTmp.(types.IndexUser)
 	fc.Result = res
-	return ec.marshalOUser2betᚑhoundᚋcmdᚋtypesᚐUser(ctx, field.Selections, res)
+	return ec.marshalOIndexUser2betᚑhoundᚋcmdᚋtypesᚐIndexUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Bet_recipient(ctx context.Context, field graphql.CollectedField, obj *types.Bet) (ret graphql.Marshaler) {
@@ -2028,9 +2070,9 @@ func (ec *executionContext) _Bet_recipient(ctx context.Context, field graphql.Co
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(types.User)
+	res := resTmp.(types.IndexUser)
 	fc.Result = res
-	return ec.marshalOUser2betᚑhoundᚋcmdᚋtypesᚐUser(ctx, field.Selections, res)
+	return ec.marshalOIndexUser2betᚑhoundᚋcmdᚋtypesᚐIndexUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Bet_acceptFk(ctx context.Context, field graphql.CollectedField, obj *types.Bet) (ret graphql.Marshaler) {
@@ -2381,9 +2423,9 @@ func (ec *executionContext) _BetResult_winner(ctx context.Context, field graphql
 		}
 		return graphql.Null
 	}
-	res := resTmp.(types.User)
+	res := resTmp.(types.IndexUser)
 	fc.Result = res
-	return ec.marshalNUser2betᚑhoundᚋcmdᚋtypesᚐUser(ctx, field.Selections, res)
+	return ec.marshalNIndexUser2betᚑhoundᚋcmdᚋtypesᚐIndexUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _BetResult_loser(ctx context.Context, field graphql.CollectedField, obj *types.BetResult) (ret graphql.Marshaler) {
@@ -2415,9 +2457,9 @@ func (ec *executionContext) _BetResult_loser(ctx context.Context, field graphql.
 		}
 		return graphql.Null
 	}
-	res := resTmp.(types.User)
+	res := resTmp.(types.IndexUser)
 	fc.Result = res
-	return ec.marshalNUser2betᚑhoundᚋcmdᚋtypesᚐUser(ctx, field.Selections, res)
+	return ec.marshalNIndexUser2betᚑhoundᚋcmdᚋtypesᚐIndexUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _BetResult_response(ctx context.Context, field graphql.CollectedField, obj *types.BetResult) (ret graphql.Marshaler) {
@@ -3090,6 +3132,136 @@ func (ec *executionContext) _Game_year(ctx context.Context, field graphql.Collec
 	res := resTmp.(int)
 	fc.Result = res
 	return ec.marshalOInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _IndexUser_id(ctx context.Context, field graphql.CollectedField, obj *types.IndexUser) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "IndexUser",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Id, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _IndexUser_name(ctx context.Context, field graphql.CollectedField, obj *types.IndexUser) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "IndexUser",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _IndexUser_userName(ctx context.Context, field graphql.CollectedField, obj *types.IndexUser) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "IndexUser",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UserName, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _IndexUser_twitterUser(ctx context.Context, field graphql.CollectedField, obj *types.IndexUser) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "IndexUser",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TwitterUser, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*types.TwitterUser)
+	fc.Result = res
+	return ec.marshalOTwitterUser2ᚖbetᚑhoundᚋcmdᚋtypesᚐTwitterUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _LeagueSettings_id(ctx context.Context, field graphql.CollectedField, obj *types.LeagueSettings) (ret graphql.Marshaler) {
@@ -7815,6 +7987,42 @@ func (ec *executionContext) _Game(ctx context.Context, sel ast.SelectionSet, obj
 	return out
 }
 
+var indexUserImplementors = []string{"IndexUser"}
+
+func (ec *executionContext) _IndexUser(ctx context.Context, sel ast.SelectionSet, obj *types.IndexUser) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, indexUserImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("IndexUser")
+		case "id":
+			out.Values[i] = ec._IndexUser_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "name":
+			out.Values[i] = ec._IndexUser_name(ctx, field, obj)
+		case "userName":
+			out.Values[i] = ec._IndexUser_userName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "twitterUser":
+			out.Values[i] = ec._IndexUser_twitterUser(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var leagueSettingsImplementors = []string{"LeagueSettings"}
 
 func (ec *executionContext) _LeagueSettings(ctx context.Context, sel ast.SelectionSet, obj *types.LeagueSettings) graphql.Marshaler {
@@ -9043,6 +9251,10 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
+func (ec *executionContext) marshalNIndexUser2betᚑhoundᚋcmdᚋtypesᚐIndexUser(ctx context.Context, sel ast.SelectionSet, v types.IndexUser) graphql.Marshaler {
+	return ec._IndexUser(ctx, sel, &v)
+}
+
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
 	return graphql.UnmarshalInt(v)
 }
@@ -9777,6 +9989,10 @@ func (ec *executionContext) unmarshalOID2string(ctx context.Context, v interface
 
 func (ec *executionContext) marshalOID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
 	return graphql.MarshalID(v)
+}
+
+func (ec *executionContext) marshalOIndexUser2betᚑhoundᚋcmdᚋtypesᚐIndexUser(ctx context.Context, sel ast.SelectionSet, v types.IndexUser) graphql.Marshaler {
+	return ec._IndexUser(ctx, sel, &v)
 }
 
 func (ec *executionContext) unmarshalOInt2int(ctx context.Context, v interface{}) (int, error) {

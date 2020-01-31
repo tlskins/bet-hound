@@ -57,8 +57,8 @@ func (s BetStatus) String() string {
 // Bet result
 
 type BetResult struct {
-	Winner     User      `bson:"winner" json:"winner"`
-	Loser      User      `bson:"loser" json:"loser"`
+	Winner     IndexUser `bson:"winner" json:"winner"`
+	Loser      IndexUser `bson:"loser" json:"loser"`
 	Response   string    `bson:"resp" json:"response"`
 	ResponseFk string    `bson:"resp_fk" json:"response_fk"`
 	DecidedAt  time.Time `bson:"dec_at" json:"decided_at"`
@@ -71,8 +71,8 @@ type Bet struct {
 	LeagueId         string      `bson:"lg_id" json:"league_id"`
 	CreatedAt        *time.Time  `bson:"crt_at" json:"created_at"`
 	SourceFk         string      `bson:"source_fk" json:"source_fk"`
-	Proposer         User        `bson:"proposer" json:"proposer"`
-	Recipient        User        `bson:"recipient" json:"recipient"`
+	Proposer         IndexUser   `bson:"proposer" json:"proposer"`
+	Recipient        IndexUser   `bson:"recipient" json:"recipient"`
 	AcceptFk         string      `bson:"acc_fk" json:"acc_fk"`
 	ProposerReplyFk  *string     `bson:"pr_fk" json:"proposer_reply_fk"`
 	RecipientReplyFk *string     `bson:"rr_fk" json:"recipient_reply_fk"`

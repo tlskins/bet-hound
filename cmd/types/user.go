@@ -20,6 +20,22 @@ type User struct {
 	PendingThemBetIds []string        `bson:"pnd_t_bts" json:"pending_them_bet_ids"`
 }
 
+func (u User) IndexUser() *IndexUser {
+	return &IndexUser{
+		Id:          u.Id,
+		Name:        u.Id,
+		UserName:    u.UserName,
+		TwitterUser: u.TwitterUser,
+	}
+}
+
+type IndexUser struct {
+	Id          string       `bson:"_id" json:"id"`
+	Name        string       `bson:"nm" json:"name"`
+	UserName    string       `bson:"usr_nm" json:"user_name"`
+	TwitterUser *TwitterUser `bson:"twt" json:"twitter_user"`
+}
+
 type Notification struct {
 	Id      string    `bson:"_id" json:"id"`
 	SentAt  time.Time `bson:"snt_at" json:"sent_at"`

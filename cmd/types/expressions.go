@@ -1,6 +1,8 @@
 package types
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Expression interface {
 	ResultValue() *float64
@@ -10,6 +12,27 @@ type Expression interface {
 	ResultString() string
 	GetGame() *Game
 }
+
+// type TypedExpression struct {
+// 	Expression Expression `bson:"-"`
+// 	Type       string     `bson:"type" json:"type"`
+// }
+
+// func (exp *TypedExpression) SetBSON(raw bson.Raw) error {
+// 	var t TeamExpression
+// 	var p PlayerExpression
+// 	var s StaticExpression
+// 	if err := raw.Unmarshal(&t); err == nil {
+// 		*exp = &t
+// 	} else if err := raw.Unmarshal(&p); err == nil {
+// 		*exp = &p
+// 	} else if err := raw.Unmarshal(&s); err == nil {
+// 		*exp = &s
+// 	} else {
+// 		return fmt.Errorf("Unable to SetBSON.")
+// 	}
+// 	return nil
+// }
 
 type ExpressionUnion interface {
 	ResultValue() *float64
