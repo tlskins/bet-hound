@@ -2,7 +2,6 @@ package db
 
 import (
 	"fmt"
-	"time"
 
 	"bet-hound/cmd/env"
 	t "bet-hound/cmd/types"
@@ -23,9 +22,12 @@ func Bets(userId string) (bets []*t.Bet, err error) {
 		m.M{"eqs": m.M{"$exists": true, "$ne": []m.M{}}},
 	}}
 
-	bets = []*t.Bet{}
-	err = c.Find(q).Sort("-crt_at").All(&bets)
-	return
+	mBets := []*t.MongoBet{}
+	if err = c.Find(q).Sort("-crt_at").All(&mBets); err != nil {
+		return
+	}
+
+	return convertMongoBets(mBets)
 }
 
 func CurrentBets() (bets []*t.Bet, err error) {
@@ -39,9 +41,12 @@ func CurrentBets() (bets []*t.Bet, err error) {
 		}},
 	}}
 
-	bets = []*t.Bet{}
-	err = c.Find(q).Sort("-crt_at").All(&bets)
-	return
+	mBets := []*t.MongoBet{}
+	if err = c.Find(q).Sort("-crt_at").All(&mBets); err != nil {
+		return
+	}
+
+	return convertMongoBets(mBets)
 }
 
 func UpsertBet(bet *t.Bet) error {
@@ -55,12 +60,12 @@ func UpsertBet(bet *t.Bet) error {
 	return m.Upsert(c, nil, m.M{"_id": bet.Id}, m.M{"$set": bet})
 }
 
-func FindAcceptedBetsByGame(gameId string) (*[]*t.Bet, error) {
+func FindAcceptedBetsByGame(gameId string) ([]*t.Bet, error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
 
-	bets := []*t.Bet{}
+	mBets := []*t.MongoBet{}
 	q := m.M{
 		"status": 1,
 		"eqs": m.M{"$elemMatch": m.M{
@@ -71,8 +76,10 @@ func FindAcceptedBetsByGame(gameId string) (*[]*t.Bet, error) {
 			},
 		}},
 	}
-	err := m.Find(c, &bets, q)
-	return &bets, err
+	if err := m.Find(c, &mBets, q); err != nil {
+		return nil, err
+	}
+	return convertMongoBets(mBets)
 }
 
 func FindBetById(id string) (*t.Bet, error) {
@@ -80,9 +87,9 @@ func FindBetById(id string) (*t.Bet, error) {
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
 
-	var bet t.Bet
-	err := m.FindOne(c, &bet, m.M{"_id": id})
-	return &bet, err
+	var mBet t.MongoBet
+	err := m.FindOne(c, &mBet, m.M{"_id": id})
+	return mBet.Bet(), err
 }
 
 func FindBetByReply(tweet *t.Tweet) (*t.Bet, error) {
@@ -96,17 +103,17 @@ func FindBetByReply(tweet *t.Tweet) (*t.Bet, error) {
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
 
-	var bet t.Bet
-	err := m.FindOne(c, &bet, m.M{"acc_fk": tweet.InReplyToStatusIdStr, "status": 0})
-	return &bet, err
+	var mBet t.MongoBet
+	err := m.FindOne(c, &mBet, m.M{"acc_fk": tweet.InReplyToStatusIdStr, "status": 0})
+	return mBet.Bet(), err
 }
 
-func FindPendingFinalBets() []*t.Bet {
-	conn := env.MGOSession().Copy()
-	defer conn.Close()
-	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
+// helpers
 
-	pending := make([]*t.Bet, 0, 1)
-	c.Find(m.M{"status": 1, "final_at": m.M{"$lte": time.Now()}}).All(&pending)
-	return pending
+func convertMongoBets(mBets []*t.MongoBet) (bets []*t.Bet, err error) {
+	bets = make([]*t.Bet, len(mBets))
+	for i, mBet := range mBets {
+		bets[i] = mBet.Bet()
+	}
+	return bets, nil
 }

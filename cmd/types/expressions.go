@@ -4,6 +4,48 @@ import (
 	"fmt"
 )
 
+// for unmarshalling then converting to expression
+
+type MongoExpression struct {
+	Id     int      `bson:"id" json:"id"`
+	Left   bool     `bson:"lft" json:"is_left"`
+	Player *Player  `bson:"player" json:"player,omitempty"`
+	Team   *Team    `bson:"tm" json:"team"`
+	Game   *Game    `bson:"gm" json:"game,omitempty"`
+	Value  *float64 `bson:"val" json:"value,omitempty"`
+	Metric *BetMap  `bson:"mtc" json:"metric,omitempty"`
+}
+
+func (m MongoExpression) Expression() Expression {
+	var exp Expression
+	if m.Player != nil {
+		exp = PlayerExpression{
+			Id:     m.Id,
+			Left:   m.Left,
+			Player: m.Player,
+			Game:   m.Game,
+			Value:  m.Value,
+			Metric: m.Metric,
+		}
+	} else if m.Team != nil {
+		exp = TeamExpression{
+			Id:     m.Id,
+			Left:   m.Left,
+			Team:   m.Team,
+			Game:   m.Game,
+			Value:  m.Value,
+			Metric: m.Metric,
+		}
+	} else if m.Value != nil {
+		exp = StaticExpression{
+			Id:    m.Id,
+			Value: m.Value,
+		}
+	}
+
+	return exp
+}
+
 type Expression interface {
 	ResultValue() *float64
 	IsLeft() bool
@@ -12,27 +54,6 @@ type Expression interface {
 	ResultString() string
 	GetGame() *Game
 }
-
-// type TypedExpression struct {
-// 	Expression Expression `bson:"-"`
-// 	Type       string     `bson:"type" json:"type"`
-// }
-
-// func (exp *TypedExpression) SetBSON(raw bson.Raw) error {
-// 	var t TeamExpression
-// 	var p PlayerExpression
-// 	var s StaticExpression
-// 	if err := raw.Unmarshal(&t); err == nil {
-// 		*exp = &t
-// 	} else if err := raw.Unmarshal(&p); err == nil {
-// 		*exp = &p
-// 	} else if err := raw.Unmarshal(&s); err == nil {
-// 		*exp = &s
-// 	} else {
-// 		return fmt.Errorf("Unable to SetBSON.")
-// 	}
-// 	return nil
-// }
 
 type ExpressionUnion interface {
 	ResultValue() *float64

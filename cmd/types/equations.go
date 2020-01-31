@@ -5,6 +5,29 @@ import (
 	"strings"
 )
 
+// for unmarshalling then converting to bet
+
+type MongoEquation struct {
+	Id          int               `bson:"id" json:"id"`
+	Expressions []MongoExpression `bson:"exprs" json:"expressions"`
+	Operator    *BetMap           `bson:"op" json:"operator"`
+	Result      *bool             `bson:"res" json:"result"`
+}
+
+func (m MongoEquation) Equation() *Equation {
+	exps := make([]Expression, len(m.Expressions))
+	for i, exp := range m.Expressions {
+		exps[i] = exp.Expression()
+	}
+
+	return &Equation{
+		Id:          m.Id,
+		Operator:    m.Operator,
+		Result:      m.Result,
+		Expressions: exps,
+	}
+}
+
 // Equation
 
 type Equation struct {

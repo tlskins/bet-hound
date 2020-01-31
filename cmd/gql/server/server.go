@@ -97,7 +97,7 @@ func ProcessBets(s *t.LeagueSettings, games *[]*t.Game) error {
 		if err != nil {
 			return err
 		}
-		for _, bet := range *bets {
+		for _, bet := range bets {
 			if err := bet.Valid(); err != nil {
 				fmt.Println("skipping invalid bet ", bet.Id)
 				continue
