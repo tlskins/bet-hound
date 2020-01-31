@@ -47,6 +47,15 @@ type GameLog struct {
 	PlayerLogs  map[string]*PlayerLog `bson:"p_logs" json:"player_logs"`
 }
 
+func (g GameLog) TeamLogFor(fk string) *TeamLog {
+	if g.HomeTeamLog.Fk == fk {
+		return &g.HomeTeamLog
+	} else if g.AwayTeamLog.Fk == fk {
+		return &g.AwayTeamLog
+	}
+	return nil
+}
+
 type TeamLog struct {
 	Fk         string    `bson:"fk" json:"fk"`
 	TeamName   string    `bson:"tm_nm" json:"team_name"`

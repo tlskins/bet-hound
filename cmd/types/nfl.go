@@ -28,6 +28,17 @@ func (s *LeagueSettings) Print() {
 	fmt.Println(h.PrettyPrint(*s))
 }
 
+func (s *LeagueSettings) Metrics() (betMap map[int]*BetMap) {
+	betMap = make(map[int]*BetMap)
+	for _, bet := range s.PlayerBets {
+		betMap[bet.Id] = bet
+	}
+	for _, bet := range s.TeamBets {
+		betMap[bet.Id] = bet
+	}
+	return
+}
+
 func (s *LeagueSettings) PlayerBetsMap() (betMap map[int]*BetMap) {
 	betMap = make(map[int]*BetMap)
 	for _, bet := range s.PlayerBets {

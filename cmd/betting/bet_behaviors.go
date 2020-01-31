@@ -17,9 +17,9 @@ func AcceptBet(user *t.User, betId string, accept bool) (*t.Bet, *t.Notification
 	if err != nil {
 		return nil, nil, err
 	} else if bet.BetStatus.String() != "Pending Approval" {
-		return nil, nil, fmt.Errorf("Cannot accept a bet with status: %s", bet.BetStatus.String())
+		return nil, nil, fmt.Errorf("Cannot accept a bet with status: %s.", bet.BetStatus.String())
 	} else if bet.Recipient.Id != user.Id && bet.Proposer.Id != user.Id {
-		return nil, nil, fmt.Errorf("You are not involved with this bet")
+		return nil, nil, fmt.Errorf("You are not involved with this bet.")
 	}
 
 	var status t.BetStatus
@@ -49,10 +49,10 @@ func AcceptBet(user *t.User, betId string, accept bool) (*t.Bet, *t.Notification
 	return bet, note, nil
 }
 
-func CreateBet(proposer *t.User, changes *t.BetChanges, settings *t.LeagueSettings) (bet *t.Bet, note *t.Notification, err error) {
+func CreateBet(proposer *t.User, newBet *t.NewBet, settings *t.LeagueSettings) (bet *t.Bet, note *t.Notification, err error) {
 	now := time.Now()
 	rand.Seed(now.UnixNano())
-	recipient, err := db.FindOrCreateBetRecipient(&changes.BetRecipient)
+	recipient, err := db.FindOrCreateBetRecipient(&newBet.BetRecipient)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -71,38 +71,78 @@ func CreateBet(proposer *t.User, changes *t.BetChanges, settings *t.LeagueSettin
 
 	// get bet map lookups
 	opMap := settings.BetEquationsMap()
-	metricMap := settings.PlayerBetsMap()
+	metrics := settings.Metrics()
 
 	// create equations
-	for _, eqChg := range changes.EquationsChanges {
+	for _, newEq := range newBet.NewEquations {
 		eq := &t.Equation{Id: rand.Intn(9999999)}
 		// create operator
-		if eqChg.OperatorId != nil {
-			eq.Operator = opMap[*eqChg.OperatorId]
+		if newEq.OperatorId != nil {
+			eq.Operator = opMap[*newEq.OperatorId]
 		}
 		// create expression
-		for _, exprChg := range eqChg.ExpressionChanges {
-			expr := &t.PlayerExpression{Id: rand.Intn(9999999)}
-			if exprChg.IsLeft != nil {
-				expr.IsLeft = *exprChg.IsLeft
-			}
-			// add player
-			if exprChg.PlayerFk != nil {
-				if expr.Player, err = db.FindPlayer(*exprChg.PlayerFk); err != nil {
+		for _, newExpr := range newEq.NewExpressions {
+			var player *t.Player
+			var game *t.Game
+			var team *t.Team
+			var metric *t.BetMap
+
+			if newExpr.PlayerId != nil {
+				if player, err = db.FindPlayer(*newExpr.PlayerId); err != nil {
 					return nil, nil, err
 				}
 			}
-			// add game
-			if exprChg.GameFk != nil {
-				if expr.Game, _ = db.FindCurrentGame(settings, *exprChg.GameFk); err != nil {
+			if newExpr.GameId != nil {
+				if game, err = db.FindGameById(*newExpr.GameId); err != nil {
 					return nil, nil, err
 				}
 			}
-			// add metric
-			if exprChg.MetricId != nil {
-				expr.Metric = metricMap[*exprChg.MetricId]
+			if newExpr.TeamId != nil {
+				if team, err = db.FindTeam(*newExpr.TeamId); err != nil {
+					return nil, nil, err
+				}
 			}
-			eq.Expressions = append(eq.Expressions, expr)
+			if newExpr.MetricId != nil {
+				metric = metrics[*newExpr.MetricId]
+			}
+
+			if newExpr.Type == "Player" {
+				px := t.PlayerExpression{
+					Id:     genPk(),
+					Left:   newExpr.IsLeft,
+					Player: player,
+					Game:   game,
+					Metric: metric,
+				}
+				if err = px.Valid(); err != nil {
+					return nil, nil, err
+				}
+				var ex t.Expression = px
+				eq.Expressions = append(eq.Expressions, ex)
+			} else if newExpr.Type == "Team" {
+				tx := t.TeamExpression{
+					Id:     genPk(),
+					Left:   newExpr.IsLeft,
+					Team:   team,
+					Game:   game,
+					Metric: metric,
+				}
+				if err = tx.Valid(); err != nil {
+					return nil, nil, err
+				}
+				var ex t.Expression = tx
+				eq.Expressions = append(eq.Expressions, ex)
+			} else if newExpr.Type == "Static" {
+				sx := t.StaticExpression{
+					Id:    genPk(),
+					Value: newExpr.Value,
+				}
+				if err = sx.Valid(); err != nil {
+					return nil, nil, err
+				}
+				var ex t.Expression = sx
+				eq.Expressions = append(eq.Expressions, ex)
+			}
 		}
 		bet.Equations = append(bet.Equations, eq)
 	}
@@ -132,13 +172,14 @@ func EvaluateBet(b *t.Bet, g *t.Game) (*t.Bet, error) {
 		eqComplete := true
 		// evaluate expressions involving this game
 		for _, expr := range eq.Expressions {
-			if expr.Game.Id == g.Id {
+			gm := expr.GetGame()
+			if gm != nil && gm.Id == g.Id {
 				e, err := EvaluateExpression(expr, g)
 				if err != nil {
 					return nil, err
 				}
 				expr = e
-			} else if expr.Value == nil {
+			} else if expr.ResultValue() == nil {
 				betComplete = false
 				eqComplete = false
 			}
@@ -177,7 +218,7 @@ func EvaluateEquation(e *t.Equation) (*t.Equation, error) {
 	eq := *e
 	left, right := 0.0, 0.0
 	for _, expr := range eq.Expressions {
-		if expr.IsLeft {
+		if expr.IsLeft() {
 			left += *expr.ResultValue()
 		} else {
 			right += *expr.ResultValue()
@@ -204,27 +245,41 @@ func EvaluateEquation(e *t.Equation) (*t.Equation, error) {
 			eq.Result = &f
 		}
 	} else {
-		return nil, fmt.Errorf("Unsupported bet operator")
+		return nil, fmt.Errorf("Unsupported bet operator.")
 	}
 	return &eq, nil
 }
 
-func EvaluateExpression(e *t.PlayerExpression, g *t.Game) (expr *t.PlayerExpression, err error) {
-	if err = e.Valid(); err != nil {
+func EvaluateExpression(e t.Expression, g *t.Game) (expr t.Expression, err error) {
+	if s, ok := e.(t.StaticExpression); ok {
+		return s, nil
+	} else if p, ok := e.(t.PlayerExpression); ok {
+		return evaluatePlayerExpression(p, g)
+	} else if t, ok := e.(t.TeamExpression); ok {
+		return evaluateTeamExpression(t, g)
+	}
+	return nil, fmt.Errorf("Unable to evaluate expression type.")
+}
+
+func evaluatePlayerExpression(e t.PlayerExpression, g *t.Game) (t.Expression, error) {
+	if err := e.Valid(); err != nil {
 		return nil, err
 	}
-	if e.Game.Id != g.Id {
-		return nil, fmt.Errorf("Game and expression dont match")
+	gm := e.GetGame()
+	if gm.Id != g.Id {
+		return nil, fmt.Errorf("Game and expression dont match.")
 	}
 	if g.GameLog == nil {
-		return nil, fmt.Errorf("Game logs missing")
+		return nil, fmt.Errorf("Game logs missing.")
 	}
 
 	log := g.GameLog.PlayerLogs[e.Player.Id]
+	// players can be omitted from logs if they rack up no stats
 	if log == nil {
 		zero := 0.0
 		e.Value = &zero
-		return e, nil
+		var expr t.Expression = e
+		return expr, nil
 	} else {
 		r := reflect.ValueOf(log)
 		r = r.Elem()
@@ -233,6 +288,36 @@ func EvaluateExpression(e *t.PlayerExpression, g *t.Game) (expr *t.PlayerExpress
 		e.Value = &value
 		return e, nil
 	}
+}
+
+func evaluateTeamExpression(e t.TeamExpression, g *t.Game) (t.Expression, error) {
+	if err := e.Valid(); err != nil {
+		return nil, err
+	}
+	gm := e.GetGame()
+	if gm.Id != g.Id {
+		return nil, fmt.Errorf("Game and expression dont match.")
+	}
+	if g.GameLog == nil {
+		return nil, fmt.Errorf("Game logs missing.")
+	}
+	log := g.GameLog.TeamLogFor(e.Team.Fk)
+	if log == nil {
+		return nil, fmt.Errorf("Team logs missing.")
+	}
+
+	r := reflect.ValueOf(log)
+	r = r.Elem()
+	v := r.FieldByName(e.Metric.Field)
+	value := v.Float()
+	e.Value = &value
+	return e, nil
+}
+
+// helpers
+
+func genPk() int {
+	return rand.Intn(9999999)
 }
 
 // func CalcBetResult(bet *t.Bet) (err error) {

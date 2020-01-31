@@ -38,18 +38,9 @@ type Bet {
 
 type Equation {
   id: Int!
-  expressions: [PlayerExpression]
+  expressions: [Expression]!
   operator: BetMap
   result: Boolean
-}
-
-type PlayerExpression {
-  id: Int!
-  isLeft: Boolean!
-  player: Player
-  game: Game
-  value: Float
-  metric: BetMap
 }
 
 type BetResult {
@@ -60,22 +51,42 @@ type BetResult {
   decidedAt: Timestamp!
 }
 
-type Game {
-  id: ID!
-  leagueId: String!
-  name: String!
-  fk: String
-  url: String
-  awayTeamFk: String
-  awayTeamName: String
-  homeTeamFk: String
-  homeTeamName: String
-  gameTime: Timestamp
-  gameResultsAt: Timestamp
-  final: Boolean
-  week: Int
-  year: Int
+# Expressions
+
+interface Expression {
+  id: Int!
+  isLeft: Boolean!
+  value: Float
 }
+
+type StaticExpression implements Expression {
+  id: Int!
+  isLeft: Boolean!
+  value: Float
+}
+
+type PlayerExpression implements Expression {
+  id: Int!
+  isLeft: Boolean!
+  player: Player
+  game: Game
+  value: Float
+  metric: BetMap
+}
+
+type TeamExpression implements Expression {
+  id: Int!
+  isLeft: Boolean!
+  team: Team
+  game: Game
+  value: Float
+  metric: BetMap
+}
+
+union ExpressionUnion @goModel(model: "bet-hound/cmd/types.ExpressionUnion") =
+    StaticExpression
+  | PlayerExpression
+  | TeamExpression
 
 # Subjects
 
@@ -118,6 +129,25 @@ type Team implements Subject {
 }
 
 union SubjectUnion @goModel(model: "SubjectUnion") = Player | Team
+
+# games
+
+type Game {
+  id: ID!
+  leagueId: String!
+  name: String!
+  fk: String
+  url: String
+  awayTeamFk: String
+  awayTeamName: String
+  homeTeamFk: String
+  homeTeamName: String
+  gameTime: Timestamp
+  gameResultsAt: Timestamp
+  final: Boolean
+  week: Int
+  year: Int
+}
 
 # users
 
@@ -185,7 +215,7 @@ type Mutation {
   signOut: Boolean!
   viewProfile(sync: Boolean!): User!
   updateUser(changes: ProfileChanges!): User!
-  createBet(changes: BetChanges!): Bet
+  createBet(changes: NewBet!): Bet
   acceptBet(id: ID!, accept: Boolean!): Boolean!
   postRotoArticle: Boolean!
 }
@@ -202,30 +232,30 @@ input ProfileChanges {
   password: String
 }
 
+input NewBet {
+  betRecipient: BetRecipient!
+  newEquations: [NewEquation]!
+}
+
 input BetRecipient {
-  id: String
+  userId: String
   twitterScreenName: String
 }
 
-input BetChanges {
-  betRecipient: BetRecipient!
-  equationsChanges: [EquationChanges]!
-}
-
-input EquationChanges {
-  id: Int
-  delete: Boolean
+input NewEquation {
   operatorId: Int
-  expressionChanges: [PlayerExpressionChanges]
+  newExpressions: [NewExpression]!
 }
 
-input PlayerExpressionChanges {
-  id: Int
-  delete: Boolean
-  isLeft: Boolean
-  playerFk: String
-  gameFk: String
+input NewExpression {
+  id: Int!
+  type: String!
+  isLeft: Boolean!
+  playerId: String
+  gameId: String
+  teamId: String
   metricId: Int
+  value: Float
 }
 
 scalar Timestamp

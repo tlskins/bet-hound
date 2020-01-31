@@ -6,35 +6,6 @@ import (
 	"time"
 )
 
-// Changes
-
-type BetRecipient struct {
-	Id                *string `json:"id"`
-	TwitterScreenName *string `json:"sn"`
-}
-
-type BetChanges struct {
-	BetRecipient     BetRecipient       `json:"recipient"`
-	EquationsChanges []*EquationChanges `json:"equationsChanges"`
-	Delete           bool               `json:"delete"`
-}
-
-type EquationChanges struct {
-	Id                int                        `json:"id"`
-	Delete            *bool                      `json:"delete"`
-	OperatorId        *int                       `json:"operatorId"`
-	ExpressionChanges []*PlayerExpressionChanges `json:"expressionChanges"`
-}
-
-type PlayerExpressionChanges struct {
-	Id       int     `json:"id"`
-	IsLeft   *bool   `json:"is_left"`
-	Delete   *bool   `json:"delete"`
-	PlayerFk *string `json:"playerFk"`
-	GameFk   *string `json:"gameFk"`
-	MetricId *int    `json:"metricId"`
-}
-
 // Bet Maps
 
 type BetMap struct {
@@ -97,6 +68,7 @@ type BetResult struct {
 
 type Bet struct {
 	Id               string      `bson:"_id" json:"id"`
+	LeagueId         string      `bson:"lg_id" json:"league_id"`
 	CreatedAt        *time.Time  `bson:"crt_at" json:"created_at"`
 	SourceFk         string      `bson:"source_fk" json:"source_fk"`
 	Proposer         User        `bson:"proposer" json:"proposer"`
@@ -162,10 +134,12 @@ func (b Bet) minGameTime() *time.Time {
 	var minTime *time.Time
 	for _, eq := range b.Equations {
 		for _, expr := range eq.Expressions {
-			gmTime := expr.Game.GameTime
-			// find earliest game start time that hasnt been played at the time of bet creation
-			if minTime == nil || (gmTime.Before(*minTime) && gmTime.After(time.Now())) {
-				minTime = &expr.Game.GameTime
+			gm := expr.GetGame()
+			if gm != nil {
+				// find earliest game start time that hasnt been played at the time of bet creation
+				if minTime == nil || (gm.GameTime.Before(*minTime) && gm.GameTime.After(time.Now())) {
+					minTime = &gm.GameTime
+				}
 			}
 		}
 	}
@@ -177,10 +151,12 @@ func (b Bet) maxFinalizedGameTime() *time.Time {
 	var maxTime *time.Time
 	for _, eq := range b.Equations {
 		for _, expr := range eq.Expressions {
-			gmTime := expr.Game.GameResultsAt
-			// find latest game result time that hasnt been played at the time of bet creation
-			if maxTime == nil || (gmTime.After(*maxTime) && gmTime.After(time.Now())) {
-				maxTime = &expr.Game.GameResultsAt
+			gm := expr.GetGame()
+			if gm != nil {
+				// find latest game result time that hasnt been played at the time of bet creation
+				if maxTime == nil || (gm.GameTime.After(*maxTime) && gm.GameTime.After(time.Now())) {
+					maxTime = &gm.GameTime
+				}
 			}
 		}
 	}

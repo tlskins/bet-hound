@@ -8,26 +8,26 @@ import (
 // Equation
 
 type Equation struct {
-	Id          int                 `bson:"id" json:"id"`
-	Expressions []*PlayerExpression `bson:"exprs" json:"expressions"`
-	Operator    *BetMap             `bson:"op" json:"operator"`
-	Result      *bool               `bson:"res" json:"result"`
+	Id          int          `bson:"id" json:"id"`
+	Expressions []Expression `bson:"exprs" json:"expressions"`
+	Operator    *BetMap      `bson:"op" json:"operator"`
+	Result      *bool        `bson:"res" json:"result"`
 }
 
-func (e Equation) LeftExpressions() (exprs []*PlayerExpression) {
-	exprs = []*PlayerExpression{}
+func (e Equation) LeftExpressions() (exprs []Expression) {
+	exprs = []Expression{}
 	for _, expr := range e.Expressions {
-		if expr.IsLeft {
+		if expr.IsLeft() {
 			exprs = append(exprs, expr)
 		}
 	}
 	return
 }
 
-func (e Equation) RightExpressions() (exprs []*PlayerExpression) {
-	exprs = []*PlayerExpression{}
+func (e Equation) RightExpressions() (exprs []Expression) {
+	exprs = []Expression{}
 	for _, expr := range e.Expressions {
-		if !expr.IsLeft {
+		if !expr.IsLeft() {
 			exprs = append(exprs, expr)
 		}
 	}
@@ -35,8 +35,11 @@ func (e Equation) RightExpressions() (exprs []*PlayerExpression) {
 }
 
 func (e Equation) Valid() error {
-	if len(e.LeftExpressions()) == 0 {
+	left := e.LeftExpressions()
+	if len(left) == 0 {
 		return fmt.Errorf("No left expressions found.")
+	} else if left[0].GetGame() == nil {
+		return fmt.Errorf("First left expression must have a game.")
 	} else if len(e.RightExpressions()) == 0 {
 		return fmt.Errorf("No right expressions found.")
 	} else if e.Operator == nil {
@@ -54,7 +57,7 @@ func (e Equation) Valid() error {
 func (e Equation) String() (result string) {
 	left, right := []string{}, []string{}
 	for _, expr := range e.Expressions {
-		if expr.IsLeft {
+		if expr.IsLeft() {
 			left = append(left, expr.String())
 		} else {
 			right = append(right, expr.String())

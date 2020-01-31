@@ -2,6 +2,24 @@ package types
 
 import "fmt"
 
+type Expression interface {
+	ResultValue() *float64
+	IsLeft() bool
+	Valid() error
+	String() string
+	ResultString() string
+	GetGame() *Game
+}
+
+type ExpressionUnion interface {
+	ResultValue() *float64
+	IsLeft() bool
+	Valid() error
+	String() string
+	ResultString() string
+	GetGame() *Game
+}
+
 // Static Expressions
 
 type StaticExpression struct {
@@ -36,12 +54,17 @@ func (e StaticExpression) ResultString() string {
 	return e.String()
 }
 
+func (e StaticExpression) GetGame() *Game {
+	return nil
+}
+
 // Team Expressions
 
 type TeamExpression struct {
 	Id     int      `bson:"id" json:"id"`
 	Left   bool     `bson:"lft" json:"is_left"`
-	Team   *Team    `bson:"gm" json:"game"`
+	Team   *Team    `bson:"tm" json:"team"`
+	Game   *Game    `bson:"gm" json:"game,omitempty"`
 	Value  *float64 `bson:"val" json:"value"`
 	Metric *BetMap  `bson:"mtc" json:"metric"`
 }
@@ -59,6 +82,8 @@ func (e TeamExpression) Valid() error {
 		return fmt.Errorf("Team not found")
 	} else if e.Metric == nil {
 		return fmt.Errorf("Metric not found for team")
+	} else if e.Game == nil {
+		return fmt.Errorf("Game not found for team")
 	} else {
 		return nil
 	}
@@ -78,33 +103,23 @@ func (e TeamExpression) ResultString() string {
 	return fmt.Sprintf("%s (%s)", e.String(), fmt.Sprintf("%.2f", *e.Value))
 }
 
+func (e TeamExpression) GetGame() *Game {
+	return e.Game
+}
+
 // Player Expressions
 
 type PlayerExpression struct {
 	Id     int      `bson:"id" json:"id"`
-	IsLeft bool     `bson:"lft" json:"is_left"`
-	Team   *Team    `bson:"tm" json:"team,omitempty"`
+	Left   bool     `bson:"lft" json:"is_left"`
 	Player *Player  `bson:"player" json:"player,omitempty"`
 	Game   *Game    `bson:"gm" json:"game,omitempty"`
 	Value  *float64 `bson:"val" json:"value,omitempty"`
 	Metric *BetMap  `bson:"mtc" json:"metric,omitempty"`
 }
 
-// func (e Expression) Type() (string, error) {
-// 	if e.Team == nil && e.Player == nil && e.Game == nil && e.Value != nil {
-// 		return "Static", nil
-// 	}
-// 	if e.Team != nil && e.Player == nil && e.Game != nil {
-// 		return "Team", nil
-// 	}
-// 	if e.Player != nil && e.Game != nil {
-// 		return "Player", nil
-// 	}
-// 	return "", fmt.Errorf("Incomplete expression")
-// }
-
-func (e PlayerExpression) ResultValue() *float64 {
-	return e.Value
+func (e PlayerExpression) IsLeft() bool {
+	return e.Left
 }
 
 func (e PlayerExpression) Valid() error {
@@ -142,4 +157,12 @@ func (e PlayerExpression) ResultString() string {
 		return e.String()
 	}
 	return fmt.Sprintf("%s (%s)", e.String(), fmt.Sprintf("%.2f", *e.Value))
+}
+
+func (e PlayerExpression) GetGame() *Game {
+	return e.Game
+}
+
+func (e PlayerExpression) ResultValue() *float64 {
+	return e.Value
 }

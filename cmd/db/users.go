@@ -56,8 +56,8 @@ func FindOrCreateBetRecipient(rcp *t.BetRecipient) (*t.User, error) {
 
 	var user t.User
 	var query m.M
-	if rcp.Id != nil {
-		query = m.M{"_id": *rcp.Id}
+	if rcp.UserId != nil {
+		query = m.M{"_id": *rcp.UserId}
 	} else if rcp.TwitterScreenName != nil {
 		query = m.M{"twt.scrn_nm": *rcp.TwitterScreenName}
 	} else {

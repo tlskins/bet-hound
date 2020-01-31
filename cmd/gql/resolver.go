@@ -77,7 +77,7 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, changes types.Profile
 
 	return db.UpdateUserProfile(user.Id, &changes)
 }
-func (r *mutationResolver) CreateBet(ctx context.Context, changes types.BetChanges) (bet *types.Bet, err error) {
+func (r *mutationResolver) CreateBet(ctx context.Context, newBet types.NewBet) (bet *types.Bet, err error) {
 	user, err := userFromContext(ctx)
 	if err != nil {
 		return nil, err
@@ -86,7 +86,7 @@ func (r *mutationResolver) CreateBet(ctx context.Context, changes types.BetChang
 	if err != nil {
 		return nil, err
 	}
-	bet, _, err = betting.CreateBet(user, &changes, sttgs)
+	bet, _, err = betting.CreateBet(user, &newBet, sttgs)
 	if err != nil {
 		return nil, err
 	}

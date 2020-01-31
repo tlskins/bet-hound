@@ -7,58 +7,17 @@ schema:
   - schema.graphql
 exec:
   filename: generated.go
+autobind:
+  - bet-hound/cmd/types
 models:
   Timestamp:
     model: bet-hound/cmd/gql.Timestamp
   BetStatus:
     model: bet-hound/cmd/gql.BetStatus
-  Bet:
-    model: bet-hound/cmd/types.Bet
-  User:
-    model: bet-hound/cmd/types.User
-  Notification:
-    model: bet-hound/cmd/types.Notification
-  ProfileChanges:
-    model: bet-hound/cmd/types.ProfileChanges
-  TwitterUser:
-    model: bet-hound/cmd/types.TwitterUser
-  BetResult:
-    model: bet-hound/cmd/types.BetResult
-  Equation:
-    model: bet-hound/cmd/types.Equation
-  Word:
-    model: bet-hound/cmd/types.Word
-  PlayerExpression:
-    model: bet-hound/cmd/types.PlayerExpression
-  Subject:
-    model: bet-hound/cmd/types.Subject
   SubjectUnion:
     model: bet-hound/cmd/types.SubjectUnion
-  Team:
-    model: bet-hound/cmd/types.Team
-  Player:
-    model: bet-hound/cmd/types.Player
-  Game:
-    model: bet-hound/cmd/types.Game
-  RotoArticle:
-    model: bet-hound/cmd/types.RotoArticle
-  Chatroom:
-    model: bet-hound/cmd/types.Chatroom
-  Message:
-    model: bet-hound/cmd/types.Message
-  BetMap:
-    model: bet-hound/cmd/types.BetMap
-  LeagueSettings:
-    model: bet-hound/cmd/types.LeagueSettings
-  BetChanges:
-    model: bet-hound/cmd/types.BetChanges
-  BetRecipient:
-    model: bet-hound/cmd/types.BetRecipient
-  EquationChanges:
-    model: bet-hound/cmd/types.EquationChanges
-  PlayerExpressionChanges:
-    model: bet-hound/cmd/types.PlayerExpressionChanges
+  ExpressionUnion:
+    model: bet-hound/cmd/types.ExpressionUnion
 resolver:
   filename: resolver.go
   type: Resolver
-autobind: []
