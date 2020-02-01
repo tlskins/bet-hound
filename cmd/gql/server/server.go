@@ -43,6 +43,7 @@ func InitLeagueSettings(tz *time.Location, leagueId, lgStartTxt, lgStart2Txt, lg
 	s.StartWeekTwo = &lgStart2
 	s.EndDate = &lgEnd
 	s.CurrentYear = lgStart.Year()
+	s.LeagueLastWeek = lgLastWk
 	s.Timezone = tz
 
 	return s
@@ -70,7 +71,7 @@ func ProcessEvents(s *t.LeagueSettings, logger *log.Logger) func() {
 	return func() {
 		fmt.Printf("Processing events @ %s\n", time.Now().In(s.Timezone).String())
 		logger.Printf("Processing events @ %s\n", time.Now().In(s.Timezone).String())
-		if currentWk := CurrentWeek(s.StartDate, s.StartWeekTwo, s.EndDate); currentWk != s.CurrentWeek {
+		if currentWk := CurrentWeek(s.StartDate, s.StartWeekTwo, s.EndDate); currentWk != s.CurrentWeek && currentWk <= s.LeagueLastWeek {
 			s.CurrentWeek = currentWk
 			fmt.Println("updated week to: ", currentWk)
 		}
