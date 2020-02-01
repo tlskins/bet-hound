@@ -106,7 +106,7 @@ func CreateBet(proposer *t.User, newBet *t.NewBet, settings *t.LeagueSettings) (
 				metric = metrics[*newExpr.MetricId]
 			}
 
-			if newExpr.Type == "Player" {
+			if player != nil {
 				px := t.PlayerExpression{
 					Id:     genPk(),
 					Left:   newExpr.IsLeft,
@@ -119,7 +119,7 @@ func CreateBet(proposer *t.User, newBet *t.NewBet, settings *t.LeagueSettings) (
 				}
 				var ex t.Expression = px
 				eq.Expressions = append(eq.Expressions, ex)
-			} else if newExpr.Type == "Team" {
+			} else if team != nil {
 				tx := t.TeamExpression{
 					Id:     genPk(),
 					Left:   newExpr.IsLeft,
@@ -132,7 +132,7 @@ func CreateBet(proposer *t.User, newBet *t.NewBet, settings *t.LeagueSettings) (
 				}
 				var ex t.Expression = tx
 				eq.Expressions = append(eq.Expressions, ex)
-			} else if newExpr.Type == "Static" {
+			} else if newExpr.Value != nil {
 				sx := t.StaticExpression{
 					Id:    genPk(),
 					Value: newExpr.Value,

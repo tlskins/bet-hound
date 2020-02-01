@@ -18,8 +18,6 @@ type NewEquation struct {
 }
 
 type NewExpression struct {
-	Id       int      `json:"id"`
-	Type     string   `json:"type"`
 	IsLeft   bool     `json:"is_left"`
 	PlayerId *string  `json:"player_id"`
 	GameId   *string  `json:"game_id"`

@@ -45,7 +45,7 @@ func SearchTeamsWithGame(settings *t.LeagueSettings, name, location *string, num
 	}
 	if location != nil {
 		locSrch := *location + "*"
-		matches = append(matches, m.M{"nm": bson.RegEx{locSrch, "i"}})
+		matches = append(matches, m.M{"loc": bson.RegEx{locSrch, "i"}})
 	}
 	match := m.M{"$or": matches}
 

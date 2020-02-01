@@ -7,6 +7,11 @@
 type BetMap {
   id: Int!
   name: String!
+  type: String!
+  leftOnly: Boolean!
+  operatorId: Int
+  rightExpressionValue: Float
+  rightExpressionTypes: [String!]
 }
 
 type LeagueSettings {
@@ -255,8 +260,6 @@ input NewEquation {
 }
 
 input NewExpression {
-  id: Int!
-  type: String!
   isLeft: Boolean!
   playerId: String
   gameId: String

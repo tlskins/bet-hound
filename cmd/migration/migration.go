@@ -176,6 +176,8 @@ func SeedNflLeagueSettings() {
 	// team metrics
 	teamBets := make([]*t.BetMap, 5)
 	eqId := 31
+	gtId := 29
+	static := []string{"Static"}
 	one := 1.0
 	nOne := -1.0
 	teamBets[0] = &t.BetMap{
@@ -189,35 +191,44 @@ func SeedNflLeagueSettings() {
 		RightExpressionValue: &one,
 	}
 	teamBets[1] = &t.BetMap{
-		Id:       25,
-		LeagueId: "nfl",
-		Type:     "TeamMetric",
-		Name:     "Win By",
-		Field:    "WinBy",
+		Id:                   25,
+		LeagueId:             "nfl",
+		Type:                 "TeamMetric",
+		Name:                 "Win By",
+		Field:                "WinBy",
+		LeftOnly:             true,
+		OperatorId:           &gtId,
+		RightExpressionTypes: &static,
 	}
 	teamBets[2] = &t.BetMap{
 		Id:                   26,
 		LeagueId:             "nfl",
 		Type:                 "TeamMetric",
 		Name:                 "Lose",
-		Field:                "Lose",
+		Field:                "Win",
 		LeftOnly:             true,
 		OperatorId:           &eqId,
 		RightExpressionValue: &nOne,
 	}
 	teamBets[3] = &t.BetMap{
-		Id:       27,
-		LeagueId: "nfl",
-		Type:     "TeamMetric",
-		Name:     "Lose By",
-		Field:    "LoseBy",
+		Id:                   27,
+		LeagueId:             "nfl",
+		Type:                 "TeamMetric",
+		Name:                 "Lose By",
+		Field:                "LoseBy",
+		LeftOnly:             true,
+		OperatorId:           &gtId,
+		RightExpressionTypes: &static,
 	}
 	teamBets[4] = &t.BetMap{
-		Id:       28,
-		LeagueId: "nfl",
-		Type:     "TeamMetric",
-		Name:     "Points Scored",
-		Field:    "Score",
+		Id:                   28,
+		LeagueId:             "nfl",
+		Type:                 "TeamMetric",
+		Name:                 "Points Scored",
+		Field:                "Score",
+		LeftOnly:             true,
+		OperatorId:           &gtId,
+		RightExpressionTypes: &static,
 	}
 
 	// equalities
