@@ -273,6 +273,13 @@ func SeedNflPlayers() {
 	fmt.Println("Seeded nfl players...")
 }
 
+func SeedNflTeams() {
+	if err := scraper.ScrapeNflTeams(); err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println("Seeded nfl teams...")
+}
+
 func SeedUsers() {
 	tim := t.User{
 		Id:       "timlee",

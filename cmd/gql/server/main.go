@@ -62,6 +62,9 @@ func main() {
 		} else if arg == "-seed_nfl_players" {
 			fmt.Println("seeding nfl players...")
 			migration.SeedNflPlayers()
+		} else if arg == "-seed_nfl_teams" {
+			fmt.Println("seeding nfl teams...")
+			migration.SeedNflTeams()
 		} else if arg == "-seed_nfl_settings" {
 			fmt.Println("seeding nfl settings...")
 			migration.SeedNflLeagueSettings()
