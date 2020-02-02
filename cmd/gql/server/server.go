@@ -16,15 +16,17 @@ import (
 	t "bet-hound/cmd/types"
 )
 
-func InitLeagueSettings(tz *time.Location, leagueId, lgStartTxt, lgStart2Txt, lgEndTxt string, lgLastWk int) *t.LeagueSettings {
+func InitLeagueSettings(leagueId string) *t.LeagueSettings {
 	s, err := db.GetLeagueSettings(leagueId)
 	if err != nil {
 		panic(err)
 	}
+
+	s.Timezone, _ = time.LoadLocation(env.ServerTz())
 	const longForm = "Jan 2, 2006 3:04pm (MST)"
-	lgStart, _ := time.ParseInLocation(longForm, lgStartTxt, tz)
-	lgStart2, _ := time.ParseInLocation(longForm, lgStart2Txt, tz)
-	lgEnd, _ := time.ParseInLocation(longForm, lgEndTxt, tz)
+	lgStart, _ := time.ParseInLocation(longForm, env.LeagueStart(), s.Timezone)
+	lgStart2, _ := time.ParseInLocation(longForm, env.LeagueStart2(), s.Timezone)
+	lgEnd, _ := time.ParseInLocation(longForm, env.LeagueEnd(), s.Timezone)
 
 	s.MaxScrapedWeek, err = db.GetGamesCurrentWeek(lgStart.Year())
 	if err != nil {
@@ -35,16 +37,15 @@ func InitLeagueSettings(tz *time.Location, leagueId, lgStartTxt, lgStart2Txt, lg
 		panic(err)
 	}
 	s.CurrentWeek = CurrentWeek(&lgStart, &lgStart2, &lgEnd)
-	if s.CurrentWeek > lgLastWk {
-		s.CurrentWeek = lgLastWk
+	if s.CurrentWeek > env.LeagueLastWeek() {
+		s.CurrentWeek = env.LeagueLastWeek()
 	}
 
 	s.StartDate = &lgStart
 	s.StartWeekTwo = &lgStart2
 	s.EndDate = &lgEnd
 	s.CurrentYear = lgStart.Year()
-	s.LeagueLastWeek = lgLastWk
-	s.Timezone = tz
+	s.LeagueLastWeek = env.LeagueLastWeek()
 
 	return s
 }
@@ -77,11 +78,16 @@ func ProcessEvents(s *t.LeagueSettings, logger *log.Logger) func() {
 		}
 
 		if err := CheckCurrentGames(s); err != nil {
+			fmt.Println(err)
 			logger.Println(err)
 		}
 		if games, err := CheckGameResults(s); err != nil || games == nil {
-			logger.Println(err)
+			if err != nil {
+				fmt.Println(err)
+				logger.Println(err)
+			}
 		} else if err = ProcessBets(s, games); err != nil {
+			fmt.Println(err)
 			logger.Println(err)
 		}
 	}
@@ -94,33 +100,39 @@ func ProcessBets(s *t.LeagueSettings, games *[]*t.Game) error {
 	}
 
 	for _, game := range *games {
+		fmt.Println("processing game:", game.Id)
 		bets, err := db.FindAcceptedBetsByGame(game.Id)
 		if err != nil {
 			return err
 		}
+		fmt.Println("bets found:", bets)
 		for _, bet := range bets {
+			fmt.Println("processing bet:", bet.Id, *game)
 			if err := bet.Valid(); err != nil {
-				fmt.Println("skipping invalid bet ", bet.Id)
+				fmt.Println("Bet invalid:", err)
 				continue
 			}
 			evBet, err := b.EvaluateBet(bet, game)
 			if err != nil {
-				return nil
+				fmt.Println("Evaluate bet:", err)
+				continue
 			}
+			fmt.Println("evBet:", evBet.BetStatus.String(), *evBet)
 
 			if evBet.BetStatus.String() == "Final" {
 				if evBet.TwitterHandles() != "" && evBet.AcceptFk != "" {
 					txt := fmt.Sprintf("%s Congrats %s you beat %s! %s",
 						evBet.TwitterHandles(),
-						evBet.BetResult.Winner.Name,
-						evBet.BetResult.Loser.Name,
+						evBet.BetResult.Winner.GetName(),
+						evBet.BetResult.Loser.GetName(),
 						evBet.BetResult.Response,
 					)
 					resp, err := client.SendTweet(txt, &evBet.AcceptFk)
 					if err != nil {
-						return err
+						fmt.Println("Sending tweet:", err)
+					} else {
+						evBet.BetResult.ResponseFk = resp.IdStr
 					}
-					evBet.BetResult.ResponseFk = resp.IdStr
 				}
 			}
 			db.UpsertBet(evBet)
@@ -156,10 +168,7 @@ func CheckGameResults(s *t.LeagueSettings) (*[]*t.Game, error) {
 		fmt.Println(err)
 		return nil, err
 	}
-	// s.Mu.Lock()
 	s.MinGameTime = minGmTime
-	// s.Mu.Unlock()
-	s.Print()
 	return &results, nil
 }
 
@@ -179,10 +188,7 @@ func CheckCurrentGames(s *t.LeagueSettings) error {
 		return err
 	}
 
-	// s.Mu.Lock()
 	s.MaxScrapedWeek = s.CurrentWeek
-	// s.Mu.Unlock()
-	s.Print()
 	return nil
 }
 

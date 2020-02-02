@@ -73,6 +73,10 @@ func ScrapeGameLog(url string) (gameLog *t.GameLog, err error) {
 			gameLog.HomeTeamLog.Win = -1
 			gameLog.AwayTeamLog.Win = 1
 		}
+		gameLog.HomeTeamLog.WinBy = gameLog.HomeTeamLog.Score - gameLog.AwayTeamLog.Score
+		gameLog.HomeTeamLog.LoseBy = -1 * gameLog.HomeTeamLog.WinBy
+		gameLog.AwayTeamLog.WinBy = gameLog.AwayTeamLog.Score - gameLog.HomeTeamLog.Score
+		gameLog.AwayTeamLog.LoseBy = -1 * gameLog.AwayTeamLog.WinBy
 	}
 
 	gameLog.PlayerLogs = scrapePlayerLogs(doc)

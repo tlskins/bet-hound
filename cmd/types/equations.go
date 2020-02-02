@@ -81,22 +81,27 @@ func (e Equation) String() (result string) {
 	left, right := []string{}, []string{}
 	for _, expr := range e.Expressions {
 		if expr.IsLeft() {
-			left = append(left, expr.String())
-		} else {
-			right = append(right, expr.String())
+			left = append(left, expr.ResultString())
+		} else if len(expr.ResultString()) > 0 {
+			right = append(right, expr.ResultString())
 		}
 	}
-	return fmt.Sprintf(
-		"%s %s %s",
-		strings.Join(left, " "),
-		e.Operator.Name,
-		strings.Join(right, " "),
-	)
+
+	if len(right) > 0 {
+		return fmt.Sprintf(
+			"%s %s %s",
+			strings.Join(left, " "),
+			e.Operator.Name,
+			strings.Join(right, " "),
+		)
+	} else {
+		return strings.Join(left, " ")
+	}
 }
 
 func (e Equation) ResultString() string {
 	if e.Result == nil {
 		return e.String()
 	}
-	return fmt.Sprintf("%s (%t)", e.ResultString(), *e.Result)
+	return fmt.Sprintf("%s (%t)", e.String(), *e.Result)
 }

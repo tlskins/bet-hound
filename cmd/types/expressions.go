@@ -95,7 +95,7 @@ func (e StaticExpression) String() (desc string) {
 }
 
 func (e StaticExpression) ResultString() string {
-	return e.String()
+	return ""
 }
 
 func (e StaticExpression) GetGame() *Game {
@@ -137,7 +137,7 @@ func (e TeamExpression) String() (desc string) {
 	if e.Team == nil || e.Metric == nil {
 		return "?"
 	}
-	return fmt.Sprintf("%s (%s)", e.Team.Name, e.Team.Location)
+	return fmt.Sprintf("%s %s", e.Team.Name, e.Metric.Name)
 }
 
 func (e TeamExpression) ResultString() string {
@@ -179,20 +179,13 @@ func (e PlayerExpression) Valid() error {
 }
 
 func (e PlayerExpression) String() (desc string) {
-	if e.Player != nil && e.Game != nil {
+	if e.Player == nil && e.Game == nil {
 		return "?"
 	}
-	vsTeam := e.Game.HomeTeamName
-	if e.Player.TeamFk == e.Game.HomeTeamFk {
-		vsTeam = e.Game.AwayTeamName
-	}
-	return fmt.Sprintf("%s.%s (%s-%s) %s vs %s",
+	return fmt.Sprintf("%s.%s %s",
 		e.Player.FirstName[:1],
 		e.Player.LastName,
-		e.Player.TeamShort,
-		e.Player.Position,
 		e.Metric.Name,
-		vsTeam,
 	)
 }
 

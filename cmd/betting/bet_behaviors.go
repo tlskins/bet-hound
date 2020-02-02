@@ -160,6 +160,10 @@ func CreateBet(proposer *t.User, newBet *t.NewBet, settings *t.LeagueSettings) (
 			return bet, nil, err
 		}
 	}
+	// update next time to process bets
+	if bet.FinalizedAt.Before(*settings.MinGameTime) {
+		settings.MinGameTime = bet.FinalizedAt
+	}
 	note, _ = db.SyncBetWithUsers("Create", bet)
 	return bet, note, nil
 }
@@ -171,14 +175,14 @@ func EvaluateBet(b *t.Bet, g *t.Game) (*t.Bet, error) {
 	for _, eq := range bet.Equations {
 		eqComplete := true
 		// evaluate expressions involving this game
-		for _, expr := range eq.Expressions {
+		for i, expr := range eq.Expressions {
 			gm := expr.GetGame()
 			if gm != nil && gm.Id == g.Id {
-				e, err := EvaluateExpression(expr, g)
+				newExpr, err := EvaluateExpression(expr, g)
 				if err != nil {
 					return nil, err
 				}
-				expr = e
+				eq.Expressions[i] = newExpr
 			} else if expr.ResultValue() == nil {
 				betComplete = false
 				eqComplete = false
@@ -218,10 +222,13 @@ func EvaluateEquation(e *t.Equation) (*t.Equation, error) {
 	eq := *e
 	left, right := 0.0, 0.0
 	for _, expr := range eq.Expressions {
-		if expr.IsLeft() {
-			left += *expr.ResultValue()
-		} else {
-			right += *expr.ResultValue()
+		result := expr.ResultValue()
+		if result != nil {
+			if expr.IsLeft() {
+				left += *result
+			} else {
+				right += *result
+			}
 		}
 	}
 
@@ -304,12 +311,17 @@ func evaluateTeamExpression(e t.TeamExpression, g *t.Game) (t.Expression, error)
 	log := g.GameLog.TeamLogFor(e.Team.Fk)
 	if log == nil {
 		return nil, fmt.Errorf("Team logs missing.")
+	} else {
+		fmt.Println("team log ", *log)
 	}
+
+	fmt.Println("evaluateTeamExpression", e.Metric.Field)
 
 	r := reflect.ValueOf(log)
 	r = r.Elem()
 	v := r.FieldByName(e.Metric.Field)
 	value := v.Float()
+	fmt.Println("results", log.WinBy, value, v, r)
 	e.Value = &value
 	return e, nil
 }

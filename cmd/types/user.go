@@ -23,7 +23,7 @@ type User struct {
 func (u User) IndexUser() *IndexUser {
 	return &IndexUser{
 		Id:          u.Id,
-		Name:        u.Id,
+		Name:        u.Name,
 		UserName:    u.UserName,
 		TwitterUser: u.TwitterUser,
 	}
@@ -34,6 +34,17 @@ type IndexUser struct {
 	Name        string       `bson:"nm" json:"name"`
 	UserName    string       `bson:"usr_nm" json:"user_name"`
 	TwitterUser *TwitterUser `bson:"twt" json:"twitter_user"`
+}
+
+func (u *IndexUser) GetName() string {
+	if len(u.UserName) > 0 {
+		return u.UserName
+	} else if len(u.Name) > 0 {
+		return u.Name
+	} else if u.TwitterUser != nil {
+		return u.TwitterUser.ScreenName
+	}
+	return "?"
 }
 
 type Notification struct {

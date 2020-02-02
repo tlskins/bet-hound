@@ -67,14 +67,8 @@ func FindAcceptedBetsByGame(gameId string) ([]*t.Bet, error) {
 
 	mBets := []*t.MongoBet{}
 	q := m.M{
-		"status": 1,
-		"eqs": m.M{"$elemMatch": m.M{
-			"exprs": m.M{
-				"$elemMatch": m.M{
-					"gm._id": gameId,
-				},
-			},
-		}},
+		"status":    1,
+		"eqs.exprs": m.M{"$elemMatch": m.M{"gm._id": gameId}},
 	}
 	if err := m.Find(c, &mBets, q); err != nil {
 		return nil, err

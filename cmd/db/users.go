@@ -179,11 +179,11 @@ func SyncBetWithUsers(event string, bet *t.Bet) (*t.Notification, error) {
 
 		pUpdate = m.M{"$push": m.M{
 			"pnd_t_bts": bet.Id,
-			"notes":     m.M{"$each": []t.Notification{note}, "$slice": -10},
+			"notes":     m.M{"$each": []t.Notification{note}, "$slice": -10, "$sort": 1},
 		}}
 		rUpdate = m.M{"$push": m.M{
 			"pnd_u_bts": bet.Id,
-			"notes":     m.M{"$each": []t.Notification{note}, "$slice": -10},
+			"notes":     m.M{"$each": []t.Notification{note}, "$slice": -10, "$sort": 1},
 		}}
 	} else {
 		note.Title = fmt.Sprintf("%s's bet with %s was %s", bet.ProposerName(), bet.RecipientName(), bet.BetStatus.String())

@@ -7,6 +7,7 @@
 type BetMap {
   id: Int!
   name: String!
+  field: String!
   type: String!
   leftOnly: Boolean!
   operatorId: Int
@@ -18,6 +19,12 @@ type LeagueSettings {
   id: String!
   currentYear: Int!
   currentWeek: Int!
+  maxScrapedWeek: Int!
+  leagueLastWeek: Int!
+  minGameTime: Timestamp
+  startDate: Timestamp
+  startWeekTwo: Timestamp
+  endDate: Timestamp
   playerBets: [BetMap]!
   teamBets: [BetMap]!
   betEquations: [BetMap]!
@@ -184,6 +191,7 @@ type IndexUser {
   name: String
   userName: String!
   twitterUser: TwitterUser
+  getName: String!
 }
 
 type Notification {
