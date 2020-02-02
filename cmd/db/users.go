@@ -56,8 +56,8 @@ func FindOrCreateBetRecipient(rcp *t.BetRecipient) (*t.User, error) {
 
 	var user t.User
 	var query m.M
-	if rcp.Id != nil {
-		query = m.M{"_id": *rcp.Id}
+	if rcp.UserId != nil {
+		query = m.M{"_id": *rcp.UserId}
 	} else if rcp.TwitterScreenName != nil {
 		query = m.M{"twt.scrn_nm": *rcp.TwitterScreenName}
 	} else {
@@ -179,11 +179,11 @@ func SyncBetWithUsers(event string, bet *t.Bet) (*t.Notification, error) {
 
 		pUpdate = m.M{"$push": m.M{
 			"pnd_t_bts": bet.Id,
-			"notes":     m.M{"$each": []t.Notification{note}, "$slice": -10},
+			"notes":     m.M{"$each": []t.Notification{note}, "$slice": -10, "$sort": 1},
 		}}
 		rUpdate = m.M{"$push": m.M{
 			"pnd_u_bts": bet.Id,
-			"notes":     m.M{"$each": []t.Notification{note}, "$slice": -10},
+			"notes":     m.M{"$each": []t.Notification{note}, "$slice": -10, "$sort": 1},
 		}}
 	} else {
 		note.Title = fmt.Sprintf("%s's bet with %s was %s", bet.ProposerName(), bet.RecipientName(), bet.BetStatus.String())

@@ -79,8 +79,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	lgSttgs = InitLeagueSettings(tz, "nfl", env.LeagueStart(), env.LeagueStart2(), env.LeagueEnd(), env.LeagueLastWeek())
-	lgSttgs.Print()
+	lgSttgs = InitLeagueSettings("nfl")
+	// lgSttgs.Print()
 
 	// init graphql server
 	gqlConfig := gql.New()

@@ -7,12 +7,24 @@
 type BetMap {
   id: Int!
   name: String!
+  field: String!
+  type: String!
+  leftOnly: Boolean!
+  operatorId: Int
+  rightExpressionValue: Float
+  rightExpressionTypes: [String!]
 }
 
 type LeagueSettings {
   id: String!
   currentYear: Int!
   currentWeek: Int!
+  maxScrapedWeek: Int!
+  leagueLastWeek: Int!
+  minGameTime: Timestamp
+  startDate: Timestamp
+  startWeekTwo: Timestamp
+  endDate: Timestamp
   playerBets: [BetMap]!
   teamBets: [BetMap]!
   betEquations: [BetMap]!
@@ -24,8 +36,8 @@ type Bet {
   id: ID!
   createdAt: Timestamp
   sourceFk: String!
-  proposer: User
-  recipient: User
+  proposer: IndexUser
+  recipient: IndexUser
   acceptFk: String
   proposerReplyFk: String
   recipientReplyFk: String
@@ -38,12 +50,34 @@ type Bet {
 
 type Equation {
   id: Int!
-  expressions: [PlayerExpression]
+  expressions: [Expression]!
   operator: BetMap
   result: Boolean
 }
 
-type PlayerExpression {
+type BetResult {
+  winner: IndexUser!
+  loser: IndexUser!
+  response: String!
+  responseFk: String
+  decidedAt: Timestamp!
+}
+
+# Expressions
+
+interface Expression {
+  id: Int!
+  isLeft: Boolean!
+  value: Float
+}
+
+type StaticExpression implements Expression {
+  id: Int!
+  isLeft: Boolean!
+  value: Float
+}
+
+type PlayerExpression implements Expression {
   id: Int!
   isLeft: Boolean!
   player: Player
@@ -52,22 +86,67 @@ type PlayerExpression {
   metric: BetMap
 }
 
-type Player {
+type TeamExpression implements Expression {
+  id: Int!
+  isLeft: Boolean!
+  team: Team
+  game: Game
+  value: Float
+  metric: BetMap
+}
+
+union ExpressionUnion @goModel(model: "bet-hound/cmd/types.ExpressionUnion") =
+    StaticExpression
+  | PlayerExpression
+  | TeamExpression
+
+# Subjects
+
+interface Subject {
   id: ID!
+  leagueId: String!
+  fk: String!
   name: String!
+  url: String!
+  updatedAt: Timestamp
+  game: Game
+}
+
+type Player implements Subject {
+  id: ID!
+  leagueId: String!
+  fk: String!
+  name: String!
+  url: String!
+  updatedAt: Timestamp
+  game: Game
   firstName: String!
   lastName: String!
-  fk: String!
   teamFk: String
   teamName: String
   teamShort: String
   position: String
-  url: String
-  game: Game
 }
+
+type Team implements Subject {
+  id: ID!
+  leagueId: String!
+  fk: String!
+  name: String!
+  url: String!
+  updatedAt: Timestamp
+  game: Game
+  shortName: String!
+  location: String!
+}
+
+union SubjectUnion @goModel(model: "SubjectUnion") = Player | Team
+
+# games
 
 type Game {
   id: ID!
+  leagueId: String!
   name: String!
   fk: String
   url: String
@@ -82,13 +161,7 @@ type Game {
   year: Int
 }
 
-type BetResult {
-  winner: User!
-  loser: User!
-  response: String!
-  responseFk: String
-  decidedAt: Timestamp!
-}
+# users
 
 type TwitterUser {
   id: Int!
@@ -111,6 +184,14 @@ type User {
   inProgressBetIds: [String]!
   pendingYouBetIds: [String]!
   pendingThemBetIds: [String]!
+}
+
+type IndexUser {
+  id: ID!
+  name: String
+  userName: String!
+  twitterUser: TwitterUser
+  getName: String!
 }
 
 type Notification {
@@ -145,20 +226,16 @@ type Query {
   currentRotoArticles(id: String!): [RotoArticle]!
   currentGames: [Game]
   findGames(team: String, gameTime: Timestamp, week: Int, year: Int): [Game]!
-  findPlayers(
-    name: String
-    team: String
-    position: String
-    withGame: Boolean
-  ): [Player]!
+  findPlayers(name: String, team: String, position: String): [Player]!
   findUsers(search: String!): [User]!
+  searchSubjects(search: String!): [SubjectUnion]!
 }
 
 type Mutation {
   signOut: Boolean!
   viewProfile(sync: Boolean!): User!
   updateUser(changes: ProfileChanges!): User!
-  createBet(changes: BetChanges!): Bet
+  createBet(changes: NewBet!): Bet
   acceptBet(id: ID!, accept: Boolean!): Boolean!
   postRotoArticle: Boolean!
 }
@@ -175,34 +252,43 @@ input ProfileChanges {
   password: String
 }
 
+input NewBet {
+  betRecipient: BetRecipient!
+  newEquations: [NewEquation]!
+}
+
 input BetRecipient {
-  id: String
+  userId: String
   twitterScreenName: String
 }
 
-input BetChanges {
-  betRecipient: BetRecipient!
-  equationsChanges: [EquationChanges]!
-}
-
-input EquationChanges {
-  id: Int
-  delete: Boolean
+input NewEquation {
   operatorId: Int
-  expressionChanges: [PlayerExpressionChanges]
+  newExpressions: [NewExpression]!
 }
 
-input PlayerExpressionChanges {
-  id: Int
-  delete: Boolean
-  isLeft: Boolean
-  playerFk: String
-  gameFk: String
+input NewExpression {
+  isLeft: Boolean!
+  playerId: String
+  gameId: String
+  teamId: String
   metricId: Int
+  value: Float
 }
 
 scalar Timestamp
 
 scalar BetStatus
 
-directive @user(username: String!) on SUBSCRIPTION
+# directive @makeNil on FIELD_DEFINITION
+# directive @makeTypedNil on FIELD_DEFINITION
+
+directive @goModel(
+  model: String
+  models: [String!]
+) on OBJECT | INPUT_OBJECT | SCALAR | ENUM | INTERFACE | UNION
+
+# directive @goField(
+#   forceResolver: Boolean
+#   name: String
+# ) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION

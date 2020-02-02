@@ -2,7 +2,6 @@ package scraper
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -40,12 +39,12 @@ func ScrapeGameLog(url string) (gameLog *t.GameLog, err error) {
 		fkMatch := teamFkRgx.FindStringSubmatch(url)
 		fk := strings.ToUpper(fkMatch[1])
 		name := s.Find("td:nth-child(2) a").Text()
-		q1, _ := strconv.Atoi(s.Find("td:nth-child(3)").Text())
-		q2, _ := strconv.Atoi(s.Find("td:nth-child(4)").Text())
-		q3, _ := strconv.Atoi(s.Find("td:nth-child(5)").Text())
-		q4, _ := strconv.Atoi(s.Find("td:nth-child(6)").Text())
-		scrByQ := []int{q1, q2, q3, q4}
-		qf, _ := strconv.Atoi(s.Find("td:nth-child(7)").Text())
+		q1, _ := strconv.ParseFloat(s.Find("td:nth-child(3)").Text(), 64)
+		q2, _ := strconv.ParseFloat(s.Find("td:nth-child(4)").Text(), 64)
+		q3, _ := strconv.ParseFloat(s.Find("td:nth-child(5)").Text(), 64)
+		q4, _ := strconv.ParseFloat(s.Find("td:nth-child(6)").Text(), 64)
+		scrByQ := []float64{q1, q2, q3, q4}
+		qf, _ := strconv.ParseFloat(s.Find("td:nth-child(7)").Text(), 64)
 
 		tmLog := t.TeamLog{
 			Fk:         fk,
@@ -74,6 +73,10 @@ func ScrapeGameLog(url string) (gameLog *t.GameLog, err error) {
 			gameLog.HomeTeamLog.Win = -1
 			gameLog.AwayTeamLog.Win = 1
 		}
+		gameLog.HomeTeamLog.WinBy = gameLog.HomeTeamLog.Score - gameLog.AwayTeamLog.Score
+		gameLog.HomeTeamLog.LoseBy = -1 * gameLog.HomeTeamLog.WinBy
+		gameLog.AwayTeamLog.WinBy = gameLog.AwayTeamLog.Score - gameLog.HomeTeamLog.Score
+		gameLog.AwayTeamLog.LoseBy = -1 * gameLog.AwayTeamLog.WinBy
 	}
 
 	gameLog.PlayerLogs = scrapePlayerLogs(doc)
@@ -179,8 +182,10 @@ func ScrapeGames(gmYr, gmWk int) error {
 		gameUrls[awayTeamFk] = url
 		name := strings.Join([]string{awayTeam, homeTeam}, " at ")
 
+		now := time.Now()
 		games = append(games, &t.Game{
 			Id:           strconv.Itoa(gmYr) + strconv.Itoa(gmWk) + homeTeamFk + awayTeamFk,
+			LeagueId:     "nfl",
 			Name:         name,
 			Fk:           fk,
 			Url:          url,
@@ -189,6 +194,7 @@ func ScrapeGames(gmYr, gmWk int) error {
 			HomeTeamFk:   homeTeamFk,
 			HomeTeamName: homeTeam,
 			Final:        false,
+			UpdatedAt:    &now,
 		})
 	})
 
@@ -238,7 +244,7 @@ func ScrapeGames(gmYr, gmWk int) error {
 	}
 
 	if err = db.UpsertGames(&games); err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 	}
 
 	// Update league settings

@@ -14,20 +14,22 @@ type GamesAggregateTime struct {
 }
 
 type Game struct {
-	Id            string    `bson:"_id,omitempty" json:"id"`
-	Name          string    `bson:"name,omitempty" json:"name"`
-	Fk            string    `bson:"fk,omitempty" json:"fk"`
-	Url           string    `bson:"url,omitempty" json:"url"`
-	AwayTeamFk    string    `bson:"a_team_fk,omitempty" json:"away_team_fk"`
-	AwayTeamName  string    `bson:"a_team_name,omitempty" json:"away_team_name"`
-	HomeTeamFk    string    `bson:"h_team_fk,omitempty" json:"home_team_fk"`
-	HomeTeamName  string    `bson:"h_team_name,omitempty" json:"home_team_name"`
-	GameTime      time.Time `bson:"gm_time,omitempty" json:"game_time"`
-	GameResultsAt time.Time `bson:"gm_res_at,omitempty" json:"game_results_at"`
-	Final         bool      `bson:"fin" json:"final"`
-	Week          int       `bson:"wk" json:"week"`
-	Year          int       `bson:"yr" json:"year"`
-	GameLog       *GameLog  `bson:"log" json:"game_log"`
+	Id            string     `bson:"_id,omitempty" json:"id"`
+	LeagueId      string     `bson:"lg_id,omitempty" json:"league_id"`
+	Name          string     `bson:"name,omitempty" json:"name"`
+	Fk            string     `bson:"fk,omitempty" json:"fk"`
+	Url           string     `bson:"url,omitempty" json:"url"`
+	AwayTeamFk    string     `bson:"a_team_fk,omitempty" json:"away_team_fk"`
+	AwayTeamName  string     `bson:"a_team_name,omitempty" json:"away_team_name"`
+	HomeTeamFk    string     `bson:"h_team_fk,omitempty" json:"home_team_fk"`
+	HomeTeamName  string     `bson:"h_team_name,omitempty" json:"home_team_name"`
+	GameTime      time.Time  `bson:"gm_time,omitempty" json:"game_time"`
+	GameResultsAt time.Time  `bson:"gm_res_at,omitempty" json:"game_results_at"`
+	Final         bool       `bson:"fin" json:"final"`
+	Week          int        `bson:"wk" json:"week"`
+	Year          int        `bson:"yr" json:"year"`
+	UpdatedAt     *time.Time `bson:"upd,omitempty" json:"updated_at"`
+	GameLog       *GameLog   `bson:"log" json:"game_log"`
 }
 
 func (g Game) VsTeamFk(playerTmFk string) string {
@@ -45,12 +47,23 @@ type GameLog struct {
 	PlayerLogs  map[string]*PlayerLog `bson:"p_logs" json:"player_logs"`
 }
 
+func (g GameLog) TeamLogFor(fk string) *TeamLog {
+	if g.HomeTeamLog.Fk == fk {
+		return &g.HomeTeamLog
+	} else if g.AwayTeamLog.Fk == fk {
+		return &g.AwayTeamLog
+	}
+	return nil
+}
+
 type TeamLog struct {
-	Fk         string `bson:"fk" json:"fk"`
-	TeamName   string `bson:"tm_nm" json:"team_name"`
-	Score      int    `bson:"scr" json:"score"`
-	ScoreByQtr []int  `bson:"scr_q" json:"score_by_qtr"`
-	Win        int    `bson:"w" json:"win"` // -1 lose, 0 tie, 1 win
+	Fk         string    `bson:"fk" json:"fk"`
+	TeamName   string    `bson:"tm_nm" json:"team_name"`
+	Score      float64   `bson:"scr" json:"score"`
+	ScoreByQtr []float64 `bson:"scr_q" json:"score_by_qtr"`
+	Win        float64   `bson:"w" json:"win"` // -1 lose, 0 tie, 1 win
+	WinBy      float64   `bson:"w_by" json:"win_by"`
+	LoseBy     float64   `bson:"l_by" json:"lose_by"`
 }
 
 type PlayerLog struct {
