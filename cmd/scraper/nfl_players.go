@@ -2,32 +2,23 @@ package scraper
 
 import (
 	"fmt"
-	gq "github.com/PuerkitoBio/goquery"
-	"net/http"
 	"regexp"
 	"strings"
 	"time"
+
+	gq "github.com/PuerkitoBio/goquery"
 
 	"bet-hound/cmd/db"
 	t "bet-hound/cmd/types"
 )
 
-func ScrapePlayers() error {
-	fmt.Printf("%s: Scraping players...\n", time.Now().String())
-	// Request the HTML page.
-	res, err := http.Get("https://www.pro-football-reference.com/years/2019/fantasy.htm")
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-	if res.StatusCode != 200 {
-		return fmt.Errorf("status code error: %d %s", res.StatusCode, res.Status)
-	}
+var pfrPlayersUrl = "https://www.pro-football-reference.com/years/2019/fantasy.htm"
 
-	// Load the HTML document
-	doc, err := gq.NewDocumentFromReader(res.Body)
+func ScrapeNflPlayers() error {
+	fmt.Printf("%s: Scraping nfl players...\n", time.Now().String())
+	doc, err := GetGqDocument(pfrPlayersUrl)
 	if err != nil {
-		return err
+		panic(err)
 	}
 
 	var players []*t.Player
@@ -43,11 +34,8 @@ func ScrapePlayers() error {
 		}
 		id, _ := headTd.Attr("data-append-csv")
 		url, _ := headTd.Find("a").Attr("href")
-
 		teamA := s.Find("td[data-stat=team] a")
 		teamName, _ := teamA.Attr("title")
-		teamShort := teamA.Text()
-
 		position := s.Find("td[data-stat=fantasy_pos]").Text()
 
 		if len(id) > 0 {
@@ -70,7 +58,6 @@ func ScrapePlayers() error {
 				Fk:        id,
 				TeamFk:    teamId,
 				TeamName:  teamName,
-				TeamShort: teamShort,
 				Position:  position,
 				Url:       url,
 				UpdatedAt: &now,

@@ -33,7 +33,9 @@ func main() {
 	defer env.Cleanup()
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
 
-	scraper.ScrapeNbaGames()
+	// scraper.ScrapeNbaGames()
+	// scraper.ScrapeNbaTeams()
+	scraper.ScrapeNbaPlayers()
 
 	// bets, err := db.FindAcceptedBetsByGame("201920KANOTI")
 	// fmt.Println(bets, err)

@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-	"strings"
 	"time"
 
 	"bet-hound/cmd/db"
 	t "bet-hound/cmd/types"
 	utils "bet-hound/pkg/helpers"
+
 	gq "github.com/PuerkitoBio/goquery"
 )
 
 func ScrapeNflTeams() error {
-	fmt.Printf("%s: Scraping teams...\n", time.Now().String())
+	fmt.Printf("%s: Scraping nfl teams...\n", time.Now().String())
 	// Request the HTML page.
 	res, err := http.Get("https://www.pro-football-reference.com/teams/")
 	if err != nil {
@@ -32,20 +32,15 @@ func ScrapeNflTeams() error {
 	}
 
 	var teams []*t.Team
-	idRgx := regexp.MustCompile(`\/teams\/(.*)\/`)
 	nmsRgx := regexp.MustCompile(`(.+) (.+)$`)
 	pfrUriRoot := "https://www.pro-football-reference.com"
 
 	doc.Find("#teams_active > tbody > tr").Each(func(i int, s *gq.Selection) {
 		tmA := s.Find("th[data-stat=team_name] a")
 		if tmA != nil {
-			var teamId, location, name string
+			var location, name string
 			teamUri, _ := tmA.Attr("href")
-			idMatch := idRgx.FindStringSubmatch(teamUri)
-			if len(idMatch) > 1 {
-				teamId = idMatch[1]
-				teamId = strings.ToUpper(teamId)
-			}
+			teamId := TeamIdFor(teamUri)
 			fullName := tmA.Text()
 			nmMatch := nmsRgx.FindStringSubmatch(fullName)
 			if len(nmMatch) > 2 {
@@ -61,7 +56,6 @@ func ScrapeNflTeams() error {
 					Fk:        teamId,
 					Url:       pfrUriRoot + teamUri,
 					Name:      name,
-					ShortName: teamId,
 					Location:  location,
 					UpdatedAt: &now,
 				}

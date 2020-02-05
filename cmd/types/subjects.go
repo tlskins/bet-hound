@@ -25,7 +25,6 @@ type Player struct {
 	LastName  string `bson:"l_name,omitempty" json:"last_name"`
 	TeamFk    string `bson:"team_fk,omitempty" json:"team_fk"`
 	TeamName  string `bson:"team_name,omitempty" json:"team_name"`
-	TeamShort string `bson:"team_short,omitempty" json:"team_short"`
 	Position  string `bson:"pos,omitempty" json:"position"`
 }
 
@@ -43,8 +42,7 @@ type Team struct {
 	UpdatedAt *time.Time `bson:"upd,omitempty" json:"updated_at"`
 	Game      *Game      `bson:"gm,omitempty" json:"game,omitempty"` // should only be aggregated
 
-	ShortName string `bson:"sht_nm,omitempty" json:"short_name"`
-	Location  string `bson:"loc,omitempty" json:"location"`
+	Location string `bson:"loc,omitempty" json:"location"`
 }
 
 func (t Team) isSubject()      {}
