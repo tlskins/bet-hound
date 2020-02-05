@@ -3,7 +3,6 @@ package betting
 import (
 	"fmt"
 	"math/rand"
-	"reflect"
 	"time"
 
 	uuid "github.com/satori/go.uuid"
@@ -281,20 +280,9 @@ func evaluatePlayerExpression(e t.PlayerExpression, g *t.Game) (t.Expression, er
 	}
 
 	log := g.GameLog.PlayerLogs[e.Player.Id]
-	// players can be omitted from logs if they rack up no stats
-	if log == nil {
-		zero := 0.0
-		e.Value = &zero
-		var expr t.Expression = e
-		return expr, nil
-	} else {
-		r := reflect.ValueOf(log)
-		r = r.Elem()
-		v := r.FieldByName(e.Metric.Field)
-		value := v.Float()
-		e.Value = &value
-		return e, nil
-	}
+	e.Value = log.EvaluateMetric(e.Metric.Field)
+	var expr t.Expression = e
+	return expr, nil
 }
 
 func evaluateTeamExpression(e t.TeamExpression, g *t.Game) (t.Expression, error) {
@@ -315,15 +303,9 @@ func evaluateTeamExpression(e t.TeamExpression, g *t.Game) (t.Expression, error)
 		fmt.Println("team log ", *log)
 	}
 
-	fmt.Println("evaluateTeamExpression", e.Metric.Field)
-
-	r := reflect.ValueOf(log)
-	r = r.Elem()
-	v := r.FieldByName(e.Metric.Field)
-	value := v.Float()
-	fmt.Println("results", log.WinBy, value, v, r)
-	e.Value = &value
-	return e, nil
+	e.Value = log.EvaluateMetric(e.Metric.Field)
+	var expr t.Expression = e
+	return expr, nil
 }
 
 // helpers

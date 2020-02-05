@@ -22,7 +22,6 @@ func ScrapeNflPlayers() error {
 	}
 
 	var players []*t.Player
-
 	doc.Find("#fantasy tr").Each(func(i int, s *gq.Selection) {
 		headTd := s.Find("td[data-stat=player]")
 		name := headTd.Text()

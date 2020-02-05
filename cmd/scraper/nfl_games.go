@@ -2,7 +2,6 @@ package scraper
 
 import (
 	"fmt"
-	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
@@ -15,18 +14,9 @@ import (
 var teamFkRgx *regexp.Regexp = regexp.MustCompile(`\/teams\/(.*)\/\d{4}\.htm`)
 
 func ScrapeGameLog(url string) (gameLog *t.GameLog, err error) {
-	// Request the HTML page.
-	res, err := http.Get(url)
+	doc, err := GetGqDocument(url)
 	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-	if res.StatusCode != 200 {
-		return nil, fmt.Errorf("status code error: %d %s", res.StatusCode, res.Status)
-	}
-	doc, err := gq.NewDocumentFromReader(res.Body)
-	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	gameLog = &t.GameLog{}
@@ -37,20 +27,13 @@ func ScrapeGameLog(url string) (gameLog *t.GameLog, err error) {
 		fkMatch := teamFkRgx.FindStringSubmatch(url)
 		fk := strings.ToUpper(fkMatch[1])
 		name := s.Find("td:nth-child(2) a").Text()
-		q1, _ := strconv.ParseFloat(s.Find("td:nth-child(3)").Text(), 64)
-		q2, _ := strconv.ParseFloat(s.Find("td:nth-child(4)").Text(), 64)
-		q3, _ := strconv.ParseFloat(s.Find("td:nth-child(5)").Text(), 64)
-		q4, _ := strconv.ParseFloat(s.Find("td:nth-child(6)").Text(), 64)
-		scrByQ := []float64{q1, q2, q3, q4}
-		qf, _ := strconv.ParseFloat(s.Find("td:nth-child(7)").Text(), 64)
+		score, _ := strconv.ParseFloat(s.Find("td:nth-child(7)").Text(), 64)
 
 		tmLog := t.TeamLog{
-			Fk:         fk,
-			TeamName:   name,
-			Score:      qf,
-			ScoreByQtr: scrByQ,
+			Fk:       fk,
+			TeamName: name,
+			Score:    score,
 		}
-
 		if i == 0 {
 			gameLog.AwayTeamLog = tmLog
 		} else {
@@ -59,24 +42,9 @@ func ScrapeGameLog(url string) (gameLog *t.GameLog, err error) {
 	})
 
 	if !isFinal {
-		return nil, fmt.Errorf("Game not final")
-	} else {
-		if gameLog.HomeTeamLog.Score == gameLog.AwayTeamLog.Score {
-			gameLog.HomeTeamLog.Win = 0
-			gameLog.AwayTeamLog.Win = 0
-		} else if gameLog.HomeTeamLog.Score > gameLog.AwayTeamLog.Score {
-			gameLog.HomeTeamLog.Win = 1
-			gameLog.AwayTeamLog.Win = -1
-		} else {
-			gameLog.HomeTeamLog.Win = -1
-			gameLog.AwayTeamLog.Win = 1
-		}
-		gameLog.HomeTeamLog.WinBy = gameLog.HomeTeamLog.Score - gameLog.AwayTeamLog.Score
-		gameLog.HomeTeamLog.LoseBy = -1 * gameLog.HomeTeamLog.WinBy
-		gameLog.AwayTeamLog.WinBy = gameLog.AwayTeamLog.Score - gameLog.HomeTeamLog.Score
-		gameLog.AwayTeamLog.LoseBy = -1 * gameLog.AwayTeamLog.WinBy
+		panic(fmt.Sprintf("Game log not found for %s", url))
 	}
-
+	gameLog.EvaluateWinner()
 	gameLog.PlayerLogs = scrapePlayerLogs(doc)
 
 	return
@@ -90,7 +58,7 @@ func scrapePlayerLogs(doc *gq.Document) (playerLogs map[string]*t.PlayerLog) {
 			playerFk, _ := s.Find("th").Attr("data-append-csv")
 
 			if len(playerFk) > 0 {
-				log := t.PlayerLog{}
+				log := t.NflPlayerLog{}
 				s.Find("td").Each(func(i int, s *gq.Selection) {
 					data, _ := s.Attr("data-stat")
 					switch data {
@@ -137,7 +105,8 @@ func scrapePlayerLogs(doc *gq.Document) (playerLogs map[string]*t.PlayerLog) {
 					}
 				})
 				log.CalcFantasyScores()
-				playerLogs[playerFk] = &log
+				var playerLog t.PlayerLog = log
+				playerLogs[playerFk] = &playerLog
 			}
 		})
 	})

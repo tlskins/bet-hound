@@ -5,6 +5,7 @@ import (
 	t "bet-hound/cmd/types"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,14 +18,14 @@ var pbrLoc = "America/New_York"
 var pbrUri = "https://www.basketball-reference.com"
 var pbrTeamsUrl = "https://www.basketball-reference.com/teams/"
 var pbrSchedsRoot = "https://www.basketball-reference.com/leagues/NBA_2020_games-%s.htm"
-var pbrGameRoot = "https://www.basketball-reference.com/boxscores/"
+var pbrGameRoot = "https://www.basketball-reference.com/boxscores/%s.html"
 var pbrPlayerFkRgx *regexp.Regexp = regexp.MustCompile(".+\\/(.+).html")
 var pbrLocRgx *regexp.Regexp = regexp.MustCompile("Location:[\\s]+([a-zA-Z ]+),")
 var pbrTeamFkRgx *regexp.Regexp = regexp.MustCompile("\\/teams\\/(.+)\\/")
 
 func ScrapeNbaTeams() {
 	fmt.Printf("%s: Scraping nba teams...\n", time.Now().String())
-	teamUrls := ScrapeNbaTeamUrls()
+	teamUrls := scrapeNbaTeamUrls()
 	teams := []*t.Team{}
 	for _, teamUrl := range teamUrls {
 		fmt.Println("scraping team url ", teamUrl)
@@ -64,7 +65,7 @@ func ScrapeNbaTeams() {
 
 func ScrapeNbaPlayers() {
 	fmt.Printf("%s: Scraping nba players...\n", time.Now().String())
-	teamUrls := ScrapeNbaTeamUrls()
+	teamUrls := scrapeNbaTeamUrls()
 	players := []*t.Player{}
 	for _, teamUrl := range teamUrls {
 		fmt.Println("scraping team url ", teamUrl)
@@ -143,7 +144,7 @@ func ScrapeNbaGames() {
 					Id:            nbaLgId + fk,
 					LeagueId:      nbaLgId,
 					Fk:            fk,
-					Url:           pbrGameRoot + fk,
+					Url:           fmt.Sprintf(pbrGameRoot, fk),
 					GameTime:      gmTime,
 					GameResultsAt: gameRes,
 					HomeTeamFk:    homeTmFk,
@@ -163,9 +164,109 @@ func ScrapeNbaGames() {
 	}
 }
 
+func ScrapeNbaGameLog(game *t.Game) {
+	doc, err := GetGqDocument(game.Url)
+	if err != nil {
+		panic(err)
+	}
+
+	gameLog := &t.GameLog{}
+	awayScoreTxt := doc.Find("#content > div.scorebox > div:nth-child(1) > div.scores").Text()
+	awayScoreTxt = strings.TrimSpace(awayScoreTxt)
+	awayScore, awayScoreErr := strconv.ParseFloat(awayScoreTxt, 64)
+	awayTeamNm := doc.Find("#content > div.scorebox > div:nth-child(1) > div:nth-child(1) > strong > a").Text()
+	homeScoreTxt := doc.Find("#content > div.scorebox > div:nth-child(2) > div.scores").Text()
+	homeScoreTxt = strings.TrimSpace(homeScoreTxt)
+	homeScore, homeScoreErr := strconv.ParseFloat(homeScoreTxt, 64)
+	homeTeamNm := doc.Find("#content > div.scorebox > div:nth-child(2) > div:nth-child(1) > strong > a").Text()
+
+	if awayScoreErr != nil {
+		panic(awayScoreErr)
+	}
+	if homeScoreErr != nil {
+		panic(homeScoreErr)
+	}
+
+	gameLog.AwayTeamLog = t.TeamLog{
+		Fk:       game.AwayTeamFk,
+		TeamName: awayTeamNm,
+		Score:    awayScore,
+	}
+	gameLog.HomeTeamLog = t.TeamLog{
+		Fk:       game.HomeTeamFk,
+		TeamName: homeTeamNm,
+		Score:    homeScore,
+	}
+	gameLog.EvaluateWinner()
+	gameLog.PlayerLogs = scrapeNbaPlayerLogs(doc)
+	game.GameLog = gameLog
+	games := []*t.Game{game}
+
+	db.UpsertGames(&games)
+}
+
 // helpers
 
-func ScrapeNbaTeamUrls() (teamUrls []string) {
+func scrapeNbaPlayerLogs(doc *gq.Document) (playerLogs map[string]*t.PlayerLog) {
+	playerLogs = make(map[string]*t.PlayerLog)
+	doc.Find("#box-SAS-game-basic > tbody > tr").Each(func(i int, s *gq.Selection) {
+		playerFk, _ := s.Find("[data-stat='player']").Attr("data-append-csv")
+		played := s.Find("[data-stat='mp']").Text()
+		if len(played) > 0 && len(playerFk) > 0 {
+			log := t.NbaPlayerLog{}
+			s.Find("td").Each(func(i int, s *gq.Selection) {
+				data, _ := s.Attr("data-stat")
+				switch data {
+				case "mp":
+					log.MinsPlayed, _ = strconv.ParseFloat(s.Text(), 64)
+				case "fg":
+					log.FieldGoals, _ = strconv.ParseFloat(s.Text(), 64)
+				case "fga":
+					log.FieldGoalAtts, _ = strconv.ParseFloat(s.Text(), 64)
+				case "fg_pct":
+					log.FieldGoalPct, _ = strconv.ParseFloat(s.Text(), 64)
+				case "fg3":
+					log.FieldGoal3s, _ = strconv.ParseFloat(s.Text(), 64)
+				case "fg3a":
+					log.FieldGoal3Atts, _ = strconv.ParseFloat(s.Text(), 64)
+				case "fg3_pct":
+					log.FieldGoal3Pct, _ = strconv.ParseFloat(s.Text(), 64)
+				case "ft":
+					log.FreeThrows, _ = strconv.ParseFloat(s.Text(), 64)
+				case "fta":
+					log.FreeThrowAtts, _ = strconv.ParseFloat(s.Text(), 64)
+				case "ft_pct":
+					log.FreeThrowPct, _ = strconv.ParseFloat(s.Text(), 64)
+				case "orb":
+					log.OffRebound, _ = strconv.ParseFloat(s.Text(), 64)
+				case "drb":
+					log.DefRebound, _ = strconv.ParseFloat(s.Text(), 64)
+				case "trb":
+					log.TotalRebounds, _ = strconv.ParseFloat(s.Text(), 64)
+				case "ast":
+					log.Assists, _ = strconv.ParseFloat(s.Text(), 64)
+				case "stl":
+					log.Steals, _ = strconv.ParseFloat(s.Text(), 64)
+				case "blk":
+					log.Blocks, _ = strconv.ParseFloat(s.Text(), 64)
+				case "tov":
+					log.TurnOvers, _ = strconv.ParseFloat(s.Text(), 64)
+				case "pf":
+					log.PersonalFouls, _ = strconv.ParseFloat(s.Text(), 64)
+				case "pts":
+					log.Points, _ = strconv.ParseFloat(s.Text(), 64)
+				case "plus_minus":
+					log.PlusMinus, _ = strconv.ParseFloat(s.Text(), 64)
+				}
+			})
+			var playerLog t.PlayerLog = log
+			playerLogs[playerFk] = &playerLog
+		}
+	})
+	return
+}
+
+func scrapeNbaTeamUrls() (teamUrls []string) {
 	fmt.Printf("%s: Scraping nba team FKs...\n", time.Now().String())
 	doc, err := GetGqDocument(pbrTeamsUrl)
 	if err != nil {

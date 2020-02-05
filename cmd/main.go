@@ -9,8 +9,10 @@ import (
 	// b "bet-hound/cmd/betting"
 	// "bet-hound/cmd/cron"
 
+	"bet-hound/cmd/db"
 	"bet-hound/cmd/env"
 	"bet-hound/cmd/scraper"
+
 	// "bet-hound/cmd/nlp"
 
 	// t "bet-hound/cmd/types"
@@ -33,9 +35,17 @@ func main() {
 	defer env.Cleanup()
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
 
-	scraper.ScrapeNbaTeams()
-	scraper.ScrapeNbaGames()
-	scraper.ScrapeNbaPlayers()
+	// scraper.ScrapeNbaGames()
+
+	game, err := db.FindGameById("nba202002030LAC")
+	if err != nil {
+		panic(err)
+	}
+	scraper.ScrapeNbaGameLog(game)
+
+	// scraper.ScrapeNbaTeams()
+	// scraper.ScrapeNbaGames()
+	// scraper.ScrapeNbaPlayers()
 
 	// bets, err := db.FindAcceptedBetsByGame("201920KANOTI")
 	// fmt.Println(bets, err)
