@@ -8,164 +8,164 @@ import (
 	t "bet-hound/cmd/types"
 )
 
-func SeedNflLeagueSettings() {
+func SeedBetMaps() {
 	// Player metrics
-	playerBets := make([]*t.BetMap, 23)
-	playerBets[0] = &t.BetMap{
+	nflPlayerBets := make([]*t.BetMap, 23)
+	nflPlayerBets[0] = &t.BetMap{
 		Id:       1,
 		LeagueId: "nfl",
 		Type:     "PlayerMetric",
 		Name:     "Pass Completions",
 		Field:    "PassCmp",
 	}
-	playerBets[1] = &t.BetMap{
+	nflPlayerBets[1] = &t.BetMap{
 		Id:       2,
 		LeagueId: "nfl",
 		Type:     "PlayerMetric",
 		Name:     "Pass Attempts",
 		Field:    "PassAtt",
 	}
-	playerBets[2] = &t.BetMap{
+	nflPlayerBets[2] = &t.BetMap{
 		Id:       3,
 		LeagueId: "nfl",
 		Type:     "PlayerMetric",
 		Name:     "Passing Yards",
 		Field:    "PassYd",
 	}
-	playerBets[3] = &t.BetMap{
+	nflPlayerBets[3] = &t.BetMap{
 		Id:       4,
 		LeagueId: "nfl",
 		Type:     "PlayerMetric",
 		Name:     "Passing Touchdowns",
 		Field:    "PassTd",
 	}
-	playerBets[4] = &t.BetMap{
+	nflPlayerBets[4] = &t.BetMap{
 		Id:       5,
 		LeagueId: "nfl",
 		Type:     "PlayerMetric",
 		Name:     "Passing Interceptions",
 		Field:    "PassInt",
 	}
-	playerBets[5] = &t.BetMap{
+	nflPlayerBets[5] = &t.BetMap{
 		Id:       6,
 		LeagueId: "nfl",
 		Type:     "PlayerMetric",
 		Name:     "Sacks Taken",
 		Field:    "PassSacked",
 	}
-	playerBets[6] = &t.BetMap{
+	nflPlayerBets[6] = &t.BetMap{
 		Id:       7,
 		LeagueId: "nfl",
 		Type:     "PlayerMetric",
 		Name:     "Sack Yards Taken",
 		Field:    "PassSackedYd",
 	}
-	playerBets[7] = &t.BetMap{
+	nflPlayerBets[7] = &t.BetMap{
 		Id:       8,
 		LeagueId: "nfl",
 		Type:     "PlayerMetric",
 		Name:     "Longest Pass",
 		Field:    "PassLong",
 	}
-	playerBets[8] = &t.BetMap{
+	nflPlayerBets[8] = &t.BetMap{
 		Id:       9,
 		LeagueId: "nfl",
 		Type:     "PlayerMetric",
 		Name:     "Passer Rating",
 		Field:    "PassRating",
 	}
-	playerBets[9] = &t.BetMap{
+	nflPlayerBets[9] = &t.BetMap{
 		Id:       10,
 		LeagueId: "nfl",
 		Type:     "PlayerMetric",
 		Name:     "Rush Attempts",
 		Field:    "RushAtt",
 	}
-	playerBets[10] = &t.BetMap{
+	nflPlayerBets[10] = &t.BetMap{
 		Id:       11,
 		LeagueId: "nfl",
 		Type:     "PlayerMetric",
 		Name:     "Rush Yards",
 		Field:    "RushYd",
 	}
-	playerBets[11] = &t.BetMap{
+	nflPlayerBets[11] = &t.BetMap{
 		Id:       12,
 		LeagueId: "nfl",
 		Type:     "PlayerMetric",
 		Name:     "Rushing Touchdowns",
 		Field:    "RushTd",
 	}
-	playerBets[12] = &t.BetMap{
+	nflPlayerBets[12] = &t.BetMap{
 		Id:       13,
 		LeagueId: "nfl",
 		Type:     "PlayerMetric",
 		Name:     "Longest Run",
 		Field:    "RushLong",
 	}
-	playerBets[13] = &t.BetMap{
+	nflPlayerBets[13] = &t.BetMap{
 		Id:       14,
 		LeagueId: "nfl",
 		Type:     "PlayerMetric",
 		Name:     "Passing Targets",
 		Field:    "Target",
 	}
-	playerBets[14] = &t.BetMap{
+	nflPlayerBets[14] = &t.BetMap{
 		Id:       15,
 		LeagueId: "nfl",
 		Type:     "PlayerMetric",
 		Name:     "Receptions",
 		Field:    "Rec",
 	}
-	playerBets[15] = &t.BetMap{
+	nflPlayerBets[15] = &t.BetMap{
 		Id:       16,
 		LeagueId: "nfl",
 		Type:     "PlayerMetric",
 		Name:     "Reception Yards",
 		Field:    "RecYd",
 	}
-	playerBets[16] = &t.BetMap{
+	nflPlayerBets[16] = &t.BetMap{
 		Id:       17,
 		LeagueId: "nfl",
 		Type:     "PlayerMetric",
 		Name:     "Reception Touchdowns",
 		Field:    "RecTd",
 	}
-	playerBets[17] = &t.BetMap{
+	nflPlayerBets[17] = &t.BetMap{
 		Id:       18,
 		LeagueId: "nfl",
 		Type:     "PlayerMetric",
 		Name:     "Longest Reception",
 		Field:    "RecLong",
 	}
-	playerBets[18] = &t.BetMap{
+	nflPlayerBets[18] = &t.BetMap{
 		Id:       19,
 		LeagueId: "nfl",
 		Type:     "PlayerMetric",
 		Name:     "Fumbles",
 		Field:    "Fumble",
 	}
-	playerBets[19] = &t.BetMap{
+	nflPlayerBets[19] = &t.BetMap{
 		Id:       20,
 		LeagueId: "nfl",
 		Type:     "PlayerMetric",
 		Name:     "Fumbles Lost",
 		Field:    "FumbleLost",
 	}
-	playerBets[20] = &t.BetMap{
+	nflPlayerBets[20] = &t.BetMap{
 		Id:       21,
 		LeagueId: "nfl",
 		Type:     "PlayerMetric",
 		Name:     "Fantasy Points (0.0 PPR)",
 		Field:    "Fantasy00PPR",
 	}
-	playerBets[21] = &t.BetMap{
+	nflPlayerBets[21] = &t.BetMap{
 		Id:       22,
 		LeagueId: "nfl",
 		Type:     "PlayerMetric",
 		Name:     "Fantasy Points (0.5 PPR)",
 		Field:    "Fantasy05PPR",
 	}
-	playerBets[22] = &t.BetMap{
+	nflPlayerBets[22] = &t.BetMap{
 		Id:       23,
 		LeagueId: "nfl",
 		Type:     "PlayerMetric",
@@ -255,19 +255,172 @@ func SeedNflLeagueSettings() {
 		Field:    "EqualTo",
 	}
 
-	setting := t.LeagueSettings{
-		Id:           "nfl",
-		PlayerBets:   playerBets,
-		TeamBets:     teamBets,
-		BetEquations: eqs,
+	// Nba Player metrics
+	nbaPlayerBets := make([]*t.BetMap, 21)
+	nbaPlayerBets[0] = &t.BetMap{
+		Id:       32,
+		LeagueId: "nba",
+		Type:     "PlayerMetric",
+		Name:     "Minutes Played",
+		Field:    "MinsPlayed",
 	}
-	if err := db.UpsertLeagueSettings(&setting); err != nil {
+	nbaPlayerBets[1] = &t.BetMap{
+		Id:       33,
+		LeagueId: "nba",
+		Type:     "PlayerMetric",
+		Name:     "Field Goals",
+		Field:    "FieldGoals",
+	}
+	nbaPlayerBets[2] = &t.BetMap{
+		Id:       34,
+		LeagueId: "nba",
+		Type:     "PlayerMetric",
+		Name:     "Field Goal Attempts",
+		Field:    "FieldGoalAtts",
+	}
+	nbaPlayerBets[3] = &t.BetMap{
+		Id:       35,
+		LeagueId: "nba",
+		Type:     "PlayerMetric",
+		Name:     "Field Goal Percent",
+		Field:    "FieldGoalPct",
+	}
+	nbaPlayerBets[4] = &t.BetMap{
+		Id:       36,
+		LeagueId: "nba",
+		Type:     "PlayerMetric",
+		Name:     "Field Goal 3s",
+		Field:    "FieldGoal3s",
+	}
+	nbaPlayerBets[5] = &t.BetMap{
+		Id:       37,
+		LeagueId: "nba",
+		Type:     "PlayerMetric",
+		Name:     "Field Goal 3 Attempts",
+		Field:    "FieldGoal3Atts",
+	}
+	nbaPlayerBets[6] = &t.BetMap{
+		Id:       38,
+		LeagueId: "nba",
+		Type:     "PlayerMetric",
+		Name:     "Field Goal 3 Percentage",
+		Field:    "FieldGoal3Pct",
+	}
+	nbaPlayerBets[7] = &t.BetMap{
+		Id:       39,
+		LeagueId: "nba",
+		Type:     "PlayerMetric",
+		Name:     "Free Throws",
+		Field:    "FreeThrows",
+	}
+	nbaPlayerBets[8] = &t.BetMap{
+		Id:       40,
+		LeagueId: "nba",
+		Type:     "PlayerMetric",
+		Name:     "Free Throw Attempts",
+		Field:    "FreeThrowAtts",
+	}
+	nbaPlayerBets[9] = &t.BetMap{
+		Id:       41,
+		LeagueId: "nba",
+		Type:     "PlayerMetric",
+		Name:     "Free Throw Percentage",
+		Field:    "FreeThrowPct",
+	}
+	nbaPlayerBets[10] = &t.BetMap{
+		Id:       42,
+		LeagueId: "nba",
+		Type:     "PlayerMetric",
+		Name:     "Offensive Rebounds",
+		Field:    "OffRebound",
+	}
+	nbaPlayerBets[11] = &t.BetMap{
+		Id:       43,
+		LeagueId: "nba",
+		Type:     "PlayerMetric",
+		Name:     "Defensive Rebounds",
+		Field:    "DefRebound",
+	}
+	nbaPlayerBets[12] = &t.BetMap{
+		Id:       44,
+		LeagueId: "nba",
+		Type:     "PlayerMetric",
+		Name:     "Total Rebounds",
+		Field:    "TotalRebounds",
+	}
+	nbaPlayerBets[13] = &t.BetMap{
+		Id:       45,
+		LeagueId: "nba",
+		Type:     "PlayerMetric",
+		Name:     "Assists",
+		Field:    "Assists",
+	}
+	nbaPlayerBets[14] = &t.BetMap{
+		Id:       46,
+		LeagueId: "nba",
+		Type:     "PlayerMetric",
+		Name:     "Steals",
+		Field:    "Steals",
+	}
+	nbaPlayerBets[15] = &t.BetMap{
+		Id:       47,
+		LeagueId: "nba",
+		Type:     "PlayerMetric",
+		Name:     "Blocks",
+		Field:    "Blocks",
+	}
+	nbaPlayerBets[16] = &t.BetMap{
+		Id:       48,
+		LeagueId: "nba",
+		Type:     "PlayerMetric",
+		Name:     "TurnOvers",
+		Field:    "TurnOvers",
+	}
+	nbaPlayerBets[17] = &t.BetMap{
+		Id:       49,
+		LeagueId: "nba",
+		Type:     "PlayerMetric",
+		Name:     "Personal Fouls",
+		Field:    "PersonalFouls",
+	}
+	nbaPlayerBets[18] = &t.BetMap{
+		Id:       50,
+		LeagueId: "nba",
+		Type:     "PlayerMetric",
+		Name:     "Personal Fouls",
+		Field:    "PersonalFouls",
+	}
+	nbaPlayerBets[19] = &t.BetMap{
+		Id:       51,
+		LeagueId: "nba",
+		Type:     "PlayerMetric",
+		Name:     "Points",
+		Field:    "Points",
+	}
+	nbaPlayerBets[20] = &t.BetMap{
+		Id:       52,
+		LeagueId: "nba",
+		Type:     "PlayerMetric",
+		Name:     "Plus Minus",
+		Field:    "PlusMinus",
+	}
+
+	if err := db.UpsertBetMaps(&nflPlayerBets); err != nil {
+		fmt.Println(err)
+	}
+	if err := db.UpsertBetMaps(&teamBets); err != nil {
+		fmt.Println(err)
+	}
+	if err := db.UpsertBetMaps(&eqs); err != nil {
+		fmt.Println(err)
+	}
+	if err := db.UpsertBetMaps(&nbaPlayerBets); err != nil {
 		fmt.Println(err)
 	}
 }
 
 func SeedNflPlayers() {
-	if err := scraper.ScrapePlayers(); err != nil {
+	if err := scraper.ScrapeNflPlayers(); err != nil {
 		fmt.Println(err)
 	}
 	fmt.Println("Seeded nfl players...")

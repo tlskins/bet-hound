@@ -42,13 +42,14 @@ func GetMinGameResultReadyTime() (*time.Time, error) {
 	}
 }
 
-func GetResultReadyGames() (games []*t.Game, err error) {
+func GetResultReadyGames(leagueId string) (games []*t.Game, err error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.GamesCollection())
 
 	games = []*t.Game{}
-	err = m.Find(c, &games, m.M{"log": nil, "gm_res_at": m.M{"$lte": time.Now()}})
+	q := m.M{"lg_id": leagueId, "log": nil, "gm_res_at": m.M{"$lte": time.Now()}}
+	err = m.Find(c, &games, q)
 	return
 }
 
@@ -72,13 +73,36 @@ func FindCurrentGame(settings *t.LeagueSettings, fk string) (*t.Game, error) {
 	return &game, err
 }
 
-func GetCurrentGames(settings *t.LeagueSettings) (games []*t.Game, err error) {
+func GetCurrentGames() (games []*t.Game, err error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
-	c := conn.DB(env.MongoDb()).C(env.GamesCollection())
+	c := conn.DB(env.MongoDb()).C(env.TeamsCollection())
+
+	lookup := m.M{
+		"from": env.GamesCollection(),
+		"let":  m.M{"tm_fk": "$fk"},
+		"pipeline": []m.M{
+			m.M{"$match": m.M{"$expr": m.M{"$and": []m.M{
+				m.M{"$gt": []interface{}{"$gm_time", time.Now()}},
+				m.M{"$or": []m.M{
+					m.M{"$eq": []interface{}{"$a_team_fk", "$$tm_fk"}},
+					m.M{"$eq": []interface{}{"$h_team_fk", "$$tm_fk"}},
+				}},
+			}}}},
+			m.M{"$sort": m.M{"gm_time": 1}},
+			m.M{"$limit": 1},
+		},
+		"as": "lk_gms",
+	}
 
 	games = []*t.Game{}
-	err = m.Find(c, &games, m.M{"wk": settings.CurrentWeek, "yr": settings.CurrentYear})
+	err = m.Aggregate(c, &games, []m.M{
+		m.M{"$lookup": lookup},
+		m.M{"$unwind": "$lk_gms"},
+		m.M{"$replaceRoot": m.M{"newRoot": "$lk_gms"}},
+		m.M{"$group": m.M{"_id": "$_id", "data": m.M{"$addToSet": "$$ROOT"}}},
+		m.M{"$replaceRoot": m.M{"newRoot": m.M{"$arrayElemAt": []interface{}{"$data", 0}}}},
+	})
 	return
 }
 

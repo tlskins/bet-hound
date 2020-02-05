@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bet-hound/cmd/scraper"
 	"fmt"
 	"log"
 	"net/http"
@@ -32,7 +31,7 @@ var logger *log.Logger
 var lgSttgs *t.LeagueSettings
 
 func main() {
-	// Initialize
+	// Initialize env
 	if err := env.Init(appConfigName, appConfigPath); err != nil {
 		logger.Fatalf("Error loading db config: %s \n", err)
 	}
@@ -51,31 +50,6 @@ func main() {
 	corsHandler := cors.New(corsOptions).Handler
 	router := chi.NewRouter()
 	router.Use(corsHandler)
-
-	// seed and settings options
-	args := os.Args
-	fmt.Println("args=", args)
-	for _, arg := range args {
-		if arg == "-seed_users" {
-			fmt.Println("seeding users...")
-			migration.SeedUsers()
-		} else if arg == "-seed_nfl_players" {
-			fmt.Println("seeding nfl players...")
-			migration.SeedNflPlayers()
-		} else if arg == "-seed_nfl_teams" {
-			fmt.Println("seeding nfl teams...")
-			migration.SeedNflTeams()
-		} else if arg == "-seed_nfl_settings" {
-			fmt.Println("seeding nfl settings...")
-			migration.SeedNflLeagueSettings()
-		} else if arg == "-seed_nfl_curr_gms" {
-			fmt.Println("seeding current games...")
-			scraper.ScrapeGames(2019, 20)
-		} else if arg == "-disable_twitter" {
-			fmt.Println("disabling twitter...")
-			env.DisableTwitter()
-		}
-	}
 
 	// initialize league settings
 	tz, err := time.LoadLocation(env.ServerTz())
@@ -135,9 +109,26 @@ func main() {
 		}
 	}()
 
-	// server options
+	// options
+	args := os.Args
+	fmt.Println("args=", args)
 	for _, arg := range args {
-		if arg == "-register" {
+		if arg == "-seed_users" {
+			fmt.Println("seeding users...")
+			migration.SeedUsers()
+		} else if arg == "-seed_nfl_players" {
+			fmt.Println("seeding nfl players...")
+			migration.SeedNflPlayers()
+		} else if arg == "-seed_nfl_teams" {
+			fmt.Println("seeding nfl teams...")
+			migration.SeedNflTeams()
+		} else if arg == "-seed_nfl_settings" {
+			fmt.Println("seeding nfl settings...")
+			migration.SeedNflLeagueSettings()
+		} else if arg == "-disable_twitter" {
+			fmt.Println("disabling twitter...")
+			env.DisableTwitter()
+		} else if arg == "-register" {
 			twtClient := env.TwitterClient()
 			time.Sleep(5 * time.Second)
 			twtClient.RegisterWebhook(env.WebhookEnv(), env.WebhookUrl())

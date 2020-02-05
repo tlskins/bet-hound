@@ -3,20 +3,16 @@ package main
 import (
 	// "fmt"
 
+	"fmt"
 	"log"
 	"os"
 
-	// b "bet-hound/cmd/betting"
 	// "bet-hound/cmd/cron"
 
-	"bet-hound/cmd/db"
 	"bet-hound/cmd/env"
-	"bet-hound/cmd/scraper"
-
-	// "bet-hound/cmd/nlp"
 
 	// t "bet-hound/cmd/types"
-	// "bet-hound/cmd/db"
+	"bet-hound/cmd/db"
 	m "bet-hound/pkg/mongo"
 )
 
@@ -35,13 +31,15 @@ func main() {
 	defer env.Cleanup()
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
 
-	// scraper.ScrapeNbaGames()
+	// cron.CheckNbaGameResults(logger)
 
-	game, err := db.FindGameById("nba202002030LAC")
+	games, err := db.GetCurrentGames()
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
 	}
-	scraper.ScrapeNbaGameLog(game)
+	for _, game := range games {
+		fmt.Println(game)
+	}
 
 	// scraper.ScrapeNbaTeams()
 	// scraper.ScrapeNbaGames()
