@@ -200,7 +200,7 @@ func ScrapeNbaGameLog(game *t.GameAndLog) {
 		Score:    homeScore,
 	}
 	gameLog.EvaluateWinner()
-	gameLog.PlayerLogs = scrapeNbaPlayerLogs(doc)
+	gameLog.PlayerLogs = scrapeNbaPlayerLogs(doc, game.HomeTeamFk, game.AwayTeamFk)
 	game.GameLog = gameLog
 	games := []*t.GameAndLog{game}
 
@@ -209,62 +209,67 @@ func ScrapeNbaGameLog(game *t.GameAndLog) {
 
 // helpers
 
-func scrapeNbaPlayerLogs(doc *gq.Document) (playerLogs map[string]*t.PlayerLog) {
+func scrapeNbaPlayerLogs(doc *gq.Document, homeFk, awayFk string) (playerLogs map[string]*t.PlayerLog) {
 	playerLogs = make(map[string]*t.PlayerLog)
-	doc.Find("#box-SAS-game-basic > tbody > tr").Each(func(i int, s *gq.Selection) {
-		playerFk, _ := s.Find("[data-stat='player']").Attr("data-append-csv")
-		played := s.Find("[data-stat='mp']").Text()
-		if len(played) > 0 && len(playerFk) > 0 {
-			log := t.NbaPlayerLog{}
-			s.Find("td").Each(func(i int, s *gq.Selection) {
-				data, _ := s.Attr("data-stat")
-				switch data {
-				case "mp":
-					log.MinsPlayed, _ = strconv.ParseFloat(s.Text(), 64)
-				case "fg":
-					log.FieldGoals, _ = strconv.ParseFloat(s.Text(), 64)
-				case "fga":
-					log.FieldGoalAtts, _ = strconv.ParseFloat(s.Text(), 64)
-				case "fg_pct":
-					log.FieldGoalPct, _ = strconv.ParseFloat(s.Text(), 64)
-				case "fg3":
-					log.FieldGoal3s, _ = strconv.ParseFloat(s.Text(), 64)
-				case "fg3a":
-					log.FieldGoal3Atts, _ = strconv.ParseFloat(s.Text(), 64)
-				case "fg3_pct":
-					log.FieldGoal3Pct, _ = strconv.ParseFloat(s.Text(), 64)
-				case "ft":
-					log.FreeThrows, _ = strconv.ParseFloat(s.Text(), 64)
-				case "fta":
-					log.FreeThrowAtts, _ = strconv.ParseFloat(s.Text(), 64)
-				case "ft_pct":
-					log.FreeThrowPct, _ = strconv.ParseFloat(s.Text(), 64)
-				case "orb":
-					log.OffRebound, _ = strconv.ParseFloat(s.Text(), 64)
-				case "drb":
-					log.DefRebound, _ = strconv.ParseFloat(s.Text(), 64)
-				case "trb":
-					log.TotalRebounds, _ = strconv.ParseFloat(s.Text(), 64)
-				case "ast":
-					log.Assists, _ = strconv.ParseFloat(s.Text(), 64)
-				case "stl":
-					log.Steals, _ = strconv.ParseFloat(s.Text(), 64)
-				case "blk":
-					log.Blocks, _ = strconv.ParseFloat(s.Text(), 64)
-				case "tov":
-					log.TurnOvers, _ = strconv.ParseFloat(s.Text(), 64)
-				case "pf":
-					log.PersonalFouls, _ = strconv.ParseFloat(s.Text(), 64)
-				case "pts":
-					log.Points, _ = strconv.ParseFloat(s.Text(), 64)
-				case "plus_minus":
-					log.PlusMinus, _ = strconv.ParseFloat(s.Text(), 64)
-				}
-			})
-			var playerLog t.PlayerLog = log
-			playerLogs[playerFk] = &playerLog
-		}
-	})
+	pRowsSelector := "#box-%s-game-basic > tbody > tr"
+	for _, fk := range []string{homeFk, awayFk} {
+		selector := fmt.Sprintf(pRowsSelector, fk)
+		doc.Find(selector).Each(func(i int, s *gq.Selection) {
+			playerFk, _ := s.Find("[data-stat='player']").Attr("data-append-csv")
+			played := s.Find("[data-stat='mp']").Text()
+			if len(played) > 0 && len(playerFk) > 0 {
+				log := t.NbaPlayerLog{}
+				s.Find("td").Each(func(i int, s *gq.Selection) {
+					data, _ := s.Attr("data-stat")
+					switch data {
+					case "mp":
+						log.MinsPlayed, _ = strconv.ParseFloat(s.Text(), 64)
+					case "fg":
+						log.FieldGoals, _ = strconv.ParseFloat(s.Text(), 64)
+					case "fga":
+						log.FieldGoalAtts, _ = strconv.ParseFloat(s.Text(), 64)
+					case "fg_pct":
+						log.FieldGoalPct, _ = strconv.ParseFloat(s.Text(), 64)
+					case "fg3":
+						log.FieldGoal3s, _ = strconv.ParseFloat(s.Text(), 64)
+					case "fg3a":
+						log.FieldGoal3Atts, _ = strconv.ParseFloat(s.Text(), 64)
+					case "fg3_pct":
+						log.FieldGoal3Pct, _ = strconv.ParseFloat(s.Text(), 64)
+					case "ft":
+						log.FreeThrows, _ = strconv.ParseFloat(s.Text(), 64)
+					case "fta":
+						log.FreeThrowAtts, _ = strconv.ParseFloat(s.Text(), 64)
+					case "ft_pct":
+						log.FreeThrowPct, _ = strconv.ParseFloat(s.Text(), 64)
+					case "orb":
+						log.OffRebound, _ = strconv.ParseFloat(s.Text(), 64)
+					case "drb":
+						log.DefRebound, _ = strconv.ParseFloat(s.Text(), 64)
+					case "trb":
+						log.TotalRebounds, _ = strconv.ParseFloat(s.Text(), 64)
+					case "ast":
+						log.Assists, _ = strconv.ParseFloat(s.Text(), 64)
+					case "stl":
+						log.Steals, _ = strconv.ParseFloat(s.Text(), 64)
+					case "blk":
+						log.Blocks, _ = strconv.ParseFloat(s.Text(), 64)
+					case "tov":
+						log.TurnOvers, _ = strconv.ParseFloat(s.Text(), 64)
+					case "pf":
+						log.PersonalFouls, _ = strconv.ParseFloat(s.Text(), 64)
+					case "pts":
+						log.Points, _ = strconv.ParseFloat(s.Text(), 64)
+					case "plus_minus":
+						log.PlusMinus, _ = strconv.ParseFloat(s.Text(), 64)
+					}
+				})
+				var playerLog t.PlayerLog = log
+				playerLogs[playerFk] = &playerLog
+			}
+		})
+	}
+
 	return
 }
 

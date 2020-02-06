@@ -1,8 +1,6 @@
 package db
 
 import (
-	"fmt"
-
 	"bet-hound/cmd/env"
 	t "bet-hound/cmd/types"
 	m "bet-hound/pkg/mongo"
@@ -60,21 +58,21 @@ func UpsertBet(bet *t.Bet) error {
 	return m.Upsert(c, nil, m.M{"_id": bet.Id}, m.M{"$set": bet})
 }
 
-func FindAcceptedBetsByGame(gameId string) ([]*t.Bet, error) {
-	conn := env.MGOSession().Copy()
-	defer conn.Close()
-	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
+// func FindAcceptedBetsByGame(gameId string) ([]*t.Bet, error) {
+// 	conn := env.MGOSession().Copy()
+// 	defer conn.Close()
+// 	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
 
-	mBets := []*t.MongoBet{}
-	q := m.M{
-		"status":    1,
-		"eqs.exprs": m.M{"$elemMatch": m.M{"gm._id": gameId}},
-	}
-	if err := m.Find(c, &mBets, q); err != nil {
-		return nil, err
-	}
-	return convertMongoBets(mBets)
-}
+// 	mBets := []*t.MongoBet{}
+// 	q := m.M{
+// 		"status":    1,
+// 		"eqs.exprs": m.M{"$elemMatch": m.M{"gm._id": gameId}},
+// 	}
+// 	if err := m.Find(c, &mBets, q); err != nil {
+// 		return nil, err
+// 	}
+// 	return convertMongoBets(mBets)
+// }
 
 func FindBetById(id string) (*t.Bet, error) {
 	conn := env.MGOSession().Copy()
@@ -87,12 +85,6 @@ func FindBetById(id string) (*t.Bet, error) {
 }
 
 func FindBetByReply(tweet *t.Tweet) (*t.Bet, error) {
-	if tweet.InReplyToStatusIdStr == "" {
-		return nil, fmt.Errorf("Tweet doesnt reply to a bet")
-	} else if tweet.TwitterUser.IdStr == "" {
-		return nil, fmt.Errorf("Tweet doest not have an author")
-	}
-
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.BetsCollection())

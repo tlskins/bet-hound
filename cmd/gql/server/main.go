@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"bet-hound/cmd/cron"
 	"bet-hound/cmd/db"
 	"bet-hound/cmd/env"
 	"bet-hound/cmd/gql"
@@ -20,7 +21,8 @@ import (
 	"github.com/99designs/gqlgen/handler"
 	"github.com/go-chi/chi"
 	"github.com/gorilla/websocket"
-	cron "github.com/robfig/cron/v3"
+
+	// cron "github.com/robfig/cron/v3"
 	"github.com/rs/cors"
 )
 
@@ -83,12 +85,12 @@ func main() {
 	})
 
 	// cron
-	cronSrv := cron.New(cron.WithLocation(env.TimeZone()))
-	if _, err := cronSrv.AddFunc("*/30 * * * *", ProcessRotoNfl(&gqlConfig)); err != nil {
-		fmt.Println(err)
-	}
-	cronSrv.Start()
-	defer cronSrv.Stop()
+	// cronSrv := cron.New(cron.WithLocation(env.TimeZone()))
+	// if _, err := cronSrv.AddFunc("*/30 * * * *", ProcessRotoNfl(&gqlConfig)); err != nil {
+	// 	fmt.Println(err)
+	// }
+	// cronSrv.Start()
+	// defer cronSrv.Stop()
 
 	// start graphql server
 	go func() {
@@ -112,9 +114,13 @@ func main() {
 			fmt.Println("disabling twitter...")
 			env.DisableTwitter()
 		} else if arg == "-register" {
+			fmt.Println("registering twitter webhook...")
 			twtClient := env.TwitterClient()
 			time.Sleep(5 * time.Second)
 			twtClient.RegisterWebhook(env.WebhookEnv(), env.WebhookUrl())
+		} else if arg == "-check_nba_games" {
+			fmt.Println("checking nba games...")
+			cron.CheckNbaGameResults(logger)
 		}
 	}
 

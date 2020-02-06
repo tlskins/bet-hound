@@ -68,7 +68,7 @@ func TweetBetApproval(bet *t.Bet, replyTwtId *string) (resp *t.Tweet, err error)
 
 func ReplyToTweet(tweet *t.Tweet) error {
 	// check if bet reply
-	if tweet.InReplyToStatusIdStr != "" {
+	if tweet.InReplyToStatusIdStr != "" && tweet.TwitterUser.IdStr != "" {
 		if bet, err := db.FindBetByReply(tweet); err == nil && bet != nil {
 			return replyToApproval(bet, tweet)
 		}
