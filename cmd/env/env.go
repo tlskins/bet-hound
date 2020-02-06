@@ -2,6 +2,7 @@ package env
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/globalsign/mgo"
 	"github.com/spf13/viper"
@@ -11,39 +12,38 @@ import (
 )
 
 type environment struct {
-	m  *mgo.Session
-	tc *tw.TwitterClient
+	m        *mgo.Session
+	tc       *tw.TwitterClient
+	timeZone *time.Location
 
-	consumerSecret           string
-	webhookEnv               string
-	webhookUrl               string
-	appUrl                   string
-	appHost                  string
-	appPort                  string
-	gqlUrl                   string
-	gqlPort                  string
-	twitterPort              string
-	mongoHost                string
-	mongoUser                string
-	mongoPwd                 string
-	mongoDb                  string
-	betsCollection           string
-	playersCollection        string
-	tweetsCollection         string
-	gamesCollection          string
-	teamsCollection          string
-	leagueSettingsCollection string
-	usersCollection          string
-	betMapsCollection        string
-	leagueStart              string
-	leagueStart2             string
-	leagueEnd                string
-	leagueLastWeek           int
-	logName                  string
-	logPath                  string
-	botHandle                string
-	serverTz                 string
-	allowedOrigins           string
+	consumerSecret    string
+	webhookEnv        string
+	webhookUrl        string
+	appUrl            string
+	appHost           string
+	appPort           string
+	gqlUrl            string
+	gqlPort           string
+	twitterPort       string
+	mongoHost         string
+	mongoUser         string
+	mongoPwd          string
+	mongoDb           string
+	betsCollection    string
+	playersCollection string
+	tweetsCollection  string
+	gamesCollection   string
+	teamsCollection   string
+	usersCollection   string
+	betMapsCollection string
+	leagueStart       string
+	leagueStart2      string
+	leagueEnd         string
+	leagueLastWeek    int
+	logName           string
+	logPath           string
+	botHandle         string
+	allowedOrigins    string
 }
 
 var e = &environment{}
@@ -108,9 +108,6 @@ func TweetsCollection() string {
 func GamesCollection() string {
 	return e.gamesCollection
 }
-func LeagueSettingsCollection() string {
-	return e.leagueSettingsCollection
-}
 func UsersCollection() string {
 	return e.usersCollection
 }
@@ -141,8 +138,8 @@ func LogPath() string {
 func BotHandle() string {
 	return e.botHandle
 }
-func ServerTz() string {
-	return e.serverTz
+func TimeZone() *time.Location {
+	return e.timeZone
 }
 func AllowedOrigins() string {
 	return e.allowedOrigins
@@ -192,7 +189,6 @@ func Init(configFile, configPath string) error {
 	e.playersCollection = viper.GetString("players_collection")
 	e.tweetsCollection = viper.GetString("tweets_collection")
 	e.gamesCollection = viper.GetString("games_collection")
-	e.leagueSettingsCollection = viper.GetString("league_settings_collection")
 	e.usersCollection = viper.GetString("users_collection")
 	e.betMapsCollection = viper.GetString("bet_maps_collection")
 	e.teamsCollection = viper.GetString(("teams_collection"))
@@ -201,10 +197,13 @@ func Init(configFile, configPath string) error {
 	e.leagueStart2 = viper.GetString("league_start2")
 	e.leagueEnd = viper.GetString("league_end")
 	e.leagueLastWeek = viper.GetInt("league_last_week")
-	e.serverTz = viper.GetString("server_tz")
 	e.logName = viper.GetString("log_name")
 	e.logPath = viper.GetString("log_path")
 	e.allowedOrigins = viper.GetString("allowed_origins")
+	e.timeZone, err = time.LoadLocation(viper.GetString("server_tz"))
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -48,7 +48,7 @@ func AcceptBet(user *t.User, betId string, accept bool) (*t.Bet, *t.Notification
 	return bet, note, nil
 }
 
-func CreateBet(proposer *t.User, newBet *t.NewBet, settings *t.LeagueSettings) (bet *t.Bet, note *t.Notification, err error) {
+func CreateBet(proposer *t.User, newBet *t.NewBet) (bet *t.Bet, note *t.Notification, err error) {
 	now := time.Now()
 	rand.Seed(now.UnixNano())
 	recipient, err := db.FindOrCreateBetRecipient(&newBet.BetRecipient)
@@ -69,15 +69,21 @@ func CreateBet(proposer *t.User, newBet *t.NewBet, settings *t.LeagueSettings) (
 	}
 
 	// get bet map lookups
-	opMap := settings.BetEquationsMap()
-	metrics := settings.Metrics()
+	betMaps, err := db.GetBetMaps(&newBet.LeagueId, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	betMapLookup := make(map[int]*t.BetMap)
+	for _, betMap := range betMaps {
+		betMapLookup[betMap.Id] = betMap
+	}
 
 	// create equations
 	for _, newEq := range newBet.NewEquations {
 		eq := &t.Equation{Id: rand.Intn(9999999)}
 		// create operator
 		if newEq.OperatorId != nil {
-			eq.Operator = opMap[*newEq.OperatorId]
+			eq.Operator = betMapLookup[*newEq.OperatorId]
 		}
 		// create expression
 		for _, newExpr := range newEq.NewExpressions {
@@ -102,7 +108,7 @@ func CreateBet(proposer *t.User, newBet *t.NewBet, settings *t.LeagueSettings) (
 				}
 			}
 			if newExpr.MetricId != nil {
-				metric = metrics[*newExpr.MetricId]
+				metric = betMapLookup[*newExpr.MetricId]
 			}
 
 			if player != nil {
@@ -146,7 +152,7 @@ func CreateBet(proposer *t.User, newBet *t.NewBet, settings *t.LeagueSettings) (
 		bet.Equations = append(bet.Equations, eq)
 	}
 
-	// validate and upsert
+	// validate and persistence
 	bet.PostProcess()
 	if err = bet.Valid(); err != nil {
 		return nil, nil, err
@@ -158,10 +164,6 @@ func CreateBet(proposer *t.User, newBet *t.NewBet, settings *t.LeagueSettings) (
 		if _, err = TweetBetProposal(bet); err != nil {
 			return bet, nil, err
 		}
-	}
-	// update next time to process bets
-	if bet.FinalizedAt.Before(*settings.MinGameTime) {
-		settings.MinGameTime = bet.FinalizedAt
 	}
 	note, _ = db.SyncBetWithUsers("Create", bet)
 	return bet, note, nil
@@ -176,8 +178,12 @@ func EvaluateBet(b *t.Bet, g *t.Game) (*t.Bet, error) {
 		// evaluate expressions involving this game
 		for i, expr := range eq.Expressions {
 			gm := expr.GetGame()
-			if gm != nil && gm.Id == g.Id {
-				newExpr, err := EvaluateExpression(expr, g)
+			gmAndLog, err := db.FindGameAndLogById(gm.Id)
+			if err != nil {
+				return nil, err
+			}
+			if gmAndLog != nil && gmAndLog.Id == g.Id {
+				newExpr, err := EvaluateExpression(expr, gmAndLog)
 				if err != nil {
 					return nil, err
 				}
@@ -256,7 +262,7 @@ func EvaluateEquation(e *t.Equation) (*t.Equation, error) {
 	return &eq, nil
 }
 
-func EvaluateExpression(e t.Expression, g *t.Game) (expr t.Expression, err error) {
+func EvaluateExpression(e t.Expression, g *t.GameAndLog) (expr t.Expression, err error) {
 	if s, ok := e.(t.StaticExpression); ok {
 		return s, nil
 	} else if p, ok := e.(t.PlayerExpression); ok {
@@ -267,7 +273,7 @@ func EvaluateExpression(e t.Expression, g *t.Game) (expr t.Expression, err error
 	return nil, fmt.Errorf("Unable to evaluate expression type.")
 }
 
-func evaluatePlayerExpression(e t.PlayerExpression, g *t.Game) (t.Expression, error) {
+func evaluatePlayerExpression(e t.PlayerExpression, g *t.GameAndLog) (t.Expression, error) {
 	if err := e.Valid(); err != nil {
 		return nil, err
 	}
@@ -280,12 +286,12 @@ func evaluatePlayerExpression(e t.PlayerExpression, g *t.Game) (t.Expression, er
 	}
 
 	log := g.GameLog.PlayerLogs[e.Player.Id]
-	e.Value = log.EvaluateMetric(e.Metric.Field)
+	e.Value = (*log).EvaluateMetric(e.Metric.Field)
 	var expr t.Expression = e
 	return expr, nil
 }
 
-func evaluateTeamExpression(e t.TeamExpression, g *t.Game) (t.Expression, error) {
+func evaluateTeamExpression(e t.TeamExpression, g *t.GameAndLog) (t.Expression, error) {
 	if err := e.Valid(); err != nil {
 		return nil, err
 	}
@@ -303,7 +309,7 @@ func evaluateTeamExpression(e t.TeamExpression, g *t.Game) (t.Expression, error)
 		fmt.Println("team log ", *log)
 	}
 
-	e.Value = log.EvaluateMetric(e.Metric.Field)
+	e.Value = (*log).EvaluateMetric(e.Metric.Field)
 	var expr t.Expression = e
 	return expr, nil
 }

@@ -15,21 +15,6 @@ type BetMap {
   rightExpressionTypes: [String!]
 }
 
-type LeagueSettings {
-  id: String!
-  currentYear: Int!
-  currentWeek: Int!
-  maxScrapedWeek: Int!
-  leagueLastWeek: Int!
-  minGameTime: Timestamp
-  startDate: Timestamp
-  startWeekTwo: Timestamp
-  endDate: Timestamp
-  playerBets: [BetMap]!
-  teamBets: [BetMap]!
-  betEquations: [BetMap]!
-}
-
 # betting
 
 type Bet {
@@ -124,7 +109,6 @@ type Player implements Subject {
   lastName: String!
   teamFk: String
   teamName: String
-  teamShort: String
   position: String
 }
 
@@ -136,7 +120,6 @@ type Team implements Subject {
   url: String!
   updatedAt: Timestamp
   game: Game
-  shortName: String!
   location: String!
 }
 
@@ -156,9 +139,6 @@ type Game {
   homeTeamName: String
   gameTime: Timestamp
   gameResultsAt: Timestamp
-  final: Boolean
-  week: Int
-  year: Int
 }
 
 # users
@@ -219,7 +199,6 @@ type RotoArticle {
 
 type Query {
   signIn(userName: String!, password: String!): User!
-  leagueSettings(id: String!): LeagueSettings!
   currentBets: [Bet!]!
   bets: [Bet!]!
   bet(id: ID!): Bet
@@ -229,6 +208,7 @@ type Query {
   findPlayers(name: String, team: String, position: String): [Player]!
   findUsers(search: String!): [User]!
   searchSubjects(search: String!): [SubjectUnion]!
+  getBetMaps(leagueId: String, betType: String): [BetMap]!
 }
 
 type Mutation {
@@ -253,6 +233,7 @@ input ProfileChanges {
 }
 
 input NewBet {
+  leagueId: String!
   betRecipient: BetRecipient!
   newEquations: [NewEquation]!
 }

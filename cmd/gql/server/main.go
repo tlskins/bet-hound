@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,7 +15,6 @@ import (
 	mw "bet-hound/cmd/gql/server/middleware"
 	"bet-hound/cmd/migration"
 	tw "bet-hound/cmd/twitter"
-	t "bet-hound/cmd/types"
 	m "bet-hound/pkg/mongo"
 
 	"github.com/99designs/gqlgen/handler"
@@ -28,7 +28,6 @@ const appConfigPath = "../../env"
 const appConfigName = "config"
 
 var logger *log.Logger
-var lgSttgs *t.LeagueSettings
 
 func main() {
 	// Initialize env
@@ -36,11 +35,14 @@ func main() {
 		logger.Fatalf("Error loading db config: %s \n", err)
 	}
 	defer env.Cleanup()
+
+	// init db
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
 	logger = SetUpLogger(env.LogPath(), env.LogName())
 	mSess := env.MGOSession()
 	db.EnsureIndexes(mSess.DB(env.MongoDb()))
 
+	// cors & routers
 	corsOptions := cors.Options{
 		AllowedHeaders:   []string{"*"},
 		AllowCredentials: true,
@@ -50,14 +52,6 @@ func main() {
 	corsHandler := cors.New(corsOptions).Handler
 	router := chi.NewRouter()
 	router.Use(corsHandler)
-
-	// initialize league settings
-	tz, err := time.LoadLocation(env.ServerTz())
-	if err != nil {
-		panic(err)
-	}
-	lgSttgs = InitLeagueSettings("nfl")
-	// lgSttgs.Print()
 
 	// init graphql server
 	gqlConfig := gql.New()
@@ -69,13 +63,11 @@ func main() {
 	})
 	gqlHandler := handler.GraphQL(gql.NewExecutableSchema(gqlConfig), gqlOption, gqlTimeout)
 	gqlWithAuth := mw.AuthMiddleWare(gqlHandler, env.AppUrl())
-	gqlWithLg := mw.LeagueMiddleWare(gqlWithAuth, lgSttgs)
-	router.Handle("/query", gqlWithLg)
+	router.Handle("/query", gqlWithAuth)
 
 	// init graphql playground
 	plgWithAuth := mw.AuthMiddleWare(handler.Playground("GraphQL playground", "/query"), env.AppUrl())
-	plgWithLg := mw.LeagueMiddleWare(plgWithAuth, lgSttgs)
-	router.Handle("/playground", plgWithLg)
+	router.Handle("/playground", plgWithAuth)
 
 	// init twitter server
 	router.Get("/webhook/twitter", tw.CrcCheck(env.ConsumerSecret()))
@@ -91,10 +83,7 @@ func main() {
 	})
 
 	// cron
-	cronSrv := cron.New(cron.WithLocation(tz))
-	if _, err := cronSrv.AddFunc("*/30 * * * *", ProcessEvents(lgSttgs, logger)); err != nil {
-		fmt.Println(err)
-	}
+	cronSrv := cron.New(cron.WithLocation(env.TimeZone()))
 	if _, err := cronSrv.AddFunc("*/30 * * * *", ProcessRotoNfl(&gqlConfig)); err != nil {
 		fmt.Println(err)
 	}
@@ -122,9 +111,6 @@ func main() {
 		} else if arg == "-seed_nfl_teams" {
 			fmt.Println("seeding nfl teams...")
 			migration.SeedNflTeams()
-		} else if arg == "-seed_nfl_settings" {
-			fmt.Println("seeding nfl settings...")
-			migration.SeedNflLeagueSettings()
 		} else if arg == "-disable_twitter" {
 			fmt.Println("disabling twitter...")
 			env.DisableTwitter()
@@ -132,10 +118,26 @@ func main() {
 			twtClient := env.TwitterClient()
 			time.Sleep(5 * time.Second)
 			twtClient.RegisterWebhook(env.WebhookEnv(), env.WebhookUrl())
-		} else if arg == "-process_events" {
-			ProcessEvents(lgSttgs, logger)()
 		}
 	}
 
 	select {} // block forever
+}
+
+func SetUpLogger(logPath, defaultPath string) *log.Logger {
+	if logPath == "" {
+		logPath = defaultPath
+	}
+	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return log.New(f, "", 0)
+}
+
+func ProcessRotoNfl(config *gql.Config) func() {
+	return func() {
+		r := config.Resolvers.Mutation()
+		r.PostRotoArticle(context.Background())
+	}
 }

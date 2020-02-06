@@ -63,14 +63,14 @@ func FindGameById(id string) (game *t.Game, err error) {
 	return
 }
 
-func FindCurrentGame(settings *t.LeagueSettings, fk string) (*t.Game, error) {
+func FindGameAndLogById(id string) (game *t.GameAndLog, err error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.GamesCollection())
 
-	var game t.Game
-	err := m.FindOne(c, &game, m.M{"fk": fk, "wk": settings.CurrentWeek, "yr": settings.CurrentYear})
-	return &game, err
+	game = &t.GameAndLog{}
+	err = m.FindOne(c, game, m.M{"_id": id})
+	return
 }
 
 func GetCurrentGames() (games []*t.Game, err error) {
@@ -107,6 +107,20 @@ func GetCurrentGames() (games []*t.Game, err error) {
 }
 
 func UpsertGames(games *[]*t.Game) (err error) {
+	conn := env.MGOSession().Copy()
+	defer conn.Close()
+	c := conn.DB(env.MongoDb()).C(env.GamesCollection())
+
+	for _, game := range *games {
+		err = m.Upsert(c, game, m.M{"_id": game.Id}, m.M{"$set": game})
+		if err != nil {
+			return err
+		}
+	}
+	return err
+}
+
+func UpsertGameAndLogs(games *[]*t.GameAndLog) (err error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.GamesCollection())

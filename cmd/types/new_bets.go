@@ -3,6 +3,7 @@ package types
 // Changes
 
 type NewBet struct {
+	LeagueId     string         `json:"league_id"`
 	BetRecipient BetRecipient   `json:"recipient"`
 	NewEquations []*NewEquation `json:"new_equations"`
 }

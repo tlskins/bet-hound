@@ -164,7 +164,7 @@ func ScrapeNbaGames() {
 	}
 }
 
-func ScrapeNbaGameLog(game *t.Game) {
+func ScrapeNbaGameLog(game *t.GameAndLog) {
 	doc, err := GetGqDocument(game.Url)
 	if err != nil {
 		panic(err)
@@ -200,9 +200,9 @@ func ScrapeNbaGameLog(game *t.Game) {
 	gameLog.EvaluateWinner()
 	gameLog.PlayerLogs = scrapeNbaPlayerLogs(doc)
 	game.GameLog = gameLog
-	games := []*t.Game{game}
+	games := []*t.GameAndLog{game}
 
-	db.UpsertGames(&games)
+	db.UpsertGameAndLogs(&games)
 }
 
 // helpers

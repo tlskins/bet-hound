@@ -82,11 +82,7 @@ func (r *mutationResolver) CreateBet(ctx context.Context, newBet types.NewBet) (
 	if err != nil {
 		return nil, err
 	}
-	sttgs, err := leagueFromContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	bet, _, err = betting.CreateBet(user, &newBet, sttgs)
+	bet, _, err = betting.CreateBet(user, &newBet)
 	if err != nil {
 		return nil, err
 	}
@@ -156,9 +152,6 @@ func (r *queryResolver) SignIn(ctx context.Context, userName string, password st
 	}
 	return nil, fmt.Errorf("Invalid user name or password")
 }
-func (r *queryResolver) LeagueSettings(ctx context.Context, id string) (*types.LeagueSettings, error) {
-	return leagueFromContext(ctx)
-}
 func (r *queryResolver) Bets(ctx context.Context) ([]*types.Bet, error) {
 	user, err := userFromContext(ctx)
 	if err != nil {
@@ -177,11 +170,7 @@ func (r *queryResolver) FindGames(ctx context.Context, team *string, gameTime *t
 	return db.SearchGames(team, gameTime, week, year, 10)
 }
 func (r *queryResolver) FindPlayers(ctx context.Context, name *string, team *string, position *string) ([]*types.Player, error) {
-	settings, err := leagueFromContext(ctx)
-	if err != nil {
-		return []*types.Player{}, err
-	}
-	return db.SearchPlayersWithGame(settings, name, team, position, 10)
+	return db.SearchPlayersWithGame(name, team, position, 10)
 }
 func (r *queryResolver) FindUsers(ctx context.Context, search string) ([]*types.User, error) {
 	return db.FindUser(search, 10)
@@ -202,12 +191,13 @@ func (r *queryResolver) CurrentRotoArticles(ctx context.Context, id string) (art
 	return articles, nil
 }
 func (r *queryResolver) CurrentGames(ctx context.Context) ([]*types.Game, error) {
-	settings := ctx.Value(mw.LgContextKey("league")).(*types.LeagueSettings)
-	return db.GetCurrentGames(settings)
+	return db.GetCurrentGames()
 }
 func (r *queryResolver) SearchSubjects(ctx context.Context, search string) ([]types.SubjectUnion, error) {
-	settings := ctx.Value(mw.LgContextKey("league")).(*types.LeagueSettings)
-	return db.SearchSubjects(settings, search)
+	return db.SearchSubjects(search)
+}
+func (r *queryResolver) GetBetMaps(ctx context.Context, leagueId, betType *string) ([]*types.BetMap, error) {
+	return db.GetBetMaps(leagueId, betType)
 }
 
 type subscriptionResolver struct{ *resolver }
@@ -248,9 +238,4 @@ func userFromContext(ctx context.Context) (*types.User, error) {
 		return users[0], nil
 	}
 	return nil, fmt.Errorf("Access denied")
-}
-
-func leagueFromContext(ctx context.Context) (*types.LeagueSettings, error) {
-	lgPointer := ctx.Value(mw.LgContextKey("league")).(*types.LeagueSettings)
-	return lgPointer, nil
 }

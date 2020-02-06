@@ -1,6 +1,8 @@
 package db
 
 import (
+	"time"
+
 	"github.com/globalsign/mgo/bson"
 
 	"bet-hound/cmd/env"
@@ -32,7 +34,7 @@ func FindTeam(fk string) (team *t.Team, err error) {
 	return
 }
 
-func SearchTeamsWithGame(settings *t.LeagueSettings, name, location *string, numResults int) (teams []*t.Team, err error) {
+func SearchTeamsWithGame(name, location *string, numResults int) (teams []*t.Team, err error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.TeamsCollection())
@@ -55,13 +57,14 @@ func SearchTeamsWithGame(settings *t.LeagueSettings, name, location *string, num
 		"let":  m.M{"tm_fk": "$_id"},
 		"pipeline": []m.M{
 			m.M{"$match": m.M{"$expr": m.M{"$and": []m.M{
-				m.M{"$eq": []interface{}{"$yr", settings.CurrentYear}},
-				m.M{"$eq": []interface{}{"$wk", settings.CurrentWeek}},
+				m.M{"$gt": []interface{}{"$gm_time", time.Now()}},
 				m.M{"$or": []m.M{
 					m.M{"$eq": []interface{}{"$a_team_fk", "$$tm_fk"}},
 					m.M{"$eq": []interface{}{"$h_team_fk", "$$tm_fk"}},
 				}},
 			}}}},
+			m.M{"$sort": m.M{"gm_time": 1}},
+			m.M{"$limit": 1},
 		},
 		"as": "lk_gms",
 	}

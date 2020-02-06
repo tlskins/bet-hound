@@ -4,12 +4,12 @@ import (
 	t "bet-hound/cmd/types"
 )
 
-func SearchSubjects(settings *t.LeagueSettings, search string) (subjects []t.SubjectUnion, err error) {
-	players, err := SearchPlayersWithGame(settings, &search, nil, nil, 5)
+func SearchSubjects(search string) (subjects []t.SubjectUnion, err error) {
+	players, err := SearchPlayersWithGame(&search, nil, nil, 5)
 	if err != nil {
 		return
 	}
-	teams, err := SearchTeamsWithGame(settings, &search, &search, 5)
+	teams, err := SearchTeamsWithGame(&search, &search, 5)
 	if err != nil {
 		return
 	}

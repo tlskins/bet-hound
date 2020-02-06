@@ -33,12 +33,14 @@ func main() {
 
 	// cron.CheckNbaGameResults(logger)
 
-	games, err := db.GetCurrentGames()
+	search := "beal"
+	players, err := db.SearchPlayersWithGame(&search, nil, nil, 5)
 	if err != nil {
 		fmt.Println(err)
 	}
-	for _, game := range games {
-		fmt.Println(game)
+	for _, player := range players {
+		fmt.Println(player)
+		fmt.Println(*player.Game)
 	}
 
 	// scraper.ScrapeNbaTeams()
@@ -49,9 +51,6 @@ func main() {
 	// fmt.Println(bets, err)
 
 	// scraper.ScrapeGames(2019, 19)
-
-	// lgSettings := cron.InitLeagueSettings()
-	// fmt.Println("settings: ", lgSettings)
 
 	// game, _ := db.FindGameById("201919SFOMIN")
 	// gameLog, err := scraper.ScrapeGameLog(game.Url)
