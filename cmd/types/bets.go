@@ -197,9 +197,8 @@ func (b Bet) maxFinalizedGameTime() *time.Time {
 		for _, expr := range eq.Expressions {
 			gm := expr.GetGame()
 			if gm != nil {
-				// find latest game result time that hasnt been played at the time of bet creation
-				if maxTime == nil || (gm.GameTime.After(*maxTime) && gm.GameTime.After(time.Now())) {
-					maxTime = &gm.GameTime
+				if maxTime == nil || (gm.GameResultsAt.After(*maxTime)) {
+					maxTime = &gm.GameResultsAt
 				}
 			}
 		}

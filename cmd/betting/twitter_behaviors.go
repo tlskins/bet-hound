@@ -42,7 +42,7 @@ func TweetBetProposal(bet *t.Bet) (*t.Tweet, error) {
 }
 
 func TweetBetApproval(bet *t.Bet, replyTwtId *string) (resp *t.Tweet, err error) {
-	txt := fmt.Sprintf("%s Bet status: %s", bet.TwitterHandles(), bet.BetStatus.String())
+	txt := fmt.Sprintf("%s Bet status: %s (Bet ID %s)", bet.TwitterHandles(), bet.BetStatus.String(), bet.Id)
 	tweetId := bet.SourceFk
 	if replyTwtId != nil {
 		tweetId = *replyTwtId
