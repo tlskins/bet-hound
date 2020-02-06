@@ -42,12 +42,12 @@ func GetMinGameResultReadyTime() (*time.Time, error) {
 	}
 }
 
-func GetResultReadyGames(leagueId string) (games []*t.Game, err error) {
+func GetResultReadyGames(leagueId string) (games []*t.GameAndLog, err error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.GamesCollection())
 
-	games = []*t.Game{}
+	games = []*t.GameAndLog{}
 	q := m.M{"lg_id": leagueId, "log": nil, "gm_res_at": m.M{"$lte": time.Now()}}
 	err = m.Find(c, &games, q)
 	return

@@ -102,15 +102,6 @@ func main() {
 	args := os.Args
 	fmt.Println("args=", args)
 	for _, arg := range args {
-		// if arg == "-seed_users" {
-		// 	fmt.Println("seeding users...")
-		// 	migration.SeedUsers()
-		// } else if arg == "-seed_nfl_players" {
-		// 	fmt.Println("seeding nfl players...")
-		// 	migration.SeedNflPlayers()
-		// } else if arg == "-seed_nfl_teams" {
-		// 	fmt.Println("seeding nfl teams...")
-		// 	migration.SeedNflTeams()
 		if arg == "-scrape_nba_games" {
 			fmt.Println("scraping nba games...")
 			scraper.ScrapeNbaGames()
