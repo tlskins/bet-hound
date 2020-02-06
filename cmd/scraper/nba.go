@@ -140,10 +140,12 @@ func ScrapeNbaGames() {
 				awayTmStr, _ := s.Find("[data-stat='visitor_team_name']").Attr("csk")
 				awayTmFk := awayTmStr[0:3]
 				awayTmNm := s.Find("[data-stat='visitor_team_name']").Text()
+				name := fmt.Sprintf("%s at %s (%s)", awayTmNm, homeTmNm, gmTime.Format("Jan 2 2006"))
 				gm := t.Game{
 					Id:            nbaLgId + fk,
 					LeagueId:      nbaLgId,
 					Fk:            fk,
+					Name:          name,
 					Url:           fmt.Sprintf(pbrGameRoot, fk),
 					GameTime:      gmTime,
 					GameResultsAt: gameRes,

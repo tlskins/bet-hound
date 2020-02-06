@@ -13,7 +13,7 @@ import (
 	"bet-hound/cmd/env"
 	"bet-hound/cmd/gql"
 	mw "bet-hound/cmd/gql/server/middleware"
-	"bet-hound/cmd/migration"
+	"bet-hound/cmd/scraper"
 	tw "bet-hound/cmd/twitter"
 	m "bet-hound/pkg/mongo"
 
@@ -102,15 +102,18 @@ func main() {
 	args := os.Args
 	fmt.Println("args=", args)
 	for _, arg := range args {
-		if arg == "-seed_users" {
-			fmt.Println("seeding users...")
-			migration.SeedUsers()
-		} else if arg == "-seed_nfl_players" {
-			fmt.Println("seeding nfl players...")
-			migration.SeedNflPlayers()
-		} else if arg == "-seed_nfl_teams" {
-			fmt.Println("seeding nfl teams...")
-			migration.SeedNflTeams()
+		// if arg == "-seed_users" {
+		// 	fmt.Println("seeding users...")
+		// 	migration.SeedUsers()
+		// } else if arg == "-seed_nfl_players" {
+		// 	fmt.Println("seeding nfl players...")
+		// 	migration.SeedNflPlayers()
+		// } else if arg == "-seed_nfl_teams" {
+		// 	fmt.Println("seeding nfl teams...")
+		// 	migration.SeedNflTeams()
+		if arg == "-scrape_nba_games" {
+			fmt.Println("scraping nba games...")
+			scraper.ScrapeNbaGames()
 		} else if arg == "-disable_twitter" {
 			fmt.Println("disabling twitter...")
 			env.DisableTwitter()
