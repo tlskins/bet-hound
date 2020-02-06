@@ -41,6 +41,31 @@ func TweetBetProposal(bet *t.Bet) (*t.Tweet, error) {
 	return resp, nil
 }
 
+func TweetBetApproval(bet *t.Bet, replyTwtId *string) (resp *t.Tweet, err error) {
+	txt := fmt.Sprintf("%s Bet status: %s", bet.TwitterHandles(), bet.BetStatus.String())
+	tweetId := bet.SourceFk
+	if replyTwtId != nil {
+		tweetId = *replyTwtId
+	}
+	if bet.BetStatus.String() == "Pending Approval" {
+		pends := "recipient"
+		if bet.ProposerReplyFk == nil {
+			pends = "proposer and " + pends
+		}
+		txt = fmt.Sprintf("%s Pending approval from %s", bet.TwitterHandles(), pends)
+	}
+	client := env.TwitterClient()
+	if resp, err := client.SendTweet(txt, &tweetId); err != nil {
+		return nil, err
+	} else if resp != nil {
+		if err = db.UpsertTweet(resp); err != nil {
+			fmt.Println(err)
+		}
+	}
+	err = db.UpsertBet(bet)
+	return resp, err
+}
+
 func ReplyToTweet(tweet *t.Tweet) error {
 	// check if bet reply
 	if tweet.InReplyToStatusIdStr != "" {
@@ -162,26 +187,8 @@ func replyToApproval(bet *t.Bet, tweet *t.Tweet) error {
 	}
 
 	// reply to tweet
-	txt := fmt.Sprintf("%s Bet status: %s", bet.TwitterHandles(), bet.BetStatus.String())
-	if bet.BetStatus.String() == "Pending Approval" {
-		pends := "recipient"
-		if bet.ProposerReplyFk == nil {
-			pends = "proposer and " + pends
-		}
-		txt = fmt.Sprintf("%s Pending approval from %s", bet.TwitterHandles(), pends)
-	}
-	client := env.TwitterClient()
-	if resp, err := client.SendTweet(txt, &tweet.IdStr); err != nil {
-		return nil
-	} else if resp != nil {
-		if err = db.UpsertTweet(resp); err != nil {
-			fmt.Println(err)
-		}
-	}
-	if err := db.UpsertBet(bet); err != nil {
-		return err
-	}
-	return nil
+	_, err := TweetBetApproval(bet, &tweet.IdStr)
+	return err
 }
 
 // func BuildBetFromTweet(tweet *t.Tweet) (err error, bet *t.Bet) {

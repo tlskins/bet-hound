@@ -9,7 +9,6 @@ import (
 	"bet-hound/cmd/betting"
 	"bet-hound/cmd/db"
 	"bet-hound/cmd/env"
-	mw "bet-hound/cmd/gql/server/middleware"
 	"bet-hound/cmd/scraper"
 	"bet-hound/cmd/types"
 )
@@ -51,7 +50,7 @@ func New() Config {
 type mutationResolver struct{ *resolver }
 
 func (r *mutationResolver) SignOut(ctx context.Context) (bool, error) {
-	authPointer := ctx.Value(mw.AuthContextKey("userID")).(*mw.AuthResponseWriter)
+	authPointer := ctx.Value(AuthContextKey("userID")).(*AuthResponseWriter)
 	return authPointer.DeleteSession(env.AppHost()), nil
 }
 func (r *mutationResolver) ViewProfile(ctx context.Context, sync bool) (*types.User, error) {
@@ -103,13 +102,13 @@ func (r *mutationResolver) AcceptBet(ctx context.Context, id string, accept bool
 	if err != nil {
 		return false, err
 	}
-	// push notifications if online
+	// push notifications
 	users, err := db.FindUserByIds([]string{bet.Proposer.Id, bet.Recipient.Id})
 	for _, user := range users {
 		r.pushUserProfileNotification(user)
 	}
 
-	return true, nil
+	return true, err
 }
 func (r *mutationResolver) PostRotoArticle(ctx context.Context) (bool, error) {
 	fmt.Println("mutationResolver.PostRotoArticle... userObservers:", r.UserObservers)
@@ -146,7 +145,7 @@ type queryResolver struct{ *resolver }
 
 func (r *queryResolver) SignIn(ctx context.Context, userName string, password string) (user *types.User, err error) {
 	if user, err = db.SignInUser(userName, password); err == nil {
-		authPointer := ctx.Value(mw.AuthContextKey("userID")).(*mw.AuthResponseWriter)
+		authPointer := ctx.Value(AuthContextKey("userID")).(*AuthResponseWriter)
 		authPointer.SetSession(env.AppHost(), user.Id)
 		return
 	}
@@ -233,7 +232,7 @@ func (r *mutationResolver) pushUserProfileNotification(newProf *types.User) {
 }
 
 func userFromContext(ctx context.Context) (*types.User, error) {
-	authPointer := ctx.Value(mw.AuthContextKey("userID")).(*mw.AuthResponseWriter)
+	authPointer := ctx.Value(AuthContextKey("userID")).(*AuthResponseWriter)
 	if users, err := db.FindUserByIds([]string{authPointer.UserId}); err == nil && len(users) > 0 {
 		return users[0], nil
 	}

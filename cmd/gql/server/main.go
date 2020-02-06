@@ -12,7 +12,6 @@ import (
 	"bet-hound/cmd/db"
 	"bet-hound/cmd/env"
 	"bet-hound/cmd/gql"
-	mw "bet-hound/cmd/gql/server/middleware"
 	"bet-hound/cmd/migration"
 	"bet-hound/cmd/scraper"
 	tw "bet-hound/cmd/twitter"
@@ -63,11 +62,11 @@ func main() {
 		},
 	})
 	gqlHandler := handler.GraphQL(gql.NewExecutableSchema(gqlConfig), gqlOption, gqlTimeout)
-	gqlWithAuth := mw.AuthMiddleWare(gqlHandler, env.AppUrl())
+	gqlWithAuth := gql.AuthMiddleWare(gqlHandler, env.AppUrl())
 	router.Handle("/query", gqlWithAuth)
 
 	// init graphql playground
-	plgWithAuth := mw.AuthMiddleWare(handler.Playground("GraphQL playground", "/query"), env.AppUrl())
+	plgWithAuth := gql.AuthMiddleWare(handler.Playground("GraphQL playground", "/query"), env.AppUrl())
 	router.Handle("/playground", plgWithAuth)
 
 	// init twitter server

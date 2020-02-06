@@ -44,6 +44,9 @@ func AcceptBet(user *t.User, betId string, accept bool) (*t.Bet, *t.Notification
 	if err = db.UpsertBet(bet); err != nil {
 		return nil, nil, err
 	}
+	if _, err = TweetBetApproval(bet, nil); err != nil {
+		return nil, nil, err
+	}
 	note, _ := db.SyncBetWithUsers("Update", bet)
 	return bet, note, nil
 }
