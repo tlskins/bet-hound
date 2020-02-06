@@ -256,7 +256,7 @@ func SeedBetMaps() {
 	}
 
 	// Nba Player metrics
-	nbaPlayerBets := make([]*t.BetMap, 21)
+	nbaPlayerBets := make([]*t.BetMap, 20)
 	nbaPlayerBets[0] = &t.BetMap{
 		Id:       32,
 		LeagueId: "nba",
@@ -387,18 +387,11 @@ func SeedBetMaps() {
 		Id:       50,
 		LeagueId: "nba",
 		Type:     "PlayerMetric",
-		Name:     "Personal Fouls",
-		Field:    "PersonalFouls",
-	}
-	nbaPlayerBets[19] = &t.BetMap{
-		Id:       51,
-		LeagueId: "nba",
-		Type:     "PlayerMetric",
 		Name:     "Points",
 		Field:    "Points",
 	}
-	nbaPlayerBets[20] = &t.BetMap{
-		Id:       52,
+	nbaPlayerBets[19] = &t.BetMap{
+		Id:       51,
 		LeagueId: "nba",
 		Type:     "PlayerMetric",
 		Name:     "Plus Minus",

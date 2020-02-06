@@ -24,13 +24,13 @@ func UpsertTeams(teams *[]*t.Team) (err error) {
 	return err
 }
 
-func FindTeam(fk string) (team *t.Team, err error) {
+func FindTeamById(id string) (team *t.Team, err error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.TeamsCollection())
 
 	team = &t.Team{}
-	err = m.FindOne(c, team, m.M{"fk": fk})
+	err = m.FindOne(c, team, m.M{"_id": id})
 	return
 }
 
@@ -54,9 +54,10 @@ func SearchTeamsWithGame(name, location *string, numResults int) (teams []*t.Tea
 	// lookup pipe
 	lookup := m.M{
 		"from": env.GamesCollection(),
-		"let":  m.M{"tm_fk": "$_id"},
+		"let":  m.M{"tm_fk": "$_id", "p_lg_id": "$lg_id"},
 		"pipeline": []m.M{
 			m.M{"$match": m.M{"$expr": m.M{"$and": []m.M{
+				m.M{"$eq": []interface{}{"$lg_id", "$$p_lg_id"}},
 				m.M{"$gt": []interface{}{"$gm_time", time.Now()}},
 				m.M{"$or": []m.M{
 					m.M{"$eq": []interface{}{"$a_team_fk", "$$tm_fk"}},

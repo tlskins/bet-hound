@@ -102,6 +102,7 @@ func GetCurrentGames() (games []*t.Game, err error) {
 		m.M{"$replaceRoot": m.M{"newRoot": "$lk_gms"}},
 		m.M{"$group": m.M{"_id": "$_id", "data": m.M{"$addToSet": "$$ROOT"}}},
 		m.M{"$replaceRoot": m.M{"newRoot": m.M{"$arrayElemAt": []interface{}{"$data", 0}}}},
+		m.M{"$sort": m.M{"gm_time": 1}},
 	})
 	return
 }

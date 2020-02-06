@@ -93,7 +93,7 @@ func CreateBet(proposer *t.User, newBet *t.NewBet) (bet *t.Bet, note *t.Notifica
 			var metric *t.BetMap
 
 			if newExpr.PlayerId != nil {
-				if player, err = db.FindPlayer(*newExpr.PlayerId); err != nil {
+				if player, err = db.FindPlayerById(*newExpr.PlayerId); err != nil {
 					return nil, nil, err
 				}
 			}
@@ -103,7 +103,7 @@ func CreateBet(proposer *t.User, newBet *t.NewBet) (bet *t.Bet, note *t.Notifica
 				}
 			}
 			if newExpr.TeamId != nil {
-				if team, err = db.FindTeam(*newExpr.TeamId); err != nil {
+				if team, err = db.FindTeamById(*newExpr.TeamId); err != nil {
 					return nil, nil, err
 				}
 			}

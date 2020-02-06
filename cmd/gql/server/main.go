@@ -13,6 +13,7 @@ import (
 	"bet-hound/cmd/env"
 	"bet-hound/cmd/gql"
 	mw "bet-hound/cmd/gql/server/middleware"
+	"bet-hound/cmd/migration"
 	"bet-hound/cmd/scraper"
 	tw "bet-hound/cmd/twitter"
 	m "bet-hound/pkg/mongo"
@@ -114,6 +115,9 @@ func main() {
 		if arg == "-scrape_nba_games" {
 			fmt.Println("scraping nba games...")
 			scraper.ScrapeNbaGames()
+		} else if arg == "-seed_bet_maps" {
+			fmt.Println("seeding bet maps...")
+			migration.SeedBetMaps()
 		} else if arg == "-disable_twitter" {
 			fmt.Println("disabling twitter...")
 			env.DisableTwitter()
