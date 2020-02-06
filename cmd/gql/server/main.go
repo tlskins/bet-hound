@@ -121,6 +121,9 @@ func main() {
 		} else if arg == "-check_nba_games" {
 			fmt.Println("checking nba games...")
 			cron.CheckNbaGameResults(logger)
+		} else if arg == "-check_nba_bets" {
+			fmt.Println("checking nba bets...")
+			cron.CheckNbaBetResults(logger)
 		}
 	}
 

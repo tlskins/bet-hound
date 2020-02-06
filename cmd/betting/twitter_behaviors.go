@@ -41,6 +41,29 @@ func TweetBetProposal(bet *t.Bet) (*t.Tweet, error) {
 	return resp, nil
 }
 
+func TweetBetResult(bet *t.Bet) (resp *t.Tweet, err error) {
+	if bet.BetStatus.String() != "Final" {
+		return nil, fmt.Errorf("Bet not final %s", bet.Id)
+	}
+
+	if bet.TwitterHandles() != "" && bet.AcceptFk != "" {
+		txt := fmt.Sprintf("%s Congrats %s you beat %s! %s",
+			bet.TwitterHandles(),
+			bet.BetResult.Winner.GetName(),
+			bet.BetResult.Loser.GetName(),
+			bet.BetResult.Response,
+		)
+		client := env.TwitterClient()
+		resp, err := client.SendTweet(txt, &bet.AcceptFk)
+		if err != nil {
+			return nil, err
+		}
+		bet.BetResult.ResponseFk = resp.IdStr
+		err = db.UpsertBet(bet)
+	}
+	return
+}
+
 func TweetBetApproval(bet *t.Bet, replyTwtId *string) (resp *t.Tweet, err error) {
 	txt := fmt.Sprintf("%s Bet status: %s (Bet ID %s)", bet.TwitterHandles(), bet.BetStatus.String(), bet.Id)
 	tweetId := bet.SourceFk

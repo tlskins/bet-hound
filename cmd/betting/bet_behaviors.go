@@ -172,61 +172,52 @@ func CreateBet(proposer *t.User, newBet *t.NewBet) (bet *t.Bet, note *t.Notifica
 	return bet, note, nil
 }
 
-func EvaluateBet(b *t.Bet, g *t.Game) (*t.Bet, error) {
+func EvaluateBet(b *t.Bet) (betResult *t.Bet, err error) {
 	bet := *b
-	betComplete := true
 	pWins := true
+	var gmAndLog *t.GameAndLog
 	for _, eq := range bet.Equations {
-		eqComplete := true
-		// evaluate expressions involving this game
+		// evaluate expressions
 		for i, expr := range eq.Expressions {
-			gm := expr.GetGame()
-			gmAndLog, err := db.FindGameAndLogById(gm.Id)
-			if err != nil {
+			if gmAndLog, err = getExpressionGameAndLog(expr); err != nil {
 				return nil, err
 			}
-			if gmAndLog != nil && gmAndLog.Id == g.Id {
-				newExpr, err := EvaluateExpression(expr, gmAndLog)
-				if err != nil {
-					return nil, err
-				}
-				eq.Expressions[i] = newExpr
-			} else if expr.ResultValue() == nil {
-				betComplete = false
-				eqComplete = false
-			}
-		}
-		// evaluate complete equations
-		if eqComplete {
-			e, err := EvaluateEquation(eq)
-			if err != nil {
+			if eq.Expressions[i], err = evaluateExpression(expr, gmAndLog); err != nil {
 				return nil, err
 			}
-			eq = e
-			if !*eq.Result {
-				pWins = false
-			}
+		}
+		// evaluate complete equation
+		if eq, err = evaluateEquation(eq); err != nil {
+			return nil, err
+		}
+		if !*eq.Result {
+			pWins = false
 		}
 	}
-	if betComplete {
-		bet.BetStatus = t.BetStatusFromString("Final")
-		winner := bet.Proposer
-		loser := bet.Recipient
-		if !pWins {
-			winner = bet.Recipient
-			loser = bet.Proposer
-		}
-		bet.BetResult = &t.BetResult{
-			Winner:    winner,
-			Loser:     loser,
-			Response:  bet.ResultString(),
-			DecidedAt: time.Now(),
-		}
+
+	// record result
+	bet.BetStatus = t.BetStatusFromString("Final")
+	winner := bet.Proposer
+	loser := bet.Recipient
+	if !pWins {
+		winner = bet.Recipient
+		loser = bet.Proposer
 	}
-	return &bet, nil
+	bet.BetResult = &t.BetResult{
+		Winner:    winner,
+		Loser:     loser,
+		Response:  bet.ResultString(),
+		DecidedAt: time.Now(),
+	}
+
+	// tweet result
+	_, err = TweetBetResult(&bet)
+	return &bet, err
 }
 
-func EvaluateEquation(e *t.Equation) (*t.Equation, error) {
+// helpers
+
+func evaluateEquation(e *t.Equation) (*t.Equation, error) {
 	eq := *e
 	left, right := 0.0, 0.0
 	for _, expr := range eq.Expressions {
@@ -265,7 +256,7 @@ func EvaluateEquation(e *t.Equation) (*t.Equation, error) {
 	return &eq, nil
 }
 
-func EvaluateExpression(e t.Expression, g *t.GameAndLog) (expr t.Expression, err error) {
+func evaluateExpression(e t.Expression, g *t.GameAndLog) (expr t.Expression, err error) {
 	if s, ok := e.(t.StaticExpression); ok {
 		return s, nil
 	} else if p, ok := e.(t.PlayerExpression); ok {
@@ -317,117 +308,19 @@ func evaluateTeamExpression(e t.TeamExpression, g *t.GameAndLog) (t.Expression, 
 	return expr, nil
 }
 
-// helpers
+func getExpressionGameAndLog(expr t.Expression) (*t.GameAndLog, error) {
+	gm := expr.GetGame()
+	gmAndLog, err := db.FindGameAndLogById(gm.Id)
+	if err != nil || gmAndLog == nil || gmAndLog.GameLog == nil {
+		errResp := err
+		if errResp != nil {
+			errResp = fmt.Errorf("Game and log invalid %s", gm.Id)
+		}
+		return nil, errResp
+	}
+	return gmAndLog, err
+}
 
 func genPk() int {
 	return rand.Intn(9999999)
 }
-
-// func CalcBetResult(bet *t.Bet) (err error) {
-// 	fmt.Println("calc bet result ", bet.Id, bet.String())
-
-// 	responses := []string{}
-// 	proposerWins := true
-// 	for _, eq := range bet.Equations {
-// 		eqResult, err := calcEquationResult(eq, &games)
-// 		if err != nil {
-// 			return err
-// 		}
-// 		responses = append(responses, fmt.Sprintf("%s (%t)", eq.ResultDescription(), *eqResult))
-// 		proposerWins = proposerWins && *eqResult
-// 	}
-
-// 	var wUsr, lUsr t.User
-// 	if proposerWins {
-// 		wUsr = bet.Proposer
-// 		lUsr = bet.Recipient
-// 	} else {
-// 		wUsr = bet.Recipient
-// 		lUsr = bet.Proposer
-// 	}
-// 	bet.BetResult = &t.BetResult{
-// 		Winner: wUsr,
-// 		Loser:  lUsr,
-// 		Response: fmt.Sprintf("Congrats @%s you beat @%s! '%s'",
-// 			wUsr.ScreenName,
-// 			lUsr.ScreenName,
-// 			strings.Join(responses, ", "),
-// 		),
-// 		DecidedAt: time.Now(),
-// 	}
-// 	bet.BetStatus = t.BetStatusFromString("Final")
-// 	return nil
-// }
-
-// func findGameByFk(games *[]*t.Game, teamFk string) *t.Game {
-// 	for _, g := range *games {
-// 		if g.AwayTeamFk == teamFk || g.HomeTeamFk == teamFk {
-// 			return g
-// 		}
-// 	}
-// 	return nil
-// }
-
-// // helpers
-
-// func calcEquationResult(eq *t.Equation, games *[]*t.Game) (*bool, error) {
-// 	// Process each expression
-// 	allExprs := [][]*t.PlayerExpression{eq.LeftExpressions, eq.RightExpressions}
-// 	errs := []string{}
-// 	for _, exprs := range allExprs {
-// 		for _, expr := range exprs {
-// 			err := calcExpressionResult(expr, games, eq.Metric)
-// 			if err != nil {
-// 				errs = append(errs, err.Error())
-// 			}
-// 		}
-// 	}
-// 	if len(errs) > 0 {
-// 		return nil, fmt.Errorf(strings.Join(errs, ""))
-// 	}
-
-// 	// Record result
-// 	lTtl := calcExpressionsTotal(&eq.LeftExpressions)
-// 	rTtl := calcExpressionsTotal(&eq.RightExpressions)
-// 	fixedMod := eq.Metric.FixedValueMod()
-// 	var result bool
-// 	if eq.Operator.Lemma == "more" {
-// 		// Add fixed mods to equation
-// 		if fixedMod != nil {
-// 			*lTtl += *fixedMod
-// 		}
-// 		result = *lTtl > *rTtl
-// 	} else if eq.Operator.Lemma == "less" || eq.Operator.Lemma == "few" {
-// 		if fixedMod != nil {
-// 			*lTtl -= *fixedMod
-// 		}
-// 		result = *lTtl < *rTtl
-// 	}
-// 	eq.Result = &result
-// 	return &result, nil
-// }
-
-// func calcExpressionsTotal(expressions *[]*t.PlayerExpression) *float64 {
-// 	total := 0.0
-// 	for _, e := range *expressions {
-// 		if e.Value == nil {
-// 			return nil
-// 		}
-// 		total += *e.Value
-// 	}
-
-// 	return &total
-// }
-
-// func calcExpressionResult(expr *t.PlayerExpression, games *[]*t.Game, metric *t.Metric) (err error) {
-// 	gm := findGameByFk(games, expr.Player.TeamFk)
-// 	log := scraper.ScrapeGameLog(gm)
-// 	value := calcPlayerGameValue(&log, expr.Player, metric)
-
-// 	if value == nil {
-// 		return fmt.Errorf("Unable to determine score for %s.", expr.Description())
-// 	} else {
-// 		expr.Value = value
-// 		return nil
-// 	}
-// }

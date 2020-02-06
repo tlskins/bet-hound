@@ -4,6 +4,7 @@ import (
 	"bet-hound/cmd/env"
 	t "bet-hound/cmd/types"
 	m "bet-hound/pkg/mongo"
+	"time"
 
 	uuid "github.com/satori/go.uuid"
 )
@@ -56,6 +57,24 @@ func UpsertBet(bet *t.Bet) error {
 	}
 
 	return m.Upsert(c, nil, m.M{"_id": bet.Id}, m.M{"$set": bet})
+}
+
+func GetResultReadyBets(leagueId string) (bets []*t.Bet, err error) {
+	conn := env.MGOSession().Copy()
+	defer conn.Close()
+	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
+
+	q := m.M{
+		"lg_id":    leagueId,
+		"final_at": m.M{"$lte": time.Now()},
+		"rslt":     nil,
+		"status":   1,
+	}
+
+	mBets := []*t.MongoBet{}
+	m.Find(c, &mBets, q)
+
+	return convertMongoBets(mBets)
 }
 
 // func FindAcceptedBetsByGame(gameId string) ([]*t.Bet, error) {

@@ -75,54 +75,6 @@ package main
 // 	}
 // }
 
-// func ProcessBets(s *t.LeagueSettings, games *[]*t.Game) error {
-// 	client := env.TwitterClient()
-// 	if client.Disabled {
-// 		return nil
-// 	}
-
-// 	for _, game := range *games {
-// 		fmt.Println("processing game:", game.Id)
-// 		bets, err := db.FindAcceptedBetsByGame(game.Id)
-// 		if err != nil {
-// 			return err
-// 		}
-// 		fmt.Println("bets found:", bets)
-// 		for _, bet := range bets {
-// 			fmt.Println("processing bet:", bet.Id, *game)
-// 			if err := bet.Valid(); err != nil {
-// 				fmt.Println("Bet invalid:", err)
-// 				continue
-// 			}
-// 			evBet, err := b.EvaluateBet(bet, game)
-// 			if err != nil {
-// 				fmt.Println("Evaluate bet:", err)
-// 				continue
-// 			}
-// 			fmt.Println("evBet:", evBet.BetStatus.String(), *evBet)
-
-// 			if evBet.BetStatus.String() == "Final" {
-// 				if evBet.TwitterHandles() != "" && evBet.AcceptFk != "" {
-// 					txt := fmt.Sprintf("%s Congrats %s you beat %s! %s",
-// 						evBet.TwitterHandles(),
-// 						evBet.BetResult.Winner.GetName(),
-// 						evBet.BetResult.Loser.GetName(),
-// 						evBet.BetResult.Response,
-// 					)
-// 					resp, err := client.SendTweet(txt, &evBet.AcceptFk)
-// 					if err != nil {
-// 						fmt.Println("Sending tweet:", err)
-// 					} else {
-// 						evBet.BetResult.ResponseFk = resp.IdStr
-// 					}
-// 				}
-// 			}
-// 			db.UpsertBet(evBet)
-// 		}
-// 	}
-// 	return nil
-// }
-
 // func CheckGameResults(s *t.LeagueSettings) (*[]*t.Game, error) {
 // 	fmt.Printf("%s: Checking game results...\n", time.Now().String())
 // 	if s.MinGameTime == nil || s.CurrentWeek == 0 || s.CurrentYear == 0 || time.Now().Before(*s.MinGameTime) {
