@@ -54,11 +54,14 @@ func TweetBetResult(bet *t.Bet) (resp *t.Tweet, err error) {
 			bet.BetResult.Response,
 		)
 		client := env.TwitterClient()
-		resp, err := client.SendTweet(txt, &bet.AcceptFk)
-		if err != nil {
+		if resp, err := client.SendTweet(txt, &bet.AcceptFk); err != nil {
 			return nil, err
+		} else if resp == nil {
+			bet.BetResult.ResponseFk = "-1"
+		} else {
+			bet.BetResult.ResponseFk = resp.IdStr
 		}
-		bet.BetResult.ResponseFk = resp.IdStr
+
 		err = db.UpsertBet(bet)
 	}
 	return

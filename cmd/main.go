@@ -31,17 +31,11 @@ func main() {
 	defer env.Cleanup()
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
 
-	// cron.CheckNbaGameResults(logger)
-
-	search := "beal"
-	players, err := db.SearchPlayersWithGame(&search, nil, nil, 5)
+	game, err := db.FindGameAndLogById("nba202002050BOS")
 	if err != nil {
 		fmt.Println(err)
 	}
-	for _, player := range players {
-		fmt.Println(player)
-		fmt.Println(*player.Game)
-	}
+	fmt.Println(*game)
 
 	// scraper.ScrapeNbaTeams()
 	// scraper.ScrapeNbaGames()

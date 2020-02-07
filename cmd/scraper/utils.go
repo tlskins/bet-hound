@@ -39,3 +39,21 @@ func TeamIdFor(teamUri string) (teamId string) {
 	}
 	return teamId
 }
+
+func EvaluateGameWinner(homeScore, awayScore float64) (homeWin, homeWinBy, homeLoseBy, awayWin, awayWinBy, awayLoseBy float64) {
+	if homeScore == awayScore {
+		homeWin = 0
+		awayWin = 0
+	} else if homeScore > awayScore {
+		homeWin = 1
+		awayWin = -1
+	} else {
+		homeWin = -1
+		awayWin = 1
+	}
+	homeWinBy = homeScore - awayScore
+	homeLoseBy = -1 * homeWinBy
+	awayWinBy = awayScore - homeScore
+	awayLoseBy = -1 * awayWinBy
+	return
+}

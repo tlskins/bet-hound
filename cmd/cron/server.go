@@ -27,7 +27,16 @@ func CheckNbaBetResults(logger *log.Logger) {
 	logError(logger, err, event)
 	for _, bet := range readyBets {
 		logInfo(logger, fmt.Sprintf("Processing bet %s", bet.Id), event)
-		betting.EvaluateBet(bet)
+		if betResult, err := betting.EvaluateBet(bet); err != nil {
+			logError(logger, err, event)
+		} else {
+			msg := fmt.Sprintf(
+				"Status: %s\nResult: %s\n",
+				betResult.BetStatus.String(),
+				betResult.ResultString(),
+			)
+			logInfo(logger, msg, event)
+		}
 	}
 }
 

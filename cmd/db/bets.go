@@ -77,22 +77,6 @@ func GetResultReadyBets(leagueId string) (bets []*t.Bet, err error) {
 	return convertMongoBets(mBets)
 }
 
-// func FindAcceptedBetsByGame(gameId string) ([]*t.Bet, error) {
-// 	conn := env.MGOSession().Copy()
-// 	defer conn.Close()
-// 	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
-
-// 	mBets := []*t.MongoBet{}
-// 	q := m.M{
-// 		"status":    1,
-// 		"eqs.exprs": m.M{"$elemMatch": m.M{"gm._id": gameId}},
-// 	}
-// 	if err := m.Find(c, &mBets, q); err != nil {
-// 		return nil, err
-// 	}
-// 	return convertMongoBets(mBets)
-// }
-
 func FindBetById(id string) (*t.Bet, error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()

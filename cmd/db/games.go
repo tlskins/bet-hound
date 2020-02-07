@@ -1,6 +1,7 @@
 package db
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/globalsign/mgo/bson"
@@ -20,13 +21,21 @@ func FindGameById(id string) (game *t.Game, err error) {
 	return
 }
 
-func FindGameAndLogById(id string) (game *t.GameAndLog, err error) {
+func FindGameAndLogById(id, leagueId string) (game *t.GameAndLog, err error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.GamesCollection())
 
-	game = &t.GameAndLog{}
-	err = m.FindOne(c, game, m.M{"_id": id})
+	if leagueId == "nba" {
+		nbaGame := t.NbaGameAndLog{}
+		if err = m.FindOne(c, &nbaGame, m.M{"_id": id}); err != nil {
+			return nil, err
+		}
+		var gmAndLog t.GameAndLog = nbaGame
+		game = &gmAndLog
+	} else {
+		return nil, fmt.Errorf("Unable to find game and log by id for leagueId: %s", leagueId)
+	}
 	return
 }
 
@@ -78,26 +87,20 @@ func UpsertGames(games *[]*t.Game) (err error) {
 	return err
 }
 
-func UpsertGameAndLogs(games *[]*t.GameAndLog) (err error) {
+func UpsertGameLog(gameId string, gameLog *t.GameLog) (err error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.GamesCollection())
 
-	for _, game := range *games {
-		err = m.Upsert(c, game, m.M{"_id": game.Id}, m.M{"$set": game})
-		if err != nil {
-			return err
-		}
-	}
-	return err
+	return m.Upsert(c, nil, m.M{"_id": gameId}, m.M{"$set": m.M{"log": gameLog}})
 }
 
-func GetResultReadyGames(leagueId string) (games []*t.GameAndLog, err error) {
+func GetResultReadyGames(leagueId string) (games []*t.Game, err error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.GamesCollection())
 
-	games = []*t.GameAndLog{}
+	games = []*t.Game{}
 	q := m.M{"lg_id": leagueId, "log": nil, "gm_res_at": m.M{"$lte": time.Now()}}
 	err = m.Find(c, &games, q)
 	return

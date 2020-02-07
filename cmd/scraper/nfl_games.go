@@ -1,118 +1,118 @@
 package scraper
 
-import (
-	"fmt"
-	"regexp"
-	"strconv"
-	"strings"
+// import (
+// 	"fmt"
+// 	"regexp"
+// 	"strconv"
+// 	"strings"
 
-	gq "github.com/PuerkitoBio/goquery"
+// 	gq "github.com/PuerkitoBio/goquery"
 
-	t "bet-hound/cmd/types"
-)
+// 	t "bet-hound/cmd/types"
+// )
 
-var teamFkRgx *regexp.Regexp = regexp.MustCompile(`\/teams\/(.*)\/\d{4}\.htm`)
+// var teamFkRgx *regexp.Regexp = regexp.MustCompile(`\/teams\/(.*)\/\d{4}\.htm`)
 
-func ScrapeGameLog(url string) (gameLog *t.GameLog, err error) {
-	doc, err := GetGqDocument(url)
-	if err != nil {
-		panic(err)
-	}
+// func ScrapeGameLog(url string) (gameLog *t.GameLog, err error) {
+// 	doc, err := GetGqDocument(url)
+// 	if err != nil {
+// 		panic(err)
+// 	}
 
-	gameLog = &t.GameLog{}
-	isFinal := false
-	doc.Find("#content > div.linescore_wrap > table > tbody > tr").Each(func(i int, s *gq.Selection) {
-		isFinal = true
-		url, _ := s.Find("td:nth-child(2) a").Attr("href")
-		fkMatch := teamFkRgx.FindStringSubmatch(url)
-		fk := strings.ToUpper(fkMatch[1])
-		name := s.Find("td:nth-child(2) a").Text()
-		score, _ := strconv.ParseFloat(s.Find("td:nth-child(7)").Text(), 64)
+// 	gameLog = &t.GameLog{}
+// 	isFinal := false
+// 	doc.Find("#content > div.linescore_wrap > table > tbody > tr").Each(func(i int, s *gq.Selection) {
+// 		isFinal = true
+// 		url, _ := s.Find("td:nth-child(2) a").Attr("href")
+// 		fkMatch := teamFkRgx.FindStringSubmatch(url)
+// 		fk := strings.ToUpper(fkMatch[1])
+// 		name := s.Find("td:nth-child(2) a").Text()
+// 		score, _ := strconv.ParseFloat(s.Find("td:nth-child(7)").Text(), 64)
 
-		tmLog := t.TeamLog{
-			Fk:       fk,
-			TeamName: name,
-			Score:    score,
-		}
-		if i == 0 {
-			gameLog.AwayTeamLog = tmLog
-		} else {
-			gameLog.HomeTeamLog = tmLog
-		}
-	})
+// 		tmLog := t.TeamLog{
+// 			Fk:       fk,
+// 			TeamName: name,
+// 			Score:    score,
+// 		}
+// 		if i == 0 {
+// 			gameLog.AwayTeamLog = tmLog
+// 		} else {
+// 			gameLog.HomeTeamLog = tmLog
+// 		}
+// 	})
 
-	if !isFinal {
-		panic(fmt.Sprintf("Game log not found for %s", url))
-	}
-	gameLog.EvaluateWinner()
-	gameLog.PlayerLogs = scrapePlayerLogs(doc)
+// 	if !isFinal {
+// 		panic(fmt.Sprintf("Game log not found for %s", url))
+// 	}
+// 	gameLog.EvaluateWinner()
+// 	gameLog.PlayerLogs = scrapePlayerLogs(doc)
 
-	return
-}
+// 	return
+// }
 
-func scrapePlayerLogs(doc *gq.Document) (playerLogs map[string]*t.PlayerLog) {
-	playerLogs = make(map[string]*t.PlayerLog)
+// func scrapePlayerLogs(doc *gq.Document) (playerLogs map[string]*t.PlayerLog) {
+// 	playerLogs = make(map[string]*t.PlayerLog)
 
-	doc.Find("#player_offense tbody").Each(func(i int, s *gq.Selection) {
-		s.Find("tr").Each(func(i int, s *gq.Selection) {
-			playerFk, _ := s.Find("th").Attr("data-append-csv")
+// 	doc.Find("#player_offense tbody").Each(func(i int, s *gq.Selection) {
+// 		s.Find("tr").Each(func(i int, s *gq.Selection) {
+// 			playerFk, _ := s.Find("th").Attr("data-append-csv")
 
-			if len(playerFk) > 0 {
-				log := t.NflPlayerLog{}
-				s.Find("td").Each(func(i int, s *gq.Selection) {
-					data, _ := s.Attr("data-stat")
-					switch data {
-					case "pass_cmp":
-						log.PassCmp, _ = strconv.ParseFloat(s.Text(), 64)
-					case "pass_att":
-						log.PassAtt, _ = strconv.ParseFloat(s.Text(), 64)
-					case "pass_yds":
-						log.PassYd, _ = strconv.ParseFloat(s.Text(), 64)
-					case "pass_td":
-						log.PassTd, _ = strconv.ParseFloat(s.Text(), 64)
-					case "pass_int":
-						log.PassInt, _ = strconv.ParseFloat(s.Text(), 64)
-					case "pass_sacked":
-						log.PassSacked, _ = strconv.ParseFloat(s.Text(), 64)
-					case "pass_sacked_yds":
-						log.PassSackedYd, _ = strconv.ParseFloat(s.Text(), 64)
-					case "pass_long":
-						log.PassLong, _ = strconv.ParseFloat(s.Text(), 64)
-					case "pass_rating":
-						log.PassRating, _ = strconv.ParseFloat(s.Text(), 64)
-					case "rush_att":
-						log.RushAtt, _ = strconv.ParseFloat(s.Text(), 64)
-					case "rush_yds":
-						log.RushYd, _ = strconv.ParseFloat(s.Text(), 64)
-					case "rush_td":
-						log.RushTd, _ = strconv.ParseFloat(s.Text(), 64)
-					case "rush_long":
-						log.RushLong, _ = strconv.ParseFloat(s.Text(), 64)
-					case "target":
-						log.Target, _ = strconv.ParseFloat(s.Text(), 64)
-					case "rec":
-						log.Rec, _ = strconv.ParseFloat(s.Text(), 64)
-					case "rec_yds":
-						log.RecYd, _ = strconv.ParseFloat(s.Text(), 64)
-					case "rec_td":
-						log.RecTd, _ = strconv.ParseFloat(s.Text(), 64)
-					case "rec_long":
-						log.RecLong, _ = strconv.ParseFloat(s.Text(), 64)
-					case "fumbles":
-						log.Fumble, _ = strconv.ParseFloat(s.Text(), 64)
-					case "fumbles_lost":
-						log.FumbleLost, _ = strconv.ParseFloat(s.Text(), 64)
-					}
-				})
-				log.CalcFantasyScores()
-				var playerLog t.PlayerLog = log
-				playerLogs[playerFk] = &playerLog
-			}
-		})
-	})
+// 			if len(playerFk) > 0 {
+// 				log := t.NflPlayerLog{}
+// 				s.Find("td").Each(func(i int, s *gq.Selection) {
+// 					data, _ := s.Attr("data-stat")
+// 					switch data {
+// 					case "pass_cmp":
+// 						log.PassCmp, _ = strconv.ParseFloat(s.Text(), 64)
+// 					case "pass_att":
+// 						log.PassAtt, _ = strconv.ParseFloat(s.Text(), 64)
+// 					case "pass_yds":
+// 						log.PassYd, _ = strconv.ParseFloat(s.Text(), 64)
+// 					case "pass_td":
+// 						log.PassTd, _ = strconv.ParseFloat(s.Text(), 64)
+// 					case "pass_int":
+// 						log.PassInt, _ = strconv.ParseFloat(s.Text(), 64)
+// 					case "pass_sacked":
+// 						log.PassSacked, _ = strconv.ParseFloat(s.Text(), 64)
+// 					case "pass_sacked_yds":
+// 						log.PassSackedYd, _ = strconv.ParseFloat(s.Text(), 64)
+// 					case "pass_long":
+// 						log.PassLong, _ = strconv.ParseFloat(s.Text(), 64)
+// 					case "pass_rating":
+// 						log.PassRating, _ = strconv.ParseFloat(s.Text(), 64)
+// 					case "rush_att":
+// 						log.RushAtt, _ = strconv.ParseFloat(s.Text(), 64)
+// 					case "rush_yds":
+// 						log.RushYd, _ = strconv.ParseFloat(s.Text(), 64)
+// 					case "rush_td":
+// 						log.RushTd, _ = strconv.ParseFloat(s.Text(), 64)
+// 					case "rush_long":
+// 						log.RushLong, _ = strconv.ParseFloat(s.Text(), 64)
+// 					case "target":
+// 						log.Target, _ = strconv.ParseFloat(s.Text(), 64)
+// 					case "rec":
+// 						log.Rec, _ = strconv.ParseFloat(s.Text(), 64)
+// 					case "rec_yds":
+// 						log.RecYd, _ = strconv.ParseFloat(s.Text(), 64)
+// 					case "rec_td":
+// 						log.RecTd, _ = strconv.ParseFloat(s.Text(), 64)
+// 					case "rec_long":
+// 						log.RecLong, _ = strconv.ParseFloat(s.Text(), 64)
+// 					case "fumbles":
+// 						log.Fumble, _ = strconv.ParseFloat(s.Text(), 64)
+// 					case "fumbles_lost":
+// 						log.FumbleLost, _ = strconv.ParseFloat(s.Text(), 64)
+// 					}
+// 				})
+// 				log.CalcFantasyScores()
+// 				var playerLog t.PlayerLog = log
+// 				playerLogs[playerFk] = &playerLog
+// 			}
+// 		})
+// 	})
 
-	return
-}
+// 	return
+// }
 
 // needs to be refactored for schedules
 // func ScrapeNflGames(year int) error {

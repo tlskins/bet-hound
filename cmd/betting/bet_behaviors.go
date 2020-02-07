@@ -3,6 +3,7 @@ package betting
 import (
 	"fmt"
 	"math/rand"
+	"reflect"
 	"time"
 
 	uuid "github.com/satori/go.uuid"
@@ -64,6 +65,7 @@ func CreateBet(proposer *t.User, newBet *t.NewBet) (bet *t.Bet, note *t.Notifica
 	pReplyFk := "-1"
 	bet = &t.Bet{
 		Id:              uuid.NewV4().String(),
+		LeagueId:        newBet.LeagueId,
 		BetStatus:       t.BetStatusFromString("Pending Approval"),
 		ProposerReplyFk: &pReplyFk,
 		CreatedAt:       &now,
@@ -260,60 +262,49 @@ func evaluateExpression(e t.Expression, g *t.GameAndLog) (expr t.Expression, err
 	if s, ok := e.(t.StaticExpression); ok {
 		return s, nil
 	} else if p, ok := e.(t.PlayerExpression); ok {
-		return evaluatePlayerExpression(p, g)
+		return evaluatePlayerExpression(p, *g)
 	} else if t, ok := e.(t.TeamExpression); ok {
-		return evaluateTeamExpression(t, g)
+		return evaluateTeamExpression(t, *g)
 	}
 	return nil, fmt.Errorf("Unable to evaluate expression type.")
 }
 
-func evaluatePlayerExpression(e t.PlayerExpression, g *t.GameAndLog) (t.Expression, error) {
+func evaluatePlayerExpression(e t.PlayerExpression, g t.GameAndLog) (t.Expression, error) {
 	if err := e.Valid(); err != nil {
 		return nil, err
 	}
-	gm := e.GetGame()
-	if gm.Id != g.Id {
-		return nil, fmt.Errorf("Game and expression dont match.")
-	}
-	if g.GameLog == nil {
-		return nil, fmt.Errorf("Game logs missing.")
-	}
 
-	log := g.GameLog.PlayerLogs[e.Player.Id]
-	e.Value = (*log).EvaluateMetric(e.Metric.Field)
+	gameLog := g.GetGameLog()
+	playerLog := gameLog.PlayerLogFor(e.Player.Fk)
+	// inactive player
+	if reflect.ValueOf(playerLog).IsNil() {
+		zero := 0.0
+		e.Value = &zero
+	} else {
+		e.Value = playerLog.EvaluateMetric(e.Metric.Field)
+	}
 	var expr t.Expression = e
 	return expr, nil
 }
 
-func evaluateTeamExpression(e t.TeamExpression, g *t.GameAndLog) (t.Expression, error) {
+func evaluateTeamExpression(e t.TeamExpression, g t.GameAndLog) (t.Expression, error) {
 	if err := e.Valid(); err != nil {
 		return nil, err
 	}
-	gm := e.GetGame()
-	if gm.Id != g.Id {
-		return nil, fmt.Errorf("Game and expression dont match.")
-	}
-	if g.GameLog == nil {
-		return nil, fmt.Errorf("Game logs missing.")
-	}
-	log := g.GameLog.TeamLogFor(e.Team.Fk)
-	if log == nil {
-		return nil, fmt.Errorf("Team logs missing.")
-	} else {
-		fmt.Println("team log ", *log)
-	}
 
-	e.Value = (*log).EvaluateMetric(e.Metric.Field)
+	gameLog := g.GetGameLog()
+	playerLog := gameLog.PlayerLogFor(e.Team.Fk)
+	e.Value = playerLog.EvaluateMetric(e.Metric.Field)
 	var expr t.Expression = e
 	return expr, nil
 }
 
 func getExpressionGameAndLog(expr t.Expression) (*t.GameAndLog, error) {
 	gm := expr.GetGame()
-	gmAndLog, err := db.FindGameAndLogById(gm.Id)
-	if err != nil || gmAndLog == nil || gmAndLog.GameLog == nil {
+	gmAndLog, err := db.FindGameAndLogById(gm.Id, gm.LeagueId)
+	if err != nil || gmAndLog == nil {
 		errResp := err
-		if errResp != nil {
+		if errResp == nil {
 			errResp = fmt.Errorf("Game and log invalid %s", gm.Id)
 		}
 		return nil, errResp

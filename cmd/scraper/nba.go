@@ -166,13 +166,13 @@ func ScrapeNbaGames() {
 	}
 }
 
-func ScrapeNbaGameLog(game *t.GameAndLog) {
+func ScrapeNbaGameLog(game *t.Game) {
 	doc, err := GetGqDocument(game.Url)
 	if err != nil {
 		panic(err)
 	}
 
-	gameLog := &t.GameLog{}
+	gameLog := &t.NbaGameLog{}
 	awayScoreTxt := doc.Find("#content > div.scorebox > div:nth-child(1) > div.scores").Text()
 	awayScoreTxt = strings.TrimSpace(awayScoreTxt)
 	awayScore, awayScoreErr := strconv.ParseFloat(awayScoreTxt, 64)
@@ -189,28 +189,36 @@ func ScrapeNbaGameLog(game *t.GameAndLog) {
 		panic(homeScoreErr)
 	}
 
-	gameLog.AwayTeamLog = t.TeamLog{
+	gameLog.AwayTeamLog = t.NbaTeamLog{
 		Fk:       game.AwayTeamFk,
 		TeamName: awayTeamNm,
 		Score:    awayScore,
 	}
-	gameLog.HomeTeamLog = t.TeamLog{
+	gameLog.HomeTeamLog = t.NbaTeamLog{
 		Fk:       game.HomeTeamFk,
 		TeamName: homeTeamNm,
 		Score:    homeScore,
 	}
-	gameLog.EvaluateWinner()
+	hWin, hWinBy, hLoseBy, aWin, aWinBy, aLoseBy := EvaluateGameWinner(
+		gameLog.HomeTeamLog.Score,
+		gameLog.AwayTeamLog.Score,
+	)
+	gameLog.HomeTeamLog.Win = hWin
+	gameLog.HomeTeamLog.WinBy = hWinBy
+	gameLog.HomeTeamLog.LoseBy = hLoseBy
+	gameLog.AwayTeamLog.Win = aWin
+	gameLog.AwayTeamLog.WinBy = aWinBy
+	gameLog.AwayTeamLog.LoseBy = aLoseBy
 	gameLog.PlayerLogs = scrapeNbaPlayerLogs(doc, game.HomeTeamFk, game.AwayTeamFk)
-	game.GameLog = gameLog
-	games := []*t.GameAndLog{game}
+	var gmLog t.GameLog = gameLog
 
-	db.UpsertGameAndLogs(&games)
+	db.UpsertGameLog(game.Id, &gmLog)
 }
 
 // helpers
 
-func scrapeNbaPlayerLogs(doc *gq.Document, homeFk, awayFk string) (playerLogs map[string]*t.PlayerLog) {
-	playerLogs = make(map[string]*t.PlayerLog)
+func scrapeNbaPlayerLogs(doc *gq.Document, homeFk, awayFk string) (playerLogs map[string]*t.NbaPlayerLog) {
+	playerLogs = make(map[string]*t.NbaPlayerLog)
 	pRowsSelector := "#box-%s-game-basic > tbody > tr"
 	for _, fk := range []string{homeFk, awayFk} {
 		selector := fmt.Sprintf(pRowsSelector, fk)
@@ -264,8 +272,7 @@ func scrapeNbaPlayerLogs(doc *gq.Document, homeFk, awayFk string) (playerLogs ma
 						log.PlusMinus, _ = strconv.ParseFloat(s.Text(), 64)
 					}
 				})
-				var playerLog t.PlayerLog = log
-				playerLogs[playerFk] = &playerLog
+				playerLogs[playerFk] = &log
 			}
 		})
 	}
