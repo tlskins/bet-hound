@@ -165,8 +165,8 @@ func (r *queryResolver) CurrentBets(ctx context.Context) ([]*types.Bet, error) {
 func (r *queryResolver) Bet(ctx context.Context, id string) (*types.Bet, error) {
 	return db.FindBetById(id)
 }
-func (r *queryResolver) FindGames(ctx context.Context, team *string, gameTime *time.Time, week *int, year *int) ([]*types.Game, error) {
-	return db.SearchGames(team, gameTime, week, year, 10)
+func (r *queryResolver) FindGames(ctx context.Context, team *string, gameTime *time.Time) ([]*types.Game, error) {
+	return db.SearchGames(team, gameTime, 10)
 }
 func (r *queryResolver) FindPlayers(ctx context.Context, name *string, team *string, position *string) ([]*types.Player, error) {
 	return db.SearchPlayersWithGame(name, team, position, 10)

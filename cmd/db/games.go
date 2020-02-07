@@ -3,55 +3,12 @@ package db
 import (
 	"time"
 
-	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 
 	"bet-hound/cmd/env"
 	t "bet-hound/cmd/types"
 	m "bet-hound/pkg/mongo"
 )
-
-func GetGamesCurrentWeek(year int) (int, error) {
-	conn := env.MGOSession().Copy()
-	defer conn.Close()
-	c := conn.DB(env.MongoDb()).C(env.GamesCollection())
-
-	maxWk := []*t.GamesAggregateInt{}
-	match := m.M{"$match": m.M{"yr": year}}
-	group := m.M{"$group": m.M{"_id": "$yr", "value": m.M{"$max": "$wk"}}}
-	pipe := []m.M{match, group}
-	if err := m.Aggregate(c, &maxWk, &pipe); err != nil || len(maxWk) == 0 {
-		return 0, err
-	} else {
-		return maxWk[0].Value, nil
-	}
-}
-
-func GetMinGameResultReadyTime() (*time.Time, error) {
-	conn := env.MGOSession().Copy()
-	defer conn.Close()
-	c := conn.DB(env.MongoDb()).C(env.GamesCollection())
-
-	min := []*t.GamesAggregateTime{}
-	match := m.M{"$match": m.M{"log": nil}}
-	group := m.M{"$group": m.M{"_id": "", "value": m.M{"$min": "$gm_res_at"}}}
-	pipe := []m.M{match, group}
-	if err := m.Aggregate(c, &min, &pipe); err != nil || len(min) == 0 {
-		return nil, err
-	} else {
-		return &min[0].Value, nil
-	}
-}
-
-func GetResultReadyGames(leagueId string) (games []*t.GameAndLog, err error) {
-	conn := env.MGOSession().Copy()
-	defer conn.Close()
-	c := conn.DB(env.MongoDb()).C(env.GamesCollection())
-
-	games = []*t.GameAndLog{}
-	q := m.M{"lg_id": leagueId, "log": nil, "gm_res_at": m.M{"$lte": time.Now()}}
-	err = m.Find(c, &games, q)
-	return
-}
 
 func FindGameById(id string) (game *t.Game, err error) {
 	conn := env.MGOSession().Copy()
@@ -135,48 +92,37 @@ func UpsertGameAndLogs(games *[]*t.GameAndLog) (err error) {
 	return err
 }
 
-func GamesForWeek(week, year int) (games *[]*t.Game) {
+func GetResultReadyGames(leagueId string) (games []*t.GameAndLog, err error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.GamesCollection())
 
-	games = &[]*t.Game{}
-	c.Find(m.M{"wk": week, "yr": year}).All(games)
+	games = []*t.GameAndLog{}
+	q := m.M{"lg_id": leagueId, "log": nil, "gm_res_at": m.M{"$lte": time.Now()}}
+	err = m.Find(c, &games, q)
 	return
 }
 
-func SearchGames(team *string, gameTime *time.Time, week, year *int, numResults int) (games []*t.Game, err error) {
+func SearchGames(team *string, gameTime *time.Time, numResults int) (games []*t.Game, err error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.GamesCollection())
 
-	// TODO : set indexes somewhere else
-	index := mgo.Index{Key: []string{
-		"$text:a_team_fk",
-		"$text:a_team_name",
-		"$text:h_team_fk",
-		"$text:h_team_name",
-	}}
-	m.CreateIndex(c, index)
-
-	query := m.M{}
+	andQuery := []m.M{}
 	if team != nil {
-		query["$text"] = m.M{"$search": *team}
+		andQuery = append(andQuery, m.M{"$or": []m.M{
+			m.M{"a_team_name": bson.RegEx{*team, "i"}},
+			m.M{"h_team_name": bson.RegEx{*team, "i"}},
+		}})
 	}
 	if gameTime != nil {
-		query["gm_time"] = *gameTime
+		minTime := time.Date(gameTime.Year(), gameTime.Month(), gameTime.Day(), 0, 0, 0, 0, env.TimeZone())
+		maxTime := minTime.Add(24 * time.Hour)
+		andQuery = append(andQuery, m.M{"gm_time": m.M{"$gte": minTime, "$lte": maxTime}})
 	}
-	if week != nil {
-		query["wk"] = *week
-	}
-	if year != nil {
-		query["yr"] = *year
-	}
+	query := m.M{"$and": andQuery}
 
-	// TODO : rewrite with pkg functions
 	games = make([]*t.Game, 0, numResults)
-	sel := m.M{"score": m.M{"$meta": "textScore"}}
-	err = c.Find(query).Select(sel).Sort("$textScore:score").All(&games)
-
+	err = m.Find(c, &games, query)
 	return
 }

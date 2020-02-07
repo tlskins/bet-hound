@@ -3,7 +3,6 @@ package gql
 import (
 	"errors"
 	"io"
-	// "strconv"
 	"time"
 
 	"github.com/99designs/gqlgen/graphql"
@@ -25,23 +24,12 @@ func UnmarshalBetStatus(v interface{}) (types.BetStatus, error) {
 }
 
 func MarshalTimestamp(t time.Time) graphql.Marshaler {
-	// timestamp := t.Unix()
-	// if timestamp < 0 {
-	// 	timestamp = 0
-	// }
-	// return graphql.WriterFunc(func(w io.Writer) {
-	// 	io.WriteString(w, strconv.FormatInt(timestamp, 10))
-	// })
 	return graphql.WriterFunc(func(w io.Writer) {
 		io.WriteString(w, "\""+t.String()+"\"")
 	})
 }
 
 func UnmarshalTimestamp(v interface{}) (t time.Time, err error) {
-	// if tmpStr, ok := v.(int); ok {
-	// 	return time.Unix(int64(tmpStr), 0), nil
-	// }
-	// return time.Time{}, errors.New("time should be a unix timestamp")
 	if tmpStr, ok := v.(string); ok {
 		return time.Parse(
 			time.RFC3339,

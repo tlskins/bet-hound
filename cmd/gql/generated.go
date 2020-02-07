@@ -158,7 +158,7 @@ type ComplexityRoot struct {
 		CurrentBets         func(childComplexity int) int
 		CurrentGames        func(childComplexity int) int
 		CurrentRotoArticles func(childComplexity int, id string) int
-		FindGames           func(childComplexity int, team *string, gameTime *time.Time, week *int, year *int) int
+		FindGames           func(childComplexity int, team *string, gameTime *time.Time) int
 		FindPlayers         func(childComplexity int, name *string, team *string, position *string) int
 		FindUsers           func(childComplexity int, search string) int
 		GetBetMaps          func(childComplexity int, leagueID *string, betType *string) int
@@ -246,7 +246,7 @@ type QueryResolver interface {
 	Bet(ctx context.Context, id string) (*types.Bet, error)
 	CurrentRotoArticles(ctx context.Context, id string) ([]*types.RotoArticle, error)
 	CurrentGames(ctx context.Context) ([]*types.Game, error)
-	FindGames(ctx context.Context, team *string, gameTime *time.Time, week *int, year *int) ([]*types.Game, error)
+	FindGames(ctx context.Context, team *string, gameTime *time.Time) ([]*types.Game, error)
 	FindPlayers(ctx context.Context, name *string, team *string, position *string) ([]*types.Player, error)
 	FindUsers(ctx context.Context, search string) ([]*types.User, error)
 	SearchSubjects(ctx context.Context, search string) ([]types.SubjectUnion, error)
@@ -871,7 +871,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.FindGames(childComplexity, args["team"].(*string), args["gameTime"].(*time.Time), args["week"].(*int), args["year"].(*int)), true
+		return e.complexity.Query.FindGames(childComplexity, args["team"].(*string), args["gameTime"].(*time.Time)), true
 
 	case "Query.findPlayers":
 		if e.complexity.Query.FindPlayers == nil {
@@ -1521,7 +1521,7 @@ type Query {
   bet(id: ID!): Bet
   currentRotoArticles(id: String!): [RotoArticle]!
   currentGames: [Game]
-  findGames(team: String, gameTime: Timestamp, week: Int, year: Int): [Game]!
+  findGames(team: String, gameTime: Timestamp): [Game]!
   findPlayers(name: String, team: String, position: String): [Player]!
   findUsers(search: String!): [User]!
   searchSubjects(search: String!): [SubjectUnion]!
@@ -1722,22 +1722,6 @@ func (ec *executionContext) field_Query_findGames_args(ctx context.Context, rawA
 		}
 	}
 	args["gameTime"] = arg1
-	var arg2 *int
-	if tmp, ok := rawArgs["week"]; ok {
-		arg2, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["week"] = arg2
-	var arg3 *int
-	if tmp, ok := rawArgs["year"]; ok {
-		arg3, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["year"] = arg3
 	return args, nil
 }
 
@@ -4586,7 +4570,7 @@ func (ec *executionContext) _Query_findGames(ctx context.Context, field graphql.
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().FindGames(rctx, args["team"].(*string), args["gameTime"].(*time.Time), args["week"].(*int), args["year"].(*int))
+		return ec.resolvers.Query().FindGames(rctx, args["team"].(*string), args["gameTime"].(*time.Time))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
