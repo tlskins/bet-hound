@@ -97,6 +97,9 @@ func main() {
 		if arg == "-scrape_nba_games" {
 			fmt.Println("scraping nba games...")
 			scraper.ScrapeNbaGames()
+		} else if arg == "-scrape_nba_teams" {
+			fmt.Println("scraping nba teams...")
+			scraper.ScrapeNbaTeams()
 		} else if arg == "-seed_bet_maps" {
 			fmt.Println("seeding bet maps...")
 			migration.SeedBetMaps()
