@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -134,11 +133,4 @@ func SetUpLogger(logPath, defaultPath string) *log.Logger {
 		log.Fatal(err)
 	}
 	return log.New(f, "", 0)
-}
-
-func ProcessRotoNfl(config *gql.Config) func() {
-	return func() {
-		r := config.Resolvers.Mutation()
-		r.PostRotoArticle(context.Background())
-	}
 }
