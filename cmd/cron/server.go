@@ -1,6 +1,7 @@
 package cron
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -9,17 +10,17 @@ import (
 	"bet-hound/cmd/betting"
 	"bet-hound/cmd/db"
 	"bet-hound/cmd/env"
+	"bet-hound/cmd/gql"
 	"bet-hound/cmd/scraper"
 )
 
-func Init(logger *log.Logger) *crn.Cron {
+func Init(logger *log.Logger, gqlConfig *gql.Config) *crn.Cron {
 	fmt.Println("Initializing cron server...")
 	cronSrv := crn.New(crn.WithLocation(env.TimeZone()))
 
-	// if _, err := cronSrv.AddFunc("*/30 * * * *", ProcessRotoNfl(&gqlConfig)); err != nil {
-	// 	fmt.Println(err)
-	// }
-
+	if _, err := cronSrv.AddFunc(fmt.Sprintf("CRON_TZ=%s */30 * * * *", env.ServerTz()), ScrapeAndPushRoto(gqlConfig)); err != nil {
+		fmt.Println(err)
+	}
 	if _, err := cronSrv.AddFunc(fmt.Sprintf("CRON_TZ=%s 0 9 * * *", env.ServerTz()), func() {
 		CheckNbaGameResults(logger)
 		CheckNbaBetResults(logger)
@@ -59,6 +60,14 @@ func CheckNbaBetResults(logger *log.Logger) {
 			)
 			logInfo(logger, msg, event)
 		}
+	}
+}
+
+func ScrapeAndPushRoto(config *gql.Config) func() {
+	return func() {
+		fmt.Println("Scrape and push roto...")
+		r := config.Resolvers.Mutation()
+		r.PostRotoArticle(context.Background())
 	}
 }
 

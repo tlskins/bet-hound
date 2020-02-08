@@ -119,7 +119,7 @@ func main() {
 	}
 
 	// cron server
-	cronSrv := cron.Init(logger)
+	cronSrv := cron.Init(logger, &gqlConfig)
 	defer cronSrv.Stop()
 
 	select {} // block forever
