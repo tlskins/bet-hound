@@ -22,7 +22,6 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/gorilla/websocket"
 
-	// cron "github.com/robfig/cron/v3"
 	"github.com/rs/cors"
 )
 
@@ -84,14 +83,6 @@ func main() {
 		w.Write([]byte("ok"))
 	})
 
-	// cron
-	// cronSrv := cron.New(cron.WithLocation(env.TimeZone()))
-	// if _, err := cronSrv.AddFunc("*/30 * * * *", ProcessRotoNfl(&gqlConfig)); err != nil {
-	// 	fmt.Println(err)
-	// }
-	// cronSrv.Start()
-	// defer cronSrv.Stop()
-
 	// start graphql server
 	go func() {
 		log.Printf("connect to %s for GraphQL playground", env.GqlUrl())
@@ -126,6 +117,10 @@ func main() {
 			cron.CheckNbaBetResults(logger)
 		}
 	}
+
+	// cron server
+	cronSrv := cron.Init(logger)
+	defer cronSrv.Stop()
 
 	select {} // block forever
 }

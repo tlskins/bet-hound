@@ -4,10 +4,32 @@ import (
 	"fmt"
 	"log"
 
+	crn "github.com/robfig/cron/v3"
+
 	"bet-hound/cmd/betting"
 	"bet-hound/cmd/db"
+	"bet-hound/cmd/env"
 	"bet-hound/cmd/scraper"
 )
+
+func Init(logger *log.Logger) *crn.Cron {
+	fmt.Println("Initializing cron server...")
+	cronSrv := crn.New(crn.WithLocation(env.TimeZone()))
+
+	// if _, err := cronSrv.AddFunc("*/30 * * * *", ProcessRotoNfl(&gqlConfig)); err != nil {
+	// 	fmt.Println(err)
+	// }
+
+	if _, err := cronSrv.AddFunc(fmt.Sprintf("CRON_TZ=%s 0 9 * * *", env.ServerTz()), func() {
+		CheckNbaGameResults(logger)
+		CheckNbaBetResults(logger)
+	}); err != nil {
+		fmt.Println(err)
+	}
+
+	cronSrv.Start()
+	return cronSrv
+}
 
 func CheckNbaGameResults(logger *log.Logger) {
 	event := "Checking Game Result"

@@ -44,6 +44,7 @@ type environment struct {
 	logPath           string
 	botHandle         string
 	allowedOrigins    string
+	serverTz          string
 }
 
 var e = &environment{}
@@ -147,6 +148,9 @@ func AllowedOrigins() string {
 func DisableTwitter() {
 	e.tc.Disabled = true
 }
+func ServerTz() string {
+	return e.serverTz
+}
 
 func Init(configFile, configPath string) error {
 	viper.SetConfigName(configFile)
@@ -200,7 +204,8 @@ func Init(configFile, configPath string) error {
 	e.logName = viper.GetString("log_name")
 	e.logPath = viper.GetString("log_path")
 	e.allowedOrigins = viper.GetString("allowed_origins")
-	e.timeZone, err = time.LoadLocation(viper.GetString("server_tz"))
+	e.serverTz = viper.GetString("server_tz")
+	e.timeZone, err = time.LoadLocation(e.serverTz)
 	if err != nil {
 		return err
 	}
