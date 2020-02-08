@@ -132,7 +132,8 @@ func ScrapeNbaGames() {
 			if len(boxScoreUri) == 0 && len(fk) > 0 {
 				dateStr := s.Find("[data-stat='date_game']").Text()
 				timeStr := s.Find("[data-stat='game_start_time']").Text()
-				gmTime, _ := time.Parse("Mon, Jan 2, 20063:04p-0700 MST", dateStr+timeStr+pbrTz)
+				dateTime := fmt.Sprintf("%s%sm%s", dateStr, timeStr, pbrTz)
+				gmTime, _ := time.Parse("Mon, Jan 2, 20063:04pm-0700 MST", dateTime)
 				gameRes := GameResultTimeFor(&gmTime, pbrLoc)
 				homeTmStr, _ := s.Find("[data-stat='home_team_name']").Attr("csk")
 				homeTmFk := homeTmStr[0:3]

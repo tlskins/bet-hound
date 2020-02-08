@@ -3,16 +3,16 @@ package main
 import (
 	// "fmt"
 
-	"fmt"
 	"log"
 	"os"
 
 	// "bet-hound/cmd/cron"
 
 	"bet-hound/cmd/env"
+	"bet-hound/cmd/scraper"
 
 	// t "bet-hound/cmd/types"
-	"bet-hound/cmd/db"
+
 	m "bet-hound/pkg/mongo"
 )
 
@@ -31,14 +31,8 @@ func main() {
 	defer env.Cleanup()
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
 
-	game, err := db.FindGameAndLogById("nba202002050BOS")
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println(*game)
-
 	// scraper.ScrapeNbaTeams()
-	// scraper.ScrapeNbaGames()
+	scraper.ScrapeNbaGames()
 	// scraper.ScrapeNbaPlayers()
 
 	// bets, err := db.FindAcceptedBetsByGame("201920KANOTI")
