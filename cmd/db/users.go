@@ -211,7 +211,9 @@ func SyncBetWithUsers(event string, bet *t.Bet) (*t.Notification, error) {
 	}
 
 	c.Update(m.M{"_id": bet.Proposer.Id}, pUpdate)
-	c.Update(m.M{"_id": bet.Recipient.Id}, rUpdate)
+	if bet.Recipient != nil {
+		c.Update(m.M{"_id": bet.Recipient.Id}, rUpdate)
+	}
 
 	return &note, nil
 }

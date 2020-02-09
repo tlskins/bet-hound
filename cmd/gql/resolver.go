@@ -86,7 +86,11 @@ func (r *mutationResolver) CreateBet(ctx context.Context, newBet types.NewBet) (
 		return nil, err
 	}
 	// push notifications if online
-	users, err := db.FindUserByIds([]string{bet.Proposer.Id, bet.Recipient.Id})
+	userIds := []string{bet.Proposer.Id}
+	if bet.Recipient != nil {
+		userIds = append(userIds, bet.Recipient.Id)
+	}
+	users, err := db.FindUserByIds(userIds)
 	for _, user := range users {
 		r.pushUserProfileNotification(user)
 	}

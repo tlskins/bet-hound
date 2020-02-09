@@ -234,7 +234,7 @@ input ProfileChanges {
 
 input NewBet {
   leagueId: String!
-  betRecipient: BetRecipient!
+  betRecipient: BetRecipient
   newEquations: [NewEquation]!
 }
 

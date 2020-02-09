@@ -4,7 +4,7 @@ package types
 
 type NewBet struct {
 	LeagueId     string         `json:"league_id"`
-	BetRecipient BetRecipient   `json:"recipient"`
+	BetRecipient *BetRecipient  `json:"recipient"`
 	NewEquations []*NewEquation `json:"new_equations"`
 }
 
@@ -26,5 +26,3 @@ type NewExpression struct {
 	MetricId *int     `json:"metric_id"`
 	Value    *float64 `json:"value"`
 }
-
-// TODO : Add validations

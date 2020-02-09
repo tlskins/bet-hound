@@ -96,7 +96,7 @@ func (m MongoBet) Bet() *Bet {
 		CreatedAt:        m.CreatedAt,
 		SourceFk:         m.SourceFk,
 		Proposer:         m.Proposer,
-		Recipient:        m.Recipient,
+		Recipient:        &m.Recipient,
 		AcceptFk:         m.AcceptFk,
 		ProposerReplyFk:  m.ProposerReplyFk,
 		RecipientReplyFk: m.RecipientReplyFk,
@@ -116,7 +116,7 @@ type Bet struct {
 	CreatedAt        *time.Time  `bson:"crt_at" json:"created_at"`
 	SourceFk         string      `bson:"source_fk" json:"source_fk"`
 	Proposer         IndexUser   `bson:"proposer" json:"proposer"`
-	Recipient        IndexUser   `bson:"recipient" json:"recipient"`
+	Recipient        *IndexUser  `bson:"recipient" json:"recipient"`
 	AcceptFk         string      `bson:"acc_fk" json:"acc_fk"`
 	ProposerReplyFk  *string     `bson:"pr_fk" json:"proposer_reply_fk"`
 	RecipientReplyFk *string     `bson:"rr_fk" json:"recipient_reply_fk"`
@@ -138,7 +138,9 @@ func (b Bet) ProposerName() string {
 }
 
 func (b Bet) RecipientName() string {
-	if len(b.Recipient.UserName) > 0 {
+	if b.Recipient == nil {
+		return "*Public"
+	} else if len(b.Recipient.UserName) > 0 {
 		return b.Recipient.UserName
 	} else if b.Recipient.TwitterUser != nil {
 		return b.Recipient.TwitterUser.ScreenName
@@ -223,19 +225,16 @@ func (b Bet) Valid() error {
 	if len(b.Equations) == 0 {
 		errs = append(errs, "No bet details found.")
 	}
-	// if b.ExpiresAt.Before(time.Now()) {
-	// 	errs = append(errs, "Invalid bet, all referenced games are already in progress or finalized.")
-	// }
-	// if b.FinalizedAt.Before(time.Now()) {
-	// 	errs = append(errs, "Invalid bet, games are already final.")
-	// }
+	if b.ExpiresAt.Before(time.Now()) {
+		errs = append(errs, "Invalid bet, all referenced games are already in progress or finalized.")
+	}
+	if b.FinalizedAt.Before(time.Now()) {
+		errs = append(errs, "Invalid bet, games are already final.")
+	}
 	if len(b.Proposer.Id) == 0 {
 		errs = append(errs, "No Proposer found.")
 	}
-	if len(b.Recipient.Id) == 0 {
-		errs = append(errs, "No Proposer found.")
-	}
-	if b.Proposer.Id == b.Recipient.Id {
+	if b.Recipient != nil && b.Proposer.Id == b.Recipient.Id {
 		errs = append(errs, "Proposer cant be the same as the recipient.")
 	}
 	for _, eq := range b.Equations {

@@ -1551,7 +1551,7 @@ input ProfileChanges {
 
 input NewBet {
   leagueId: String!
-  betRecipient: BetRecipient!
+  betRecipient: BetRecipient
   newEquations: [NewEquation]!
 }
 
@@ -2019,9 +2019,9 @@ func (ec *executionContext) _Bet_recipient(ctx context.Context, field graphql.Co
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(types.IndexUser)
+	res := resTmp.(*types.IndexUser)
 	fc.Result = res
-	return ec.marshalOIndexUser2betᚑhoundᚋcmdᚋtypesᚐIndexUser(ctx, field.Selections, res)
+	return ec.marshalOIndexUser2ᚖbetᚑhoundᚋcmdᚋtypesᚐIndexUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Bet_acceptFk(ctx context.Context, field graphql.CollectedField, obj *types.Bet) (ret graphql.Marshaler) {
@@ -7337,7 +7337,7 @@ func (ec *executionContext) unmarshalInputNewBet(ctx context.Context, obj interf
 			}
 		case "betRecipient":
 			var err error
-			it.BetRecipient, err = ec.unmarshalNBetRecipient2betᚑhoundᚋcmdᚋtypesᚐBetRecipient(ctx, v)
+			it.BetRecipient, err = ec.unmarshalOBetRecipient2ᚖbetᚑhoundᚋcmdᚋtypesᚐBetRecipient(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -8879,10 +8879,6 @@ func (ec *executionContext) marshalNBetMap2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐBet
 	return ret
 }
 
-func (ec *executionContext) unmarshalNBetRecipient2betᚑhoundᚋcmdᚋtypesᚐBetRecipient(ctx context.Context, v interface{}) (types.BetRecipient, error) {
-	return ec.unmarshalInputBetRecipient(ctx, v)
-}
-
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	return graphql.UnmarshalBoolean(v)
 }
@@ -9606,6 +9602,18 @@ func (ec *executionContext) marshalOBetMap2ᚖbetᚑhoundᚋcmdᚋtypesᚐBetMap
 	return ec._BetMap(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalOBetRecipient2betᚑhoundᚋcmdᚋtypesᚐBetRecipient(ctx context.Context, v interface{}) (types.BetRecipient, error) {
+	return ec.unmarshalInputBetRecipient(ctx, v)
+}
+
+func (ec *executionContext) unmarshalOBetRecipient2ᚖbetᚑhoundᚋcmdᚋtypesᚐBetRecipient(ctx context.Context, v interface{}) (*types.BetRecipient, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalOBetRecipient2betᚑhoundᚋcmdᚋtypesᚐBetRecipient(ctx, v)
+	return &res, err
+}
+
 func (ec *executionContext) marshalOBetResult2betᚑhoundᚋcmdᚋtypesᚐBetResult(ctx context.Context, sel ast.SelectionSet, v types.BetResult) graphql.Marshaler {
 	return ec._BetResult(ctx, sel, &v)
 }
@@ -9750,6 +9758,13 @@ func (ec *executionContext) marshalOID2string(ctx context.Context, sel ast.Selec
 
 func (ec *executionContext) marshalOIndexUser2betᚑhoundᚋcmdᚋtypesᚐIndexUser(ctx context.Context, sel ast.SelectionSet, v types.IndexUser) graphql.Marshaler {
 	return ec._IndexUser(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOIndexUser2ᚖbetᚑhoundᚋcmdᚋtypesᚐIndexUser(ctx context.Context, sel ast.SelectionSet, v *types.IndexUser) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._IndexUser(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOInt2int(ctx context.Context, v interface{}) (int, error) {
