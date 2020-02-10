@@ -2,6 +2,7 @@ package db
 
 import (
 	"bet-hound/cmd/env"
+	"bet-hound/cmd/types"
 	t "bet-hound/cmd/types"
 	m "bet-hound/pkg/mongo"
 	"time"
@@ -9,27 +10,28 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-func Bets(userId string) (bets []*t.Bet, err error) {
+func Bets(userId string) (resp *t.BetsResponse, err error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
-	q := m.M{"$and": []m.M{
-		m.M{"$or": []m.M{
-			m.M{"proposer._id": userId},
-			m.M{"recipient._id": userId},
-		}},
-		m.M{"eqs": m.M{"$exists": true, "$ne": []m.M{}}},
+	q := m.M{"$or": []m.M{
+		m.M{"proposer._id": userId},
+		m.M{"recipient._id": userId},
 	}}
 
 	mBets := []*t.MongoBet{}
 	if err = c.Find(q).Sort("-crt_at").All(&mBets); err != nil {
 		return
 	}
-
-	return convertMongoBets(mBets)
+	if bets, convErr := convertMongoBets(mBets); err != nil {
+		return resp, convErr
+	} else {
+		resp = groupBetsResponse(&bets)
+	}
+	return
 }
 
-func CurrentBets() (bets []*t.Bet, err error) {
+func CurrentBets() (resp *t.BetsResponse, err error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
@@ -48,8 +50,12 @@ func CurrentBets() (bets []*t.Bet, err error) {
 	if err = c.Find(q).Sort("-crt_at").All(&mBets); err != nil {
 		return
 	}
-
-	return convertMongoBets(mBets)
+	if bets, convErr := convertMongoBets(mBets); err != nil {
+		return resp, convErr
+	} else {
+		resp = groupBetsResponse(&bets)
+	}
+	return
 }
 
 func UpsertBet(bet *t.Bet) error {
@@ -102,6 +108,35 @@ func FindBetByReply(tweet *t.Tweet) (*t.Bet, error) {
 }
 
 // helpers
+
+func groupBetsResponse(bets *[]*t.Bet) *t.BetsResponse {
+	acceptedBets := []*types.Bet{}
+	finalBets := []*types.Bet{}
+	pendingBets := []*types.Bet{}
+	publicPendingBets := []*types.Bet{}
+	closedBets := []*types.Bet{}
+	for _, bet := range *bets {
+		if bet.BetStatus.String() == "Final" {
+			finalBets = append(finalBets, bet)
+		} else if bet.BetStatus.String() == "Accepted" {
+			acceptedBets = append(acceptedBets, bet)
+		} else if bet.BetStatus.String() == "Pending Approval" && bet.Recipient == nil {
+			publicPendingBets = append(publicPendingBets, bet)
+		} else if bet.BetStatus.String() == "Pending Approval" && bet.Recipient != nil {
+			pendingBets = append(pendingBets, bet)
+		} else {
+			closedBets = append(closedBets, bet)
+		}
+	}
+
+	return &t.BetsResponse{
+		AcceptedBets:      acceptedBets,
+		FinalBets:         finalBets,
+		PendingBets:       pendingBets,
+		PublicPendingBets: publicPendingBets,
+		ClosedBets:        closedBets,
+	}
+}
 
 func convertMongoBets(mBets []*t.MongoBet) (bets []*t.Bet, err error) {
 	bets = make([]*t.Bet, len(mBets))

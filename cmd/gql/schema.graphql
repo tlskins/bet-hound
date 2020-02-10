@@ -37,6 +37,8 @@ type BetsResponse {
   acceptedBets: [Bet]!
   finalBets: [Bet]!
   publicPendingBets: [Bet]!
+  pendingBets: [Bet]!
+  closedBets: [Bet]!
 }
 
 type Equation {
@@ -206,7 +208,7 @@ type RotoArticle {
 type Query {
   signIn(userName: String!, password: String!): User!
   currentBets: BetsResponse!
-  bets: [Bet!]!
+  bets: BetsResponse!
   bet(id: ID!): Bet
   currentRotoArticles(id: String!): [RotoArticle]!
   currentGames: [Game]!

@@ -114,6 +114,8 @@ type BetsResponse struct {
 	AcceptedBets      []*Bet `json:"accepted_bets"`
 	FinalBets         []*Bet `json:"final_bets"`
 	PublicPendingBets []*Bet `json:"public_pending_bets"`
+	PendingBets       []*Bet `json:"pending_bets"`
+	ClosedBets        []*Bet `json:"closed_bets"`
 }
 
 type Bet struct {

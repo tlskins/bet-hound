@@ -13,7 +13,7 @@ func AcceptBet(user *t.User, betId string, accept bool) (*t.Bet, *t.Notification
 		return nil, nil, err
 	} else if bet.BetStatus.String() != "Pending Approval" {
 		return nil, nil, fmt.Errorf("Cannot accept a bet with status: %s.", bet.BetStatus.String())
-	} else if bet.Recipient.Id != user.Id && bet.Proposer.Id != user.Id {
+	} else if (bet.Recipient != nil && bet.Recipient.Id != user.Id) && bet.Proposer.Id != user.Id {
 		return nil, nil, fmt.Errorf("You are not involved with this bet.")
 	}
 
@@ -22,7 +22,10 @@ func AcceptBet(user *t.User, betId string, accept bool) (*t.Bet, *t.Notification
 		dftFk := "-1"
 		if bet.Proposer.Id == user.Id {
 			bet.ProposerReplyFk = &dftFk
-		} else if bet.Recipient.Id == user.Id {
+		} else if bet.Recipient != nil && bet.Recipient.Id == user.Id {
+			bet.RecipientReplyFk = &dftFk
+		} else if bet.Recipient == nil && user.Id != bet.Proposer.Id {
+			bet.Recipient = user.IndexUser()
 			bet.RecipientReplyFk = &dftFk
 		}
 
