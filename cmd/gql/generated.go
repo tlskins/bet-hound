@@ -82,6 +82,12 @@ type ComplexityRoot struct {
 		Winner     func(childComplexity int) int
 	}
 
+	BetsResponse struct {
+		AcceptedBets      func(childComplexity int) int
+		FinalBets         func(childComplexity int) int
+		PublicPendingBets func(childComplexity int) int
+	}
+
 	Equation struct {
 		Expressions func(childComplexity int) int
 		Id          func(childComplexity int) int
@@ -241,7 +247,7 @@ type MutationResolver interface {
 }
 type QueryResolver interface {
 	SignIn(ctx context.Context, userName string, password string) (*types.User, error)
-	CurrentBets(ctx context.Context) ([]*types.Bet, error)
+	CurrentBets(ctx context.Context) (*types.BetsResponse, error)
 	Bets(ctx context.Context) ([]*types.Bet, error)
 	Bet(ctx context.Context, id string) (*types.Bet, error)
 	CurrentRotoArticles(ctx context.Context, id string) ([]*types.RotoArticle, error)
@@ -452,6 +458,27 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.BetResult.Winner(childComplexity), true
+
+	case "BetsResponse.acceptedBets":
+		if e.complexity.BetsResponse.AcceptedBets == nil {
+			break
+		}
+
+		return e.complexity.BetsResponse.AcceptedBets(childComplexity), true
+
+	case "BetsResponse.finalBets":
+		if e.complexity.BetsResponse.FinalBets == nil {
+			break
+		}
+
+		return e.complexity.BetsResponse.FinalBets(childComplexity), true
+
+	case "BetsResponse.publicPendingBets":
+		if e.complexity.BetsResponse.PublicPendingBets == nil {
+			break
+		}
+
+		return e.complexity.BetsResponse.PublicPendingBets(childComplexity), true
 
 	case "Equation.expressions":
 		if e.complexity.Equation.Expressions == nil {
@@ -1350,6 +1377,12 @@ type Bet {
   betResult: BetResult
 }
 
+type BetsResponse {
+  acceptedBets: [Bet]!
+  finalBets: [Bet]!
+  publicPendingBets: [Bet]!
+}
+
 type Equation {
   id: Int!
   expressions: [Expression]!
@@ -1516,11 +1549,11 @@ type RotoArticle {
 
 type Query {
   signIn(userName: String!, password: String!): User!
-  currentBets: [Bet!]!
+  currentBets: BetsResponse!
   bets: [Bet!]!
   bet(id: ID!): Bet
   currentRotoArticles(id: String!): [RotoArticle]!
-  currentGames: [Game]
+  currentGames: [Game]!
   findGames(team: String, gameTime: Timestamp): [Game]!
   findPlayers(name: String, team: String, position: String): [Player]!
   findUsers(search: String!): [User]!
@@ -2703,6 +2736,108 @@ func (ec *executionContext) _BetResult_decidedAt(ctx context.Context, field grap
 	res := resTmp.(time.Time)
 	fc.Result = res
 	return ec.marshalNTimestamp2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _BetsResponse_acceptedBets(ctx context.Context, field graphql.CollectedField, obj *types.BetsResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "BetsResponse",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AcceptedBets, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*types.Bet)
+	fc.Result = res
+	return ec.marshalNBet2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐBet(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _BetsResponse_finalBets(ctx context.Context, field graphql.CollectedField, obj *types.BetsResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "BetsResponse",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.FinalBets, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*types.Bet)
+	fc.Result = res
+	return ec.marshalNBet2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐBet(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _BetsResponse_publicPendingBets(ctx context.Context, field graphql.CollectedField, obj *types.BetsResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "BetsResponse",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PublicPendingBets, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*types.Bet)
+	fc.Result = res
+	return ec.marshalNBet2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐBet(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Equation_id(ctx context.Context, field graphql.CollectedField, obj *types.Equation) (ret graphql.Marshaler) {
@@ -4397,9 +4532,9 @@ func (ec *executionContext) _Query_currentBets(ctx context.Context, field graphq
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*types.Bet)
+	res := resTmp.(*types.BetsResponse)
 	fc.Result = res
-	return ec.marshalNBet2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐBetᚄ(ctx, field.Selections, res)
+	return ec.marshalNBetsResponse2ᚖbetᚑhoundᚋcmdᚋtypesᚐBetsResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_bets(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -4539,11 +4674,14 @@ func (ec *executionContext) _Query_currentGames(ctx context.Context, field graph
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.([]*types.Game)
 	fc.Result = res
-	return ec.marshalOGame2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐGame(ctx, field.Selections, res)
+	return ec.marshalNGame2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐGame(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_findGames(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -7723,6 +7861,43 @@ func (ec *executionContext) _BetResult(ctx context.Context, sel ast.SelectionSet
 	return out
 }
 
+var betsResponseImplementors = []string{"BetsResponse"}
+
+func (ec *executionContext) _BetsResponse(ctx context.Context, sel ast.SelectionSet, obj *types.BetsResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, betsResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("BetsResponse")
+		case "acceptedBets":
+			out.Values[i] = ec._BetsResponse_acceptedBets(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "finalBets":
+			out.Values[i] = ec._BetsResponse_finalBets(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "publicPendingBets":
+			out.Values[i] = ec._BetsResponse_publicPendingBets(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var equationImplementors = []string{"Equation"}
 
 func (ec *executionContext) _Equation(ctx context.Context, sel ast.SelectionSet, obj *types.Equation) graphql.Marshaler {
@@ -8145,6 +8320,9 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_currentGames(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			})
 		case "findGames":
@@ -8795,6 +8973,43 @@ func (ec *executionContext) marshalNBet2betᚑhoundᚋcmdᚋtypesᚐBet(ctx cont
 	return ec._Bet(ctx, sel, &v)
 }
 
+func (ec *executionContext) marshalNBet2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐBet(ctx context.Context, sel ast.SelectionSet, v []*types.Bet) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOBet2ᚖbetᚑhoundᚋcmdᚋtypesᚐBet(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
 func (ec *executionContext) marshalNBet2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐBetᚄ(ctx context.Context, sel ast.SelectionSet, v []*types.Bet) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -8877,6 +9092,20 @@ func (ec *executionContext) marshalNBetMap2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐBet
 	}
 	wg.Wait()
 	return ret
+}
+
+func (ec *executionContext) marshalNBetsResponse2betᚑhoundᚋcmdᚋtypesᚐBetsResponse(ctx context.Context, sel ast.SelectionSet, v types.BetsResponse) graphql.Marshaler {
+	return ec._BetsResponse(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNBetsResponse2ᚖbetᚑhoundᚋcmdᚋtypesᚐBetsResponse(ctx context.Context, sel ast.SelectionSet, v *types.BetsResponse) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._BetsResponse(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
@@ -9699,46 +9928,6 @@ func (ec *executionContext) marshalOFloat2ᚖfloat64(ctx context.Context, sel as
 
 func (ec *executionContext) marshalOGame2betᚑhoundᚋcmdᚋtypesᚐGame(ctx context.Context, sel ast.SelectionSet, v types.Game) graphql.Marshaler {
 	return ec._Game(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalOGame2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐGame(ctx context.Context, sel ast.SelectionSet, v []*types.Game) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalOGame2ᚖbetᚑhoundᚋcmdᚋtypesᚐGame(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-	return ret
 }
 
 func (ec *executionContext) marshalOGame2ᚖbetᚑhoundᚋcmdᚋtypesᚐGame(ctx context.Context, sel ast.SelectionSet, v *types.Game) graphql.Marshaler {

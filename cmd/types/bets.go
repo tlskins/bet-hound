@@ -73,7 +73,7 @@ type MongoBet struct {
 	CreatedAt        *time.Time       `bson:"crt_at" json:"created_at"`
 	SourceFk         string           `bson:"source_fk" json:"source_fk"`
 	Proposer         IndexUser        `bson:"proposer" json:"proposer"`
-	Recipient        IndexUser        `bson:"recipient" json:"recipient"`
+	Recipient        *IndexUser       `bson:"recipient" json:"recipient"`
 	AcceptFk         string           `bson:"acc_fk" json:"acc_fk"`
 	ProposerReplyFk  *string          `bson:"pr_fk" json:"proposer_reply_fk"`
 	RecipientReplyFk *string          `bson:"rr_fk" json:"recipient_reply_fk"`
@@ -96,7 +96,7 @@ func (m MongoBet) Bet() *Bet {
 		CreatedAt:        m.CreatedAt,
 		SourceFk:         m.SourceFk,
 		Proposer:         m.Proposer,
-		Recipient:        &m.Recipient,
+		Recipient:        m.Recipient,
 		AcceptFk:         m.AcceptFk,
 		ProposerReplyFk:  m.ProposerReplyFk,
 		RecipientReplyFk: m.RecipientReplyFk,
@@ -109,6 +109,12 @@ func (m MongoBet) Bet() *Bet {
 }
 
 // Bet
+
+type BetsResponse struct {
+	AcceptedBets      []*Bet `json:"accepted_bets"`
+	FinalBets         []*Bet `json:"final_bets"`
+	PublicPendingBets []*Bet `json:"public_pending_bets"`
+}
 
 type Bet struct {
 	Id               string      `bson:"_id" json:"id"`

@@ -163,8 +163,28 @@ func (r *queryResolver) Bets(ctx context.Context) ([]*types.Bet, error) {
 
 	return db.Bets(user.Id)
 }
-func (r *queryResolver) CurrentBets(ctx context.Context) ([]*types.Bet, error) {
-	return db.CurrentBets()
+func (r *queryResolver) CurrentBets(ctx context.Context) (resp *types.BetsResponse, err error) {
+	var acceptedBets, finalBets, publicPendingBets []*types.Bet
+	currentBets, err := db.CurrentBets()
+	if err != nil {
+		return
+	}
+	for _, bet := range currentBets {
+		if bet.BetStatus.String() == "Final" {
+			finalBets = append(finalBets, bet)
+		} else if bet.BetStatus.String() == "Approved" {
+			acceptedBets = append(acceptedBets, bet)
+		} else if bet.BetStatus.String() == "Pending Approval" && bet.Recipient == nil {
+			publicPendingBets = append(publicPendingBets, bet)
+		}
+	}
+
+	resp = &types.BetsResponse{
+		AcceptedBets:      acceptedBets,
+		FinalBets:         finalBets,
+		PublicPendingBets: publicPendingBets,
+	}
+	return
 }
 func (r *queryResolver) Bet(ctx context.Context, id string) (*types.Bet, error) {
 	return db.FindBetById(id)

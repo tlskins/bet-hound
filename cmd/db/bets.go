@@ -33,7 +33,11 @@ func CurrentBets() (bets []*t.Bet, err error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
-	q := m.M{"$and": []m.M{
+	q := m.M{"$or": []m.M{
+		m.M{"$and": []m.M{
+			m.M{"status": 0},
+			m.M{"recipient": nil},
+		}},
 		m.M{"$or": []m.M{
 			m.M{"status": 1},
 			m.M{"status": 2},

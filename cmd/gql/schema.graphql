@@ -33,6 +33,12 @@ type Bet {
   betResult: BetResult
 }
 
+type BetsResponse {
+  acceptedBets: [Bet]!
+  finalBets: [Bet]!
+  publicPendingBets: [Bet]!
+}
+
 type Equation {
   id: Int!
   expressions: [Expression]!
@@ -199,11 +205,11 @@ type RotoArticle {
 
 type Query {
   signIn(userName: String!, password: String!): User!
-  currentBets: [Bet!]!
+  currentBets: BetsResponse!
   bets: [Bet!]!
   bet(id: ID!): Bet
   currentRotoArticles(id: String!): [RotoArticle]!
-  currentGames: [Game]
+  currentGames: [Game]!
   findGames(team: String, gameTime: Timestamp): [Game]!
   findPlayers(name: String, team: String, position: String): [Player]!
   findUsers(search: String!): [User]!
