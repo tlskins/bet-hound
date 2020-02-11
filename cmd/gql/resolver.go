@@ -199,6 +199,9 @@ func (r *queryResolver) CurrentGames(ctx context.Context) ([]*types.Game, error)
 func (r *queryResolver) SearchSubjects(ctx context.Context, search string) ([]types.SubjectUnion, error) {
 	return db.SearchSubjects(search)
 }
+func (r *queryResolver) SearchBets(ctx context.Context, search string, userID, betStatus *string) ([]*types.Bet, error) {
+	return db.SearchBets(search, userID, betStatus)
+}
 func (r *queryResolver) GetBetMaps(ctx context.Context, leagueId, betType *string) ([]*types.BetMap, error) {
 	return db.GetBetMaps(leagueId, betType)
 }
