@@ -4,7 +4,10 @@ import (
 	"bet-hound/cmd/env"
 	"bet-hound/cmd/types"
 	t "bet-hound/cmd/types"
+	"bet-hound/pkg/helpers"
 	m "bet-hound/pkg/mongo"
+	"fmt"
+
 	"time"
 
 	"github.com/globalsign/mgo/bson"
@@ -155,6 +158,58 @@ func FindBetByReply(tweet *t.Tweet) (*t.Bet, error) {
 	var mBet t.MongoBet
 	err := m.FindOne(c, &mBet, m.M{"acc_fk": tweet.InReplyToStatusIdStr, "status": 0})
 	return mBet.Bet(), err
+}
+
+func BuildLeaderBoard(start, end *time.Time, leagueId string) {
+	conn := env.MGOSession().Copy()
+	defer conn.Close()
+	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
+
+	match := m.M{"$and": []m.M{
+		m.M{"lg_id": leagueId},
+		m.M{"final_at": m.M{"$gte": start}},
+		m.M{"final_at": m.M{"$lt": end}},
+		m.M{"status": t.BetStatusFinal},
+		m.M{"rslt": m.M{"$ne": nil}},
+	}}
+	addField := m.M{"user_id": []string{"$proposer._id", "$recipient._id"}}
+	unwind := "$user_id"
+	group := m.M{
+		"_id": "$user_id",
+		"wins": m.M{"$sum": m.M{
+			"$cond": []interface{}{
+				m.M{"$eq": []string{"$user_id", "$rslt.winner._id"}},
+				1,
+				0,
+			},
+		}},
+		"losses": m.M{"$sum": m.M{
+			"$cond": []interface{}{
+				m.M{"$eq": []string{"$user_id", "$rslt.loser._id"}},
+				1,
+				0,
+			},
+		}},
+	}
+	addScore := m.M{"score": m.M{"$sum": []interface{}{
+		"$wins",
+		m.M{"$multiply": []interface{}{-0.5, "$losses"}},
+	}}}
+
+	var results []map[string]interface{}
+	err := m.Aggregate(c, &results, []m.M{
+		m.M{"$match": match},
+		m.M{"$addFields": addField},
+		m.M{"$unwind": unwind},
+		m.M{"$group": group},
+		m.M{"$addFields": addScore},
+	})
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println(helpers.PrettyPrint(results))
 }
 
 // helpers
