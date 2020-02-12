@@ -170,6 +170,7 @@ type ComplexityRoot struct {
 		FindPlayers         func(childComplexity int, name *string, team *string, position *string) int
 		FindUsers           func(childComplexity int, search string) int
 		GetBetMaps          func(childComplexity int, leagueID *string, betType *string) int
+		GetUser             func(childComplexity int, userID string) int
 		SearchBets          func(childComplexity int, search string, userID *string, betStatus *string) int
 		SearchSubjects      func(childComplexity int, search string) int
 		SignIn              func(childComplexity int, userName string, password string) int
@@ -261,6 +262,7 @@ type QueryResolver interface {
 	SearchSubjects(ctx context.Context, search string) ([]types.SubjectUnion, error)
 	SearchBets(ctx context.Context, search string, userID *string, betStatus *string) ([]*types.Bet, error)
 	GetBetMaps(ctx context.Context, leagueID *string, betType *string) ([]*types.BetMap, error)
+	GetUser(ctx context.Context, userID string) (*types.User, error)
 }
 type SubscriptionResolver interface {
 	SubscribeUserNotifications(ctx context.Context) (<-chan *types.User, error)
@@ -954,6 +956,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.GetBetMaps(childComplexity, args["leagueId"].(*string), args["betType"].(*string)), true
 
+	case "Query.getUser":
+		if e.complexity.Query.GetUser == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getUser_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetUser(childComplexity, args["userId"].(string)), true
+
 	case "Query.searchBets":
 		if e.complexity.Query.SearchBets == nil {
 			break
@@ -1592,6 +1606,7 @@ type Query {
   searchSubjects(search: String!): [SubjectUnion]!
   searchBets(search: String!, userId: String, betStatus: String): [Bet]!
   getBetMaps(leagueId: String, betType: String): [BetMap]!
+  getUser(userId: String!): User!
 }
 
 type Mutation {
@@ -1854,6 +1869,20 @@ func (ec *executionContext) field_Query_getBetMaps_args(ctx context.Context, raw
 		}
 	}
 	args["betType"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["userId"]; ok {
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["userId"] = arg0
 	return args, nil
 }
 
@@ -5059,6 +5088,47 @@ func (ec *executionContext) _Query_getBetMaps(ctx context.Context, field graphql
 	res := resTmp.([]*types.BetMap)
 	fc.Result = res
 	return ec.marshalNBetMap2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐBetMap(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_getUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_getUser_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetUser(rctx, args["userId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*types.User)
+	fc.Result = res
+	return ec.marshalNUser2ᚖbetᚑhoundᚋcmdᚋtypesᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -8586,6 +8656,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_getBetMaps(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "getUser":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getUser(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

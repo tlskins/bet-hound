@@ -205,6 +205,9 @@ func (r *queryResolver) SearchBets(ctx context.Context, search string, userID, b
 func (r *queryResolver) GetBetMaps(ctx context.Context, leagueId, betType *string) ([]*types.BetMap, error) {
 	return db.GetBetMaps(leagueId, betType)
 }
+func (r *queryResolver) GetUser(ctx context.Context, userId string) (*types.User, error) {
+	return db.FindUserById(userId)
+}
 
 type subscriptionResolver struct{ *resolver }
 

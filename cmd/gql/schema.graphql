@@ -218,6 +218,7 @@ type Query {
   searchSubjects(search: String!): [SubjectUnion]!
   searchBets(search: String!, userId: String, betStatus: String): [Bet]!
   getBetMaps(leagueId: String, betType: String): [BetMap]!
+  getUser(userId: String!): User!
 }
 
 type Mutation {

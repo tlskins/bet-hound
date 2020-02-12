@@ -80,6 +80,16 @@ func FindOrCreateBetRecipient(rcp *t.BetRecipient) (*t.User, error) {
 	return nil, fmt.Errorf("User not found")
 }
 
+func FindUserById(id string) (*t.User, error) {
+	conn := env.MGOSession().Copy()
+	defer conn.Close()
+	c := conn.DB(env.MongoDb()).C(env.UsersCollection())
+
+	var user t.User
+	err := m.FindOne(c, &user, m.M{"_id": id})
+	return &user, err
+}
+
 func FindUserByIds(ids []string) ([]*t.User, error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
