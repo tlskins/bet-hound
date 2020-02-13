@@ -208,6 +208,9 @@ func (r *queryResolver) GetBetMaps(ctx context.Context, leagueId, betType *strin
 func (r *queryResolver) GetUser(ctx context.Context, userId string) (*types.User, error) {
 	return db.FindUserById(userId)
 }
+func (r *queryResolver) CurrentLeaderBoards(ctx context.Context) ([]*types.LeaderBoard, error) {
+	return db.CurrentLeaderBoards()
+}
 
 type subscriptionResolver struct{ *resolver }
 

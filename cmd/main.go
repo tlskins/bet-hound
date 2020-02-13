@@ -1,12 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
-	"bet-hound/cmd/cron"
+	"bet-hound/cmd/db"
 	"bet-hound/cmd/env"
 
+	"bet-hound/pkg/helpers"
 	m "bet-hound/pkg/mongo"
 )
 
@@ -24,9 +26,11 @@ func main() {
 	defer env.Cleanup()
 	m.Init(env.MongoHost(), env.MongoUser(), env.MongoPwd(), env.MongoDb())
 
-	league := make(map[string]bool)
-	league["nba"] = true
-	cron.UpdateLeaderBoards(logger, league)
+	boards, err := db.CurrentLeaderBoards()
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(helpers.PrettyPrint(boards))
 }
 
 func setUpLogger(logPath, defaultPath string) *log.Logger {

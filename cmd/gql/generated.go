@@ -119,6 +119,25 @@ type ComplexityRoot struct {
 		UserName    func(childComplexity int) int
 	}
 
+	Leader struct {
+		Losses   func(childComplexity int) int
+		LostBets func(childComplexity int) int
+		Rank     func(childComplexity int) int
+		Score    func(childComplexity int) int
+		User     func(childComplexity int) int
+		Wins     func(childComplexity int) int
+		WonBets  func(childComplexity int) int
+	}
+
+	LeaderBoard struct {
+		EndTime   func(childComplexity int) int
+		Final     func(childComplexity int) int
+		Id        func(childComplexity int) int
+		Leaders   func(childComplexity int) int
+		LeagueId  func(childComplexity int) int
+		StartTime func(childComplexity int) int
+	}
+
 	Mutation struct {
 		AcceptBet       func(childComplexity int, id string, accept bool) int
 		CreateBet       func(childComplexity int, changes types.NewBet) int
@@ -165,6 +184,7 @@ type ComplexityRoot struct {
 		Bets                func(childComplexity int) int
 		CurrentBets         func(childComplexity int) int
 		CurrentGames        func(childComplexity int) int
+		CurrentLeaderBoards func(childComplexity int) int
 		CurrentRotoArticles func(childComplexity int, id string) int
 		FindGames           func(childComplexity int, team *string, gameTime *time.Time) int
 		FindPlayers         func(childComplexity int, name *string, team *string, position *string) int
@@ -263,6 +283,7 @@ type QueryResolver interface {
 	SearchBets(ctx context.Context, search string, userID *string, betStatus *string) ([]*types.Bet, error)
 	GetBetMaps(ctx context.Context, leagueID *string, betType *string) ([]*types.BetMap, error)
 	GetUser(ctx context.Context, userID string) (*types.User, error)
+	CurrentLeaderBoards(ctx context.Context) ([]*types.LeaderBoard, error)
 }
 type SubscriptionResolver interface {
 	SubscribeUserNotifications(ctx context.Context) (<-chan *types.User, error)
@@ -640,6 +661,97 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.IndexUser.UserName(childComplexity), true
 
+	case "Leader.losses":
+		if e.complexity.Leader.Losses == nil {
+			break
+		}
+
+		return e.complexity.Leader.Losses(childComplexity), true
+
+	case "Leader.lostBets":
+		if e.complexity.Leader.LostBets == nil {
+			break
+		}
+
+		return e.complexity.Leader.LostBets(childComplexity), true
+
+	case "Leader.rank":
+		if e.complexity.Leader.Rank == nil {
+			break
+		}
+
+		return e.complexity.Leader.Rank(childComplexity), true
+
+	case "Leader.score":
+		if e.complexity.Leader.Score == nil {
+			break
+		}
+
+		return e.complexity.Leader.Score(childComplexity), true
+
+	case "Leader.user":
+		if e.complexity.Leader.User == nil {
+			break
+		}
+
+		return e.complexity.Leader.User(childComplexity), true
+
+	case "Leader.wins":
+		if e.complexity.Leader.Wins == nil {
+			break
+		}
+
+		return e.complexity.Leader.Wins(childComplexity), true
+
+	case "Leader.wonBets":
+		if e.complexity.Leader.WonBets == nil {
+			break
+		}
+
+		return e.complexity.Leader.WonBets(childComplexity), true
+
+	case "LeaderBoard.endTime":
+		if e.complexity.LeaderBoard.EndTime == nil {
+			break
+		}
+
+		return e.complexity.LeaderBoard.EndTime(childComplexity), true
+
+	case "LeaderBoard.final":
+		if e.complexity.LeaderBoard.Final == nil {
+			break
+		}
+
+		return e.complexity.LeaderBoard.Final(childComplexity), true
+
+	case "LeaderBoard.id":
+		if e.complexity.LeaderBoard.Id == nil {
+			break
+		}
+
+		return e.complexity.LeaderBoard.Id(childComplexity), true
+
+	case "LeaderBoard.leaders":
+		if e.complexity.LeaderBoard.Leaders == nil {
+			break
+		}
+
+		return e.complexity.LeaderBoard.Leaders(childComplexity), true
+
+	case "LeaderBoard.leagueId":
+		if e.complexity.LeaderBoard.LeagueId == nil {
+			break
+		}
+
+		return e.complexity.LeaderBoard.LeagueId(childComplexity), true
+
+	case "LeaderBoard.startTime":
+		if e.complexity.LeaderBoard.StartTime == nil {
+			break
+		}
+
+		return e.complexity.LeaderBoard.StartTime(childComplexity), true
+
 	case "Mutation.acceptBet":
 		if e.complexity.Mutation.AcceptBet == nil {
 			break
@@ -895,6 +1007,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.CurrentGames(childComplexity), true
+
+	case "Query.currentLeaderBoards":
+		if e.complexity.Query.CurrentLeaderBoards == nil {
+			break
+		}
+
+		return e.complexity.Query.CurrentLeaderBoards(childComplexity), true
 
 	case "Query.currentRotoArticles":
 		if e.complexity.Query.CurrentRotoArticles == nil {
@@ -1591,6 +1710,27 @@ type RotoArticle {
   scrapedAt: Timestamp
 }
 
+# leaderboard
+
+type LeaderBoard {
+  id: ID!
+  leagueId: String!
+  startTime: Timestamp!
+  endTime: Timestamp!
+  leaders: [Leader]!
+  final: Boolean!
+}
+
+type Leader {
+  user: IndexUser!
+  rank: Int!
+  score: Float!
+  wins: Int!
+  losses: Int!
+  wonBets: [String]!
+  lostBets: [String]!
+}
+
 # graphql
 
 type Query {
@@ -1607,6 +1747,7 @@ type Query {
   searchBets(search: String!, userId: String, betStatus: String): [Bet]!
   getBetMaps(leagueId: String, betType: String): [BetMap]!
   getUser(userId: String!): User!
+  currentLeaderBoards: [LeaderBoard]!
 }
 
 type Mutation {
@@ -3644,6 +3785,448 @@ func (ec *executionContext) _IndexUser_getName(ctx context.Context, field graphq
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Leader_user(ctx context.Context, field graphql.CollectedField, obj *types.Leader) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Leader",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.User, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(types.IndexUser)
+	fc.Result = res
+	return ec.marshalNIndexUser2betᚑhoundᚋcmdᚋtypesᚐIndexUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Leader_rank(ctx context.Context, field graphql.CollectedField, obj *types.Leader) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Leader",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Rank, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Leader_score(ctx context.Context, field graphql.CollectedField, obj *types.Leader) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Leader",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Score, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Leader_wins(ctx context.Context, field graphql.CollectedField, obj *types.Leader) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Leader",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Wins, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Leader_losses(ctx context.Context, field graphql.CollectedField, obj *types.Leader) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Leader",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Losses, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Leader_wonBets(ctx context.Context, field graphql.CollectedField, obj *types.Leader) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Leader",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.WonBets, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Leader_lostBets(ctx context.Context, field graphql.CollectedField, obj *types.Leader) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Leader",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.LostBets, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _LeaderBoard_id(ctx context.Context, field graphql.CollectedField, obj *types.LeaderBoard) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "LeaderBoard",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Id, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _LeaderBoard_leagueId(ctx context.Context, field graphql.CollectedField, obj *types.LeaderBoard) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "LeaderBoard",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.LeagueId, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _LeaderBoard_startTime(ctx context.Context, field graphql.CollectedField, obj *types.LeaderBoard) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "LeaderBoard",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.StartTime, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTimestamp2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _LeaderBoard_endTime(ctx context.Context, field graphql.CollectedField, obj *types.LeaderBoard) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "LeaderBoard",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.EndTime, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTimestamp2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _LeaderBoard_leaders(ctx context.Context, field graphql.CollectedField, obj *types.LeaderBoard) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "LeaderBoard",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Leaders, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*types.Leader)
+	fc.Result = res
+	return ec.marshalNLeader2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐLeader(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _LeaderBoard_final(ctx context.Context, field graphql.CollectedField, obj *types.LeaderBoard) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "LeaderBoard",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Final, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Mutation_signOut(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -5129,6 +5712,40 @@ func (ec *executionContext) _Query_getUser(ctx context.Context, field graphql.Co
 	res := resTmp.(*types.User)
 	fc.Result = res
 	return ec.marshalNUser2ᚖbetᚑhoundᚋcmdᚋtypesᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_currentLeaderBoards(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().CurrentLeaderBoards(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*types.LeaderBoard)
+	fc.Result = res
+	return ec.marshalNLeaderBoard2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐLeaderBoard(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -8280,6 +8897,115 @@ func (ec *executionContext) _IndexUser(ctx context.Context, sel ast.SelectionSet
 	return out
 }
 
+var leaderImplementors = []string{"Leader"}
+
+func (ec *executionContext) _Leader(ctx context.Context, sel ast.SelectionSet, obj *types.Leader) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, leaderImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Leader")
+		case "user":
+			out.Values[i] = ec._Leader_user(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "rank":
+			out.Values[i] = ec._Leader_rank(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "score":
+			out.Values[i] = ec._Leader_score(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "wins":
+			out.Values[i] = ec._Leader_wins(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "losses":
+			out.Values[i] = ec._Leader_losses(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "wonBets":
+			out.Values[i] = ec._Leader_wonBets(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "lostBets":
+			out.Values[i] = ec._Leader_lostBets(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var leaderBoardImplementors = []string{"LeaderBoard"}
+
+func (ec *executionContext) _LeaderBoard(ctx context.Context, sel ast.SelectionSet, obj *types.LeaderBoard) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, leaderBoardImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("LeaderBoard")
+		case "id":
+			out.Values[i] = ec._LeaderBoard_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "leagueId":
+			out.Values[i] = ec._LeaderBoard_leagueId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "startTime":
+			out.Values[i] = ec._LeaderBoard_startTime(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "endTime":
+			out.Values[i] = ec._LeaderBoard_endTime(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "leaders":
+			out.Values[i] = ec._LeaderBoard_leaders(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "final":
+			out.Values[i] = ec._LeaderBoard_final(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var mutationImplementors = []string{"Mutation"}
 
 func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -8670,6 +9396,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_getUser(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "currentLeaderBoards":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_currentLeaderBoards(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -9425,6 +10165,20 @@ func (ec *executionContext) marshalNExpression2ᚕbetᚑhoundᚋcmdᚋtypesᚐEx
 	return ret
 }
 
+func (ec *executionContext) unmarshalNFloat2float64(ctx context.Context, v interface{}) (float64, error) {
+	return graphql.UnmarshalFloat(v)
+}
+
+func (ec *executionContext) marshalNFloat2float64(ctx context.Context, sel ast.SelectionSet, v float64) graphql.Marshaler {
+	res := graphql.MarshalFloat(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) marshalNGame2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐGame(ctx context.Context, sel ast.SelectionSet, v []*types.Game) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -9506,6 +10260,80 @@ func (ec *executionContext) marshalNInt2int64(ctx context.Context, sel ast.Selec
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNLeader2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐLeader(ctx context.Context, sel ast.SelectionSet, v []*types.Leader) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOLeader2ᚖbetᚑhoundᚋcmdᚋtypesᚐLeader(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalNLeaderBoard2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐLeaderBoard(ctx context.Context, sel ast.SelectionSet, v []*types.LeaderBoard) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOLeaderBoard2ᚖbetᚑhoundᚋcmdᚋtypesᚐLeaderBoard(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
 }
 
 func (ec *executionContext) unmarshalNNewBet2betᚑhoundᚋcmdᚋtypesᚐNewBet(ctx context.Context, v interface{}) (types.NewBet, error) {
@@ -10261,6 +11089,28 @@ func (ec *executionContext) marshalOInt2ᚖᚕint64(ctx context.Context, sel ast
 		return graphql.Null
 	}
 	return ec.marshalOInt2ᚕint64(ctx, sel, *v)
+}
+
+func (ec *executionContext) marshalOLeader2betᚑhoundᚋcmdᚋtypesᚐLeader(ctx context.Context, sel ast.SelectionSet, v types.Leader) graphql.Marshaler {
+	return ec._Leader(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOLeader2ᚖbetᚑhoundᚋcmdᚋtypesᚐLeader(ctx context.Context, sel ast.SelectionSet, v *types.Leader) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Leader(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOLeaderBoard2betᚑhoundᚋcmdᚋtypesᚐLeaderBoard(ctx context.Context, sel ast.SelectionSet, v types.LeaderBoard) graphql.Marshaler {
+	return ec._LeaderBoard(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOLeaderBoard2ᚖbetᚑhoundᚋcmdᚋtypesᚐLeaderBoard(ctx context.Context, sel ast.SelectionSet, v *types.LeaderBoard) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._LeaderBoard(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalONewEquation2betᚑhoundᚋcmdᚋtypesᚐNewEquation(ctx context.Context, v interface{}) (types.NewEquation, error) {

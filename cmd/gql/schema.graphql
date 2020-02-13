@@ -203,6 +203,27 @@ type RotoArticle {
   scrapedAt: Timestamp
 }
 
+# leaderboard
+
+type LeaderBoard {
+  id: ID!
+  leagueId: String!
+  startTime: Timestamp!
+  endTime: Timestamp!
+  leaders: [Leader]!
+  final: Boolean!
+}
+
+type Leader {
+  user: IndexUser!
+  rank: Int!
+  score: Float!
+  wins: Int!
+  losses: Int!
+  wonBets: [String]!
+  lostBets: [String]!
+}
+
 # graphql
 
 type Query {
@@ -219,6 +240,7 @@ type Query {
   searchBets(search: String!, userId: String, betStatus: String): [Bet]!
   getBetMaps(leagueId: String, betType: String): [BetMap]!
   getUser(userId: String!): User!
+  currentLeaderBoards: [LeaderBoard]!
 }
 
 type Mutation {

@@ -234,7 +234,7 @@ func BuildLeaderBoard(start, end *time.Time, leagueId string) (*t.LeaderBoard, e
 		},
 	}
 
-	var leaders []t.Leader
+	var leaders []*t.Leader
 	if err := m.Aggregate(c, &leaders, []m.M{
 		m.M{"$match": match},
 		m.M{"$addFields": addField},
@@ -246,7 +246,6 @@ func BuildLeaderBoard(start, end *time.Time, leagueId string) (*t.LeaderBoard, e
 		return nil, err
 	}
 
-	fmt.Println(helpers.PrettyPrint(leaders))
 	for i, leader := range leaders {
 		leader.Rank = i + 1
 	}
@@ -258,6 +257,8 @@ func BuildLeaderBoard(start, end *time.Time, leagueId string) (*t.LeaderBoard, e
 		EndTime:   *end,
 		Leaders:   leaders,
 	}
+
+	fmt.Println(helpers.PrettyPrint(leaderBoard))
 	return &leaderBoard, nil
 }
 
@@ -278,6 +279,7 @@ func groupBetsResponse(bets *[]*t.Bet) *t.BetsResponse {
 	pendingBets := []*types.Bet{}
 	publicPendingBets := []*types.Bet{}
 	closedBets := []*types.Bet{}
+
 	for _, bet := range *bets {
 		if bet.BetStatus.String() == "Final" {
 			finalBets = append(finalBets, bet)
