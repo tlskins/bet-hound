@@ -6,117 +6,7 @@ import (
 	"time"
 )
 
-// Bet Maps
-
-type BetMap struct {
-	Id                   int       `bson:"id" json:"id"`
-	LeagueId             string    `bson:"lg_id" json:"league_id"`
-	Type                 string    `bson:"t" json:"type"`
-	Name                 string    `bson:"n" json:"name"`
-	Field                string    `bson:"f" json:"field"`
-	LeftOnly             bool      `bson:"lft" json:"left_only"`
-	OperatorId           *int      `bson:"op_id" json:"operator_id"`
-	RightExpressionTypes *[]string `bson:"rgt_tps" json:"right_expression_types"`
-	RightExpressionValue *float64  `bson:"rgt_vl" json:"right_expression_value"`
-}
-
-// Bet status
-
-type BetStatus int
-
-const (
-	BetStatusPendingApproval BetStatus = iota
-	BetStatusAccepted
-	BetStatusFinal
-	BetStatusExpired
-	BetStatusDeclined
-	BetStatusWithdrawn
-)
-
-func BetStatusFromString(s string) BetStatus {
-	return map[string]BetStatus{
-		"Pending Approval": BetStatusPendingApproval,
-		"Accepted":         BetStatusAccepted,
-		"Final":            BetStatusFinal,
-		"Expired":          BetStatusExpired,
-		"Declined":         BetStatusDeclined,
-		"Withdrawn":        BetStatusWithdrawn,
-	}[s]
-}
-
-func (s BetStatus) String() string {
-	return map[BetStatus]string{
-		BetStatusPendingApproval: "Pending Approval",
-		BetStatusAccepted:        "Accepted",
-		BetStatusFinal:           "Final",
-		BetStatusExpired:         "Expired",
-		BetStatusDeclined:        "Declined",
-		BetStatusWithdrawn:       "Withdrawn",
-	}[s]
-}
-
-// Bet result
-
-type BetResult struct {
-	Winner     IndexUser `bson:"winner" json:"winner"`
-	Loser      IndexUser `bson:"loser" json:"loser"`
-	Response   string    `bson:"resp" json:"response"`
-	ResponseFk string    `bson:"resp_fk" json:"response_fk"`
-	DecidedAt  time.Time `bson:"dec_at" json:"decided_at"`
-}
-
-// for unmarshalling then converting to bet
-
-type MongoBet struct {
-	Id               string           `bson:"_id" json:"id"`
-	LeagueId         string           `bson:"lg_id" json:"league_id"`
-	CreatedAt        *time.Time       `bson:"crt_at" json:"created_at"`
-	SourceFk         string           `bson:"source_fk" json:"source_fk"`
-	Proposer         IndexUser        `bson:"proposer" json:"proposer"`
-	Recipient        *IndexUser       `bson:"recipient" json:"recipient"`
-	AcceptFk         string           `bson:"acc_fk" json:"acc_fk"`
-	ProposerReplyFk  *string          `bson:"pr_fk" json:"proposer_reply_fk"`
-	RecipientReplyFk *string          `bson:"rr_fk" json:"recipient_reply_fk"`
-	Equations        []*MongoEquation `bson:"eqs" json:"equations"`
-	ExpiresAt        *time.Time       `bson:"exp_at" json:"expires_at"`
-	FinalizedAt      *time.Time       `bson:"final_at" json:"finalized_at"`
-	BetStatus        BetStatus        `bson:"status" json:"bet_status"`
-	BetResult        *BetResult       `bson:"rslt" json:"result"`
-}
-
-func (m MongoBet) Bet() *Bet {
-	eqs := make([]*Equation, len(m.Equations))
-	for i, eq := range m.Equations {
-		eqs[i] = eq.Equation()
-	}
-
-	return &Bet{
-		Id:               m.Id,
-		LeagueId:         m.LeagueId,
-		CreatedAt:        m.CreatedAt,
-		SourceFk:         m.SourceFk,
-		Proposer:         m.Proposer,
-		Recipient:        m.Recipient,
-		AcceptFk:         m.AcceptFk,
-		ProposerReplyFk:  m.ProposerReplyFk,
-		RecipientReplyFk: m.RecipientReplyFk,
-		ExpiresAt:        m.ExpiresAt,
-		FinalizedAt:      m.FinalizedAt,
-		BetStatus:        m.BetStatus,
-		BetResult:        m.BetResult,
-		Equations:        eqs,
-	}
-}
-
 // Bet
-
-type BetsResponse struct {
-	AcceptedBets      []*Bet `json:"accepted_bets"`
-	FinalBets         []*Bet `json:"final_bets"`
-	PublicPendingBets []*Bet `json:"public_pending_bets"`
-	PendingBets       []*Bet `json:"pending_bets"`
-	ClosedBets        []*Bet `json:"closed_bets"`
-}
 
 type Bet struct {
 	Id               string      `bson:"_id" json:"id"`
@@ -256,4 +146,57 @@ func (b Bet) Valid() error {
 	} else {
 		return nil
 	}
+}
+
+// for unmarshalling then converting to bet
+
+type MongoBet struct {
+	Id               string           `bson:"_id" json:"id"`
+	LeagueId         string           `bson:"lg_id" json:"league_id"`
+	CreatedAt        *time.Time       `bson:"crt_at" json:"created_at"`
+	SourceFk         string           `bson:"source_fk" json:"source_fk"`
+	Proposer         IndexUser        `bson:"proposer" json:"proposer"`
+	Recipient        *IndexUser       `bson:"recipient" json:"recipient"`
+	AcceptFk         string           `bson:"acc_fk" json:"acc_fk"`
+	ProposerReplyFk  *string          `bson:"pr_fk" json:"proposer_reply_fk"`
+	RecipientReplyFk *string          `bson:"rr_fk" json:"recipient_reply_fk"`
+	Equations        []*MongoEquation `bson:"eqs" json:"equations"`
+	ExpiresAt        *time.Time       `bson:"exp_at" json:"expires_at"`
+	FinalizedAt      *time.Time       `bson:"final_at" json:"finalized_at"`
+	BetStatus        BetStatus        `bson:"status" json:"bet_status"`
+	BetResult        *BetResult       `bson:"rslt" json:"result"`
+}
+
+func (m MongoBet) Bet() *Bet {
+	eqs := make([]*Equation, len(m.Equations))
+	for i, eq := range m.Equations {
+		eqs[i] = eq.Equation()
+	}
+
+	return &Bet{
+		Id:               m.Id,
+		LeagueId:         m.LeagueId,
+		CreatedAt:        m.CreatedAt,
+		SourceFk:         m.SourceFk,
+		Proposer:         m.Proposer,
+		Recipient:        m.Recipient,
+		AcceptFk:         m.AcceptFk,
+		ProposerReplyFk:  m.ProposerReplyFk,
+		RecipientReplyFk: m.RecipientReplyFk,
+		ExpiresAt:        m.ExpiresAt,
+		FinalizedAt:      m.FinalizedAt,
+		BetStatus:        m.BetStatus,
+		BetResult:        m.BetResult,
+		Equations:        eqs,
+	}
+}
+
+// grouped bets
+
+type BetsResponse struct {
+	AcceptedBets      []*Bet `json:"accepted_bets"`
+	FinalBets         []*Bet `json:"final_bets"`
+	PublicPendingBets []*Bet `json:"public_pending_bets"`
+	PendingBets       []*Bet `json:"pending_bets"`
+	ClosedBets        []*Bet `json:"closed_bets"`
 }

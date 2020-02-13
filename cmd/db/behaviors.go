@@ -58,16 +58,37 @@ func EnsureIndexes(db *mgo.Database) (err error) {
 	}); err != nil {
 		return err
 	}
-	// if err = pDb.EnsureIndex(mgo.Index{
-	// 	Key:        []string{"$text:f_name", "$text:l_name", "$text:name"},
-	// 	Background: true,
-	// }); err != nil {
-	// 	return err
-	// }
 	if err = pDb.EnsureIndexKey("fk"); err != nil {
 		return err
 	}
 	if err = pDb.EnsureIndexKey("team_fk"); err != nil {
+		return err
+	}
+
+	// bet indexes
+	bDb := db.C(env.BetsCollection())
+	if err = bDb.EnsureIndex(mgo.Index{
+		Key:        []string{"final_at", "lg_id", "proposer", "recipient", "status", "rslt"},
+		Background: true,
+	}); err != nil {
+		return err
+	}
+	if err = bDb.EnsureIndex(mgo.Index{
+		Key:        []string{"acc_fk", "status"},
+		Background: true,
+	}); err != nil {
+		return err
+	}
+	if err = bDb.EnsureIndexKey("crt_at"); err != nil {
+		return err
+	}
+
+	// leader board indexes
+	lbDb := db.C(env.BetsCollection())
+	if err = lbDb.EnsureIndex(mgo.Index{
+		Key:        []string{"st", "end", "fin", "lg_id"},
+		Background: true,
+	}); err != nil {
 		return err
 	}
 

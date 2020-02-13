@@ -16,35 +16,36 @@ type environment struct {
 	tc       *tw.TwitterClient
 	timeZone *time.Location
 
-	consumerSecret    string
-	webhookEnv        string
-	webhookUrl        string
-	appUrl            string
-	appHost           string
-	appPort           string
-	gqlUrl            string
-	gqlPort           string
-	twitterPort       string
-	mongoHost         string
-	mongoUser         string
-	mongoPwd          string
-	mongoDb           string
-	betsCollection    string
-	playersCollection string
-	tweetsCollection  string
-	gamesCollection   string
-	teamsCollection   string
-	usersCollection   string
-	betMapsCollection string
-	leagueStart       string
-	leagueStart2      string
-	leagueEnd         string
-	leagueLastWeek    int
-	logName           string
-	logPath           string
-	botHandle         string
-	allowedOrigins    string
-	serverTz          string
+	consumerSecret         string
+	webhookEnv             string
+	webhookUrl             string
+	appUrl                 string
+	appHost                string
+	appPort                string
+	gqlUrl                 string
+	gqlPort                string
+	twitterPort            string
+	mongoHost              string
+	mongoUser              string
+	mongoPwd               string
+	mongoDb                string
+	betsCollection         string
+	playersCollection      string
+	tweetsCollection       string
+	gamesCollection        string
+	teamsCollection        string
+	usersCollection        string
+	betMapsCollection      string
+	leaderBoardsCollection string
+	leagueStart            string
+	leagueStart2           string
+	leagueEnd              string
+	leagueLastWeek         int
+	logName                string
+	logPath                string
+	botHandle              string
+	allowedOrigins         string
+	serverTz               string
 }
 
 var e = &environment{}
@@ -117,6 +118,9 @@ func BetMapsCollection() string {
 }
 func TeamsCollection() string {
 	return e.teamsCollection
+}
+func LeaderBoardsCollection() string {
+	return e.leaderBoardsCollection
 }
 func LeagueStart() string {
 	return e.leagueStart
@@ -195,7 +199,8 @@ func Init(configFile, configPath string) error {
 	e.gamesCollection = viper.GetString("games_collection")
 	e.usersCollection = viper.GetString("users_collection")
 	e.betMapsCollection = viper.GetString("bet_maps_collection")
-	e.teamsCollection = viper.GetString(("teams_collection"))
+	e.teamsCollection = viper.GetString("teams_collection")
+	e.leaderBoardsCollection = viper.GetString("leader_boards_collection")
 	e.botHandle = viper.GetString("bot_handle")
 	e.leagueStart = viper.GetString("league_start")
 	e.leagueStart2 = viper.GetString("league_start2")

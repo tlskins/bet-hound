@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	crn "github.com/robfig/cron/v3"
 
@@ -12,6 +13,7 @@ import (
 	"bet-hound/cmd/env"
 	"bet-hound/cmd/gql"
 	"bet-hound/cmd/scraper"
+	t "bet-hound/cmd/types"
 )
 
 func Init(logger *log.Logger, gqlConfig *gql.Config) *crn.Cron {
@@ -23,7 +25,8 @@ func Init(logger *log.Logger, gqlConfig *gql.Config) *crn.Cron {
 	}
 	if _, err := cronSrv.AddFunc(fmt.Sprintf("CRON_TZ=%s 0 9 * * *", env.ServerTz()), func() {
 		CheckNbaGameResults(logger)
-		CheckNbaBetResults(logger)
+		leagues := CheckNbaBetResults(logger)
+		UpdateLeaderBoards(logger, leagues)
 	}); err != nil {
 		fmt.Println(err)
 	}
@@ -38,27 +41,54 @@ func CheckNbaGameResults(logger *log.Logger) {
 	readyGames, err := db.GetResultReadyGames("nba")
 	logError(logger, err, event)
 	for _, game := range readyGames {
-		logInfo(logger, fmt.Sprintf("Scraping game log for %s", game.Id), event)
+		logInfo(logger, event, fmt.Sprintf("Scraping game log for %s", game.Id))
 		scraper.ScrapeNbaGameLog(game)
 	}
 }
 
-func CheckNbaBetResults(logger *log.Logger) {
+func CheckNbaBetResults(logger *log.Logger) (leagues map[string]bool) {
 	event := "Checking NBA Bet Result"
 	fmt.Printf("%s...\n", event)
 	readyBets, err := db.GetResultReadyBets("nba")
 	logError(logger, err, event)
+	leagues = make(map[string]bool)
 	for _, bet := range readyBets {
-		logInfo(logger, fmt.Sprintf("Processing bet %s", bet.Id), event)
-		if betResult, err := betting.EvaluateBet(bet); err != nil {
+		// evalute and persist bet
+		if bet, err = evaluateBet(logger, event, bet); err != nil {
+			continue
+		}
+		// sync profiles
+		if _, err := db.SyncBetWithUsers("Final", bet); err != nil {
+			logError(logger, err, event)
+			continue
+		}
+		// tweet and mutate and persist bet
+		twtTxt := "N/A"
+		if tweet, _ := tweetBetResult(logger, event, bet); tweet != nil {
+			twtTxt = tweet.GetText()
+		}
+		logInfo(logger, event, fmt.Sprintf(
+			"Status: %s\nResult: %s\nTweet: %s\n",
+			bet.BetStatus.String(),
+			bet.ResultString(),
+			twtTxt,
+		))
+		leagues[bet.LeagueId] = true
+	}
+	return
+}
+
+func UpdateLeaderBoards(logger *log.Logger, leagues map[string]bool) {
+	event := "Update Leader Boards"
+	fmt.Printf("%s...\n", event)
+	for leagueId, _ := range leagues {
+		startWk, endWk := currentLeaderBoardWeek()
+		if board, err := db.BuildLeaderBoard(startWk, endWk, leagueId); err != nil {
+			logError(logger, err, event)
+		} else if err := db.UpsertLeaderBoard(board); err != nil {
 			logError(logger, err, event)
 		} else {
-			msg := fmt.Sprintf(
-				"Status: %s\nResult: %s\n",
-				betResult.BetStatus.String(),
-				betResult.ResultString(),
-			)
-			logInfo(logger, msg, event)
+			logInfo(logger, event, fmt.Sprintf("Updated Leaderboard: %s\n", board.Id))
 		}
 	}
 }
@@ -73,6 +103,45 @@ func ScrapeAndPushRoto(config *gql.Config) func() {
 
 // helpers
 
+func evaluateBet(logger *log.Logger, event string, bet *t.Bet) (*t.Bet, error) {
+	logInfo(logger, event, fmt.Sprintf("Processing bet %s", bet.Id))
+	evalBet, err := betting.EvaluateBet(bet)
+	if err != nil {
+		logError(logger, err, event)
+		return nil, err
+	}
+	if err := db.UpsertBet(evalBet); err != nil {
+		logError(logger, err, event)
+		return nil, err
+	}
+	return evalBet, nil
+}
+
+func tweetBetResult(logger *log.Logger, event string, bet *t.Bet) (*t.Tweet, error) {
+	tweet, err := betting.TweetBetResult(bet)
+	if err != nil {
+		logError(logger, err, event)
+		return nil, err
+	}
+	if err := db.UpsertBet(bet); err != nil {
+		logError(logger, err, event)
+		return nil, err
+	}
+	return tweet, nil
+}
+
+func currentLeaderBoardWeek() (*time.Time, *time.Time) {
+	now := time.Now().In(env.TimeZone())
+	startWk := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, env.TimeZone())
+	if wd := startWk.Weekday(); wd == time.Sunday {
+		startWk = startWk.AddDate(0, 0, -6)
+	} else {
+		startWk = startWk.AddDate(0, 0, -int(wd)+1)
+	}
+	endWk := startWk.AddDate(0, 0, 7)
+	return &startWk, &endWk
+}
+
 func logError(logger *log.Logger, err error, event string) {
 	if err == nil {
 		return
@@ -82,7 +151,7 @@ func logError(logger *log.Logger, err error, event string) {
 	fmt.Println(errTxt)
 }
 
-func logInfo(logger *log.Logger, msg, event string) {
+func logInfo(logger *log.Logger, event, msg string) {
 	txt := fmt.Sprintf("%s [Info]: %s", event, msg)
 	logger.Printf(txt)
 	fmt.Println(txt)

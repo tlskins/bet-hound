@@ -120,6 +120,11 @@ func main() {
 		} else if arg == "-check_nba_bets" {
 			fmt.Println("checking nba bets...")
 			cron.CheckNbaBetResults(logger)
+		} else if arg == "-update_nba_board" {
+			fmt.Println("updating nba leader board...")
+			league := make(map[string]bool)
+			league["nba"] = true
+			cron.UpdateLeaderBoards(logger, league)
 		}
 	}
 

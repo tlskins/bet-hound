@@ -46,9 +46,6 @@ func EvaluateBet(b *t.Bet) (betResult *t.Bet, err error) {
 		Response:  bet.ResultString(),
 		DecidedAt: time.Now(),
 	}
-
-	// tweet result
-	_, err = TweetBetResult(&bet)
 	return &bet, err
 }
 

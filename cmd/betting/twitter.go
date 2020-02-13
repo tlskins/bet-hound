@@ -61,8 +61,6 @@ func TweetBetResult(bet *t.Bet) (resp *t.Tweet, err error) {
 		} else {
 			bet.BetResult.ResponseFk = resp.IdStr
 		}
-
-		err = db.UpsertBet(bet)
 	}
 	return
 }

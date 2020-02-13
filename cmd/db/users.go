@@ -176,54 +176,103 @@ func SyncBetWithUsers(event string, bet *t.Bet) (*t.Notification, error) {
 	c := conn.DB(env.MongoDb()).C(env.UsersCollection())
 
 	// notification
-	note := t.Notification{
-		Id:     uuid.NewV4().String(),
-		SentAt: time.Now(),
-	}
+	var note *t.Notification
 	var pUpdate, rUpdate m.M
 
 	if event == "Create" {
-		note.Title = fmt.Sprintf("%s proposed a bet with %s", bet.ProposerName(), bet.RecipientName())
-		note.Message = bet.String()
-		note.Type = "BetCreated"
-
-		pUpdate = m.M{"$push": m.M{
-			"pnd_t_bts": bet.Id,
-			"notes":     m.M{"$each": []t.Notification{note}, "$slice": -10, "$sort": -1},
-		}}
-		rUpdate = m.M{"$push": m.M{
-			"pnd_u_bts": bet.Id,
-			"notes":     m.M{"$each": []t.Notification{note}, "$slice": -10, "$sort": -1},
-		}}
-	} else {
-		note.Title = fmt.Sprintf("%s's bet with %s was %s", bet.ProposerName(), bet.RecipientName(), bet.BetStatus.String())
-		note.Message = bet.BetStatus.String() + ": " + bet.String()
-		note.Type = "BetUpdated"
-
-		var prgBetId *string
-		if bet.BetStatus.String() == "Accepted" {
-			prgBetId = &bet.Id
-		}
-		pUpdate = m.M{
-			"$push": m.M{
-				"notes":   m.M{"$each": []t.Notification{note}, "$slice": -10, "$sort": -1},
-				"prg_bts": prgBetId,
-			},
-			"$pull": m.M{"pnd_u_bts": bet.Id, "pnd_t_bts": bet.Id},
-		}
-		rUpdate = m.M{
-			"$push": m.M{
-				"notes":   m.M{"$each": []t.Notification{note}, "$slice": -10, "$sort": -1},
-				"prg_bts": prgBetId,
-			},
-			"$pull": m.M{"pnd_u_bts": bet.Id, "pnd_t_bts": bet.Id},
-		}
+		note, pUpdate, rUpdate = buildBetCreatedNote(bet)
+	} else if event == "Update" {
+		note, pUpdate, rUpdate = buildBetUpdatedNote(bet)
+	} else if event == "Final" {
+		note, pUpdate, rUpdate = buildBetFinalNote(bet)
 	}
 
-	c.Update(m.M{"_id": bet.Proposer.Id}, pUpdate)
+	if err := c.Update(m.M{"_id": bet.Proposer.Id}, pUpdate); err != nil {
+		return nil, err
+	}
 	if bet.Recipient != nil {
-		c.Update(m.M{"_id": bet.Recipient.Id}, rUpdate)
+		if err := c.Update(m.M{"_id": bet.Recipient.Id}, rUpdate); err != nil {
+			return nil, err
+		}
 	}
 
-	return &note, nil
+	return note, nil
+}
+
+func buildBetCreatedNote(bet *t.Bet) (note *t.Notification, pUpdate, rUpdate m.M) {
+	note = &t.Notification{
+		Id:      uuid.NewV4().String(),
+		SentAt:  time.Now(),
+		Title:   fmt.Sprintf("%s proposed a bet with %s", bet.ProposerName(), bet.RecipientName()),
+		Type:    "BetCreated",
+		Message: bet.String(),
+	}
+	pUpdate = m.M{"$push": m.M{
+		"pnd_t_bts": bet.Id,
+		"notes":     m.M{"$each": []t.Notification{*note}, "$slice": -10, "$sort": m.M{"snt_at": -1}},
+	}}
+	rUpdate = m.M{"$push": m.M{
+		"pnd_u_bts": bet.Id,
+		"notes":     m.M{"$each": []t.Notification{*note}, "$slice": -10, "$sort": m.M{"snt_at": -1}},
+	}}
+	return
+}
+
+func buildBetUpdatedNote(bet *t.Bet) (note *t.Notification, pUpdate, rUpdate m.M) {
+	note = &t.Notification{
+		Id:      uuid.NewV4().String(),
+		SentAt:  time.Now(),
+		Title:   fmt.Sprintf("%s's bet with %s was %s", bet.ProposerName(), bet.RecipientName(), bet.BetStatus.String()),
+		Type:    "BetUpdated",
+		Message: bet.BetStatus.String() + ": " + bet.String(),
+	}
+
+	var prgBetId *string
+	if bet.BetStatus.String() == "Accepted" {
+		prgBetId = &bet.Id
+	}
+	pUpdate = m.M{
+		"$push": m.M{
+			"notes":   m.M{"$each": []t.Notification{*note}, "$slice": -10, "$sort": m.M{"snt_at": -1}},
+			"prg_bts": prgBetId,
+		},
+		"$pull": m.M{"pnd_u_bts": bet.Id, "pnd_t_bts": bet.Id},
+	}
+	rUpdate = m.M{
+		"$push": m.M{
+			"notes":   m.M{"$each": []t.Notification{*note}, "$slice": -10, "$sort": m.M{"snt_at": -1}},
+			"prg_bts": prgBetId,
+		},
+		"$pull": m.M{"pnd_u_bts": bet.Id, "pnd_t_bts": bet.Id},
+	}
+	return
+}
+
+func buildBetFinalNote(bet *t.Bet) (note *t.Notification, pUpdate, rUpdate m.M) {
+	note = &t.Notification{
+		Id:      uuid.NewV4().String(),
+		SentAt:  time.Now(),
+		Title:   fmt.Sprintf("%s's bet with %s is %s", bet.ProposerName(), bet.RecipientName(), bet.BetStatus.String()),
+		Type:    "BetFinal",
+		Message: bet.ResultString(),
+	}
+
+	pUpdate = m.M{
+		"$push": m.M{"notes": m.M{"$each": []t.Notification{*note}, "$slice": -10, "$sort": m.M{"snt_at": -1}}},
+		"$pull": m.M{"prg_bts": bet.Id},
+	}
+	rUpdate = m.M{
+		"$push": m.M{"notes": m.M{"$each": []t.Notification{*note}, "$slice": -10, "$sort": m.M{"snt_at": -1}}},
+		"$pull": m.M{"prg_bts": bet.Id},
+	}
+
+	if bet.BetResult.Winner.Id == bet.Proposer.Id {
+		pUpdate["$inc"] = m.M{"bts_wn": 1}
+		rUpdate["$inc"] = m.M{"bts_lst": 1}
+	} else {
+		rUpdate["$inc"] = m.M{"bts_wn": 1}
+		pUpdate["$inc"] = m.M{"bts_lst": 1}
+
+	}
+	return
 }

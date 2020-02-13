@@ -160,59 +160,117 @@ func FindBetByReply(tweet *t.Tweet) (*t.Bet, error) {
 	return mBet.Bet(), err
 }
 
-func BuildLeaderBoard(start, end *time.Time, leagueId string) {
+func BuildLeaderBoard(start, end *time.Time, leagueId string) (*t.LeaderBoard, error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()
 	c := conn.DB(env.MongoDb()).C(env.BetsCollection())
 
-	match := m.M{"$and": []m.M{
-		m.M{"lg_id": leagueId},
-		m.M{"final_at": m.M{"$gte": start}},
-		m.M{"final_at": m.M{"$lt": end}},
-		m.M{"status": t.BetStatusFinal},
-		m.M{"rslt": m.M{"$ne": nil}},
-	}}
+	match := m.M{
+		"lg_id":    leagueId,
+		"final_at": m.M{"$gte": start, "$lt": end},
+		"status":   t.BetStatusFinal,
+		"rslt":     m.M{"$ne": nil},
+	}
 	addField := m.M{"user_id": []string{"$proposer._id", "$recipient._id"}}
 	unwind := "$user_id"
 	group := m.M{
 		"_id": "$user_id",
-		"wins": m.M{"$sum": m.M{
+		"scr": m.M{"$sum": m.M{
+			"$cond": []interface{}{
+				m.M{"$eq": []string{"$user_id", "$rslt.winner._id"}},
+				1,
+				-0.5,
+			},
+		}},
+		"ws": m.M{"$sum": m.M{
 			"$cond": []interface{}{
 				m.M{"$eq": []string{"$user_id", "$rslt.winner._id"}},
 				1,
 				0,
 			},
 		}},
-		"losses": m.M{"$sum": m.M{
+		"ls": m.M{"$sum": m.M{
 			"$cond": []interface{}{
 				m.M{"$eq": []string{"$user_id", "$rslt.loser._id"}},
 				1,
 				0,
 			},
 		}},
+		"w_bets": m.M{"$addToSet": m.M{
+			"$cond": []interface{}{
+				m.M{"$eq": []string{"$user_id", "$rslt.winner._id"}},
+				"$_id",
+				nil,
+			},
+		}},
+		"l_bets": m.M{"$addToSet": m.M{
+			"$cond": []interface{}{
+				m.M{"$eq": []string{"$user_id", "$rslt.loser._id"}},
+				"$_id",
+				nil,
+			},
+		}},
 	}
-	addScore := m.M{"score": m.M{"$sum": []interface{}{
-		"$wins",
-		m.M{"$multiply": []interface{}{-0.5, "$losses"}},
-	}}}
+	sort := m.M{"scr": -1}
+	project := m.M{
+		"_id":    0,
+		"usr_id": "$_id",
+		"scr":    1,
+		"ws":     1,
+		"ls":     1,
+		"w_bets": m.M{
+			"$filter": m.M{
+				"input": "$w_bets",
+				"as":    "w_bet",
+				"cond":  m.M{"$ne": []interface{}{"$$w_bet", nil}},
+			},
+		},
+		"l_bets": m.M{
+			"$filter": m.M{
+				"input": "$l_bets",
+				"as":    "l_bet",
+				"cond":  m.M{"$ne": []interface{}{"$$l_bet", nil}},
+			},
+		},
+	}
 
-	var results []map[string]interface{}
-	err := m.Aggregate(c, &results, []m.M{
+	var leaders []t.Leader
+	if err := m.Aggregate(c, &leaders, []m.M{
 		m.M{"$match": match},
 		m.M{"$addFields": addField},
 		m.M{"$unwind": unwind},
 		m.M{"$group": group},
-		m.M{"$addFields": addScore},
-	})
-
-	if err != nil {
-		fmt.Println(err)
+		m.M{"$sort": sort},
+		m.M{"$project": project},
+	}); err != nil {
+		return nil, err
 	}
 
-	fmt.Println(helpers.PrettyPrint(results))
+	fmt.Println(helpers.PrettyPrint(leaders))
+	for i, leader := range leaders {
+		leader.Rank = i + 1
+	}
+
+	leaderBoard := t.LeaderBoard{
+		Id:        genLeaderBoardId(leagueId, start, end),
+		LeagueId:  leagueId,
+		StartTime: *start,
+		EndTime:   *end,
+		Leaders:   leaders,
+	}
+	return &leaderBoard, nil
 }
 
 // helpers
+
+func genLeaderBoardId(leagueId string, start, end *time.Time) string {
+	return fmt.Sprintf(
+		"%s%s%s",
+		leagueId,
+		start.Format("20060102"),
+		end.Format("20060102"),
+	)
+}
 
 func groupBetsResponse(bets *[]*t.Bet) *t.BetsResponse {
 	acceptedBets := []*types.Bet{}
