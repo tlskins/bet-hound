@@ -26,7 +26,10 @@ func Init(logger *log.Logger, gqlConfig *gql.Config) *crn.Cron {
 	if _, err := cronSrv.AddFunc(fmt.Sprintf("CRON_TZ=%s 0 9 * * *", env.ServerTz()), func() {
 		CheckNbaGameResults(logger)
 		leagues := CheckNbaBetResults(logger)
-		UpdateLeaderBoards(logger, leagues)
+		UpdateCurrentLeaderBoards(logger, leagues)
+		if time.Now().Weekday() == time.Monday {
+			FinalizePreviousLeaderBoards(logger)
+		}
 	}); err != nil {
 		fmt.Println(err)
 	}
@@ -62,7 +65,7 @@ func CheckNbaBetResults(logger *log.Logger) (leagues map[string]bool) {
 			logError(logger, err, event)
 			continue
 		}
-		// tweet and mutate and persist bet
+		// tweet, mutate, and persist bet
 		twtTxt := "N/A"
 		if tweet, _ := tweetBetResult(logger, event, bet); tweet != nil {
 			twtTxt = tweet.GetText()
@@ -78,7 +81,7 @@ func CheckNbaBetResults(logger *log.Logger) (leagues map[string]bool) {
 	return
 }
 
-func UpdateLeaderBoards(logger *log.Logger, leagues map[string]bool) {
+func UpdateCurrentLeaderBoards(logger *log.Logger, leagues map[string]bool) {
 	event := "Update Leader Boards"
 	fmt.Printf("%s...\n", event)
 	for leagueId, _ := range leagues {
@@ -90,6 +93,25 @@ func UpdateLeaderBoards(logger *log.Logger, leagues map[string]bool) {
 		} else {
 			logInfo(logger, event, fmt.Sprintf("Updated Leaderboard: %s\n", board.Id))
 		}
+	}
+}
+
+func FinalizePreviousLeaderBoards(logger *log.Logger) {
+	event := "Finalize Leader Boards"
+	fmt.Printf("%s...\n", event)
+	for _, leagueId := range []string{"nba"} {
+		startWk, endWk := previousLeaderBoardWeek()
+		board, err := db.BuildLeaderBoard(startWk, endWk, leagueId)
+		if err != nil {
+			logError(logger, err, event)
+			continue
+		}
+		board.Final = true
+		if err := db.UpsertLeaderBoard(board); err != nil {
+			logError(logger, err, event)
+			continue
+		}
+		logInfo(logger, event, fmt.Sprintf("Finalized Leaderboard: %s\n", board.Id))
 	}
 }
 
@@ -139,6 +161,18 @@ func currentLeaderBoardWeek() (*time.Time, *time.Time) {
 		startWk = startWk.AddDate(0, 0, -int(wd)+1)
 	}
 	endWk := startWk.AddDate(0, 0, 7)
+	return &startWk, &endWk
+}
+
+func previousLeaderBoardWeek() (*time.Time, *time.Time) {
+	now := time.Now().In(env.TimeZone())
+	endWk := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, env.TimeZone())
+	if wd := endWk.Weekday(); wd == time.Sunday {
+		endWk = endWk.AddDate(0, 0, -6)
+	} else {
+		endWk = endWk.AddDate(0, 0, -int(wd)+1)
+	}
+	startWk := endWk.AddDate(0, 0, -7)
 	return &startWk, &endWk
 }
 

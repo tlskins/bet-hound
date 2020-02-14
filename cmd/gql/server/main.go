@@ -124,7 +124,10 @@ func main() {
 			fmt.Println("updating nba leader board...")
 			league := make(map[string]bool)
 			league["nba"] = true
-			cron.UpdateLeaderBoards(logger, league)
+			cron.UpdateCurrentLeaderBoards(logger, league)
+		} else if arg == "-final_nba_board" {
+			fmt.Println("finalizing nba leader board...")
+			cron.FinalizePreviousLeaderBoards(logger)
 		}
 	}
 
