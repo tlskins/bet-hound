@@ -181,7 +181,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		Bet                 func(childComplexity int, id string) int
-		Bets                func(childComplexity int) int
+		Bets                func(childComplexity int, userID string) int
 		CurrentBets         func(childComplexity int) int
 		CurrentGames        func(childComplexity int) int
 		CurrentLeaderBoards func(childComplexity int) int
@@ -272,7 +272,7 @@ type MutationResolver interface {
 type QueryResolver interface {
 	SignIn(ctx context.Context, userName string, password string) (*types.User, error)
 	CurrentBets(ctx context.Context) (*types.BetsResponse, error)
-	Bets(ctx context.Context) (*types.BetsResponse, error)
+	Bets(ctx context.Context, userID string) (*types.BetsResponse, error)
 	Bet(ctx context.Context, id string) (*types.Bet, error)
 	CurrentRotoArticles(ctx context.Context, id string) ([]*types.RotoArticle, error)
 	CurrentGames(ctx context.Context) ([]*types.Game, error)
@@ -992,7 +992,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Query.Bets(childComplexity), true
+		args, err := ec.field_Query_bets_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Bets(childComplexity, args["userId"].(string)), true
 
 	case "Query.currentBets":
 		if e.complexity.Query.CurrentBets == nil {
@@ -1736,7 +1741,7 @@ type Leader {
 type Query {
   signIn(userName: String!, password: String!): User!
   currentBets: BetsResponse!
-  bets: BetsResponse!
+  bets(userId: String!): BetsResponse!
   bet(id: ID!): Bet
   currentRotoArticles(id: String!): [RotoArticle]!
   currentGames: [Game]!
@@ -1908,6 +1913,20 @@ func (ec *executionContext) field_Query_bet_args(ctx context.Context, rawArgs ma
 		}
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_bets_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["userId"]; ok {
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["userId"] = arg0
 	return args, nil
 }
 
@@ -5295,9 +5314,16 @@ func (ec *executionContext) _Query_bets(ctx context.Context, field graphql.Colle
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_bets_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Bets(rctx)
+		return ec.resolvers.Query().Bets(rctx, args["userId"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)

@@ -155,13 +155,8 @@ func (r *queryResolver) SignIn(ctx context.Context, userName string, password st
 	}
 	return nil, fmt.Errorf("Invalid user name or password")
 }
-func (r *queryResolver) Bets(ctx context.Context) (*types.BetsResponse, error) {
-	user, err := userFromContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return db.Bets(user.Id)
+func (r *queryResolver) Bets(ctx context.Context, userId string) (*types.BetsResponse, error) {
+	return db.Bets(userId)
 }
 func (r *queryResolver) CurrentBets(ctx context.Context) (*types.BetsResponse, error) {
 	return db.CurrentBets()

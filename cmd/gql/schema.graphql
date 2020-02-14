@@ -229,7 +229,7 @@ type Leader {
 type Query {
   signIn(userName: String!, password: String!): User!
   currentBets: BetsResponse!
-  bets: BetsResponse!
+  bets(userId: String!): BetsResponse!
   bet(id: ID!): Bet
   currentRotoArticles(id: String!): [RotoArticle]!
   currentGames: [Game]!
