@@ -34,6 +34,16 @@ func FindPlayerById(id string) (player *t.Player, err error) {
 	return
 }
 
+func FindTeamRoster(leagueId, teamFk string) (players []*t.Player, err error) {
+	conn := env.MGOSession().Copy()
+	defer conn.Close()
+	c := conn.DB(env.MongoDb()).C(env.PlayersCollection())
+
+	players = []*t.Player{}
+	err = m.Find(c, &players, m.M{"team_fk": teamFk, "lg_id": leagueId})
+	return
+}
+
 func SearchPlayersWithGame(name, team, position *string, numResults int) (players []*t.Player, err error) {
 	conn := env.MGOSession().Copy()
 	defer conn.Close()

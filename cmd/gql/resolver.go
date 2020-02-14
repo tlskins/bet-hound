@@ -173,6 +173,10 @@ func (r *queryResolver) FindPlayers(ctx context.Context, name *string, team *str
 func (r *queryResolver) FindUsers(ctx context.Context, search string) ([]*types.User, error) {
 	return db.FindUser(search, 10)
 }
+func (r *queryResolver) FindTeamRoster(ctx context.Context, leagueID string, teamFk string) ([]*types.Player, error) {
+	return db.FindTeamRoster(leagueID, teamFk)
+}
+
 func (r *queryResolver) CurrentRotoArticles(ctx context.Context, id string) (articles []*types.RotoArticle, err error) {
 	articles = r.RotoArticles[id]
 	if len(articles) == 0 {

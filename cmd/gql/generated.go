@@ -188,6 +188,7 @@ type ComplexityRoot struct {
 		CurrentRotoArticles func(childComplexity int, id string) int
 		FindGames           func(childComplexity int, team *string, gameTime *time.Time) int
 		FindPlayers         func(childComplexity int, name *string, team *string, position *string) int
+		FindTeamRoster      func(childComplexity int, leagueID string, teamFk string) int
 		FindUsers           func(childComplexity int, search string) int
 		GetBetMaps          func(childComplexity int, leagueID *string, betType *string) int
 		GetUser             func(childComplexity int, userID string) int
@@ -279,6 +280,7 @@ type QueryResolver interface {
 	FindGames(ctx context.Context, team *string, gameTime *time.Time) ([]*types.Game, error)
 	FindPlayers(ctx context.Context, name *string, team *string, position *string) ([]*types.Player, error)
 	FindUsers(ctx context.Context, search string) ([]*types.User, error)
+	FindTeamRoster(ctx context.Context, leagueID string, teamFk string) ([]*types.Player, error)
 	SearchSubjects(ctx context.Context, search string) ([]types.SubjectUnion, error)
 	SearchBets(ctx context.Context, search string, userID *string, betStatus *string) ([]*types.Bet, error)
 	GetBetMaps(ctx context.Context, leagueID *string, betType *string) ([]*types.BetMap, error)
@@ -1056,6 +1058,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.FindPlayers(childComplexity, args["name"].(*string), args["team"].(*string), args["position"].(*string)), true
 
+	case "Query.findTeamRoster":
+		if e.complexity.Query.FindTeamRoster == nil {
+			break
+		}
+
+		args, err := ec.field_Query_findTeamRoster_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.FindTeamRoster(childComplexity, args["leagueId"].(string), args["teamFk"].(string)), true
+
 	case "Query.findUsers":
 		if e.complexity.Query.FindUsers == nil {
 			break
@@ -1748,6 +1762,7 @@ type Query {
   findGames(team: String, gameTime: Timestamp): [Game]!
   findPlayers(name: String, team: String, position: String): [Player]!
   findUsers(search: String!): [User]!
+  findTeamRoster(leagueId: String!, teamFk: String!): [Player]!
   searchSubjects(search: String!): [SubjectUnion]!
   searchBets(search: String!, userId: String, betStatus: String): [Bet]!
   getBetMaps(leagueId: String, betType: String): [BetMap]!
@@ -1993,6 +2008,28 @@ func (ec *executionContext) field_Query_findPlayers_args(ctx context.Context, ra
 		}
 	}
 	args["position"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_findTeamRoster_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["leagueId"]; ok {
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["leagueId"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["teamFk"]; ok {
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["teamFk"] = arg1
 	return args, nil
 }
 
@@ -5574,6 +5611,47 @@ func (ec *executionContext) _Query_findUsers(ctx context.Context, field graphql.
 	res := resTmp.([]*types.User)
 	fc.Result = res
 	return ec.marshalNUser2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_findTeamRoster(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_findTeamRoster_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().FindTeamRoster(rctx, args["leagueId"].(string), args["teamFk"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*types.Player)
+	fc.Result = res
+	return ec.marshalNPlayer2ᚕᚖbetᚑhoundᚋcmdᚋtypesᚐPlayer(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_searchSubjects(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -9366,6 +9444,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_findUsers(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "findTeamRoster":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_findTeamRoster(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

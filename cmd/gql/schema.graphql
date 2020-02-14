@@ -236,6 +236,7 @@ type Query {
   findGames(team: String, gameTime: Timestamp): [Game]!
   findPlayers(name: String, team: String, position: String): [Player]!
   findUsers(search: String!): [User]!
+  findTeamRoster(leagueId: String!, teamFk: String!): [Player]!
   searchSubjects(search: String!): [SubjectUnion]!
   searchBets(search: String!, userId: String, betStatus: String): [Bet]!
   getBetMaps(leagueId: String, betType: String): [BetMap]!
