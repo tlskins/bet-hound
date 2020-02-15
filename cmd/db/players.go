@@ -55,15 +55,14 @@ func SearchPlayersWithGame(name, team, position *string, numResults int) (player
 		match["name"] = bson.RegEx{*name, "i"}
 	}
 	if team != nil {
-		teamSrch := *team + "*"
 		match["$or"] = []m.M{
-			m.M{"team_fk": bson.RegEx{teamSrch, "i"}},
-			m.M{"team_name": bson.RegEx{teamSrch, "i"}},
-			m.M{"team_short": bson.RegEx{teamSrch, "i"}},
+			m.M{"team_fk": bson.RegEx{*team, "i"}},
+			m.M{"team_name": bson.RegEx{*team, "i"}},
+			m.M{"team_short": bson.RegEx{*team, "i"}},
 		}
 	}
 	if position != nil {
-		match["pos"] = bson.RegEx{*position + "*", "i"}
+		match["pos"] = bson.RegEx{*position, "i"}
 	}
 
 	// lookup pipe

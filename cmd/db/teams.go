@@ -42,19 +42,17 @@ func SearchTeamsWithGame(name, location *string, numResults int) (teams []*t.Tea
 	// match pipe
 	matches := []m.M{}
 	if name != nil {
-		nmSrch := *name + "*"
-		matches = append(matches, m.M{"nm": bson.RegEx{nmSrch, "i"}})
+		matches = append(matches, m.M{"nm": bson.RegEx{*name, "i"}})
 	}
 	if location != nil {
-		locSrch := *location + "*"
-		matches = append(matches, m.M{"loc": bson.RegEx{locSrch, "i"}})
+		matches = append(matches, m.M{"loc": bson.RegEx{*location, "i"}})
 	}
 	match := m.M{"$or": matches}
 
 	// lookup pipe
 	lookup := m.M{
 		"from": env.GamesCollection(),
-		"let":  m.M{"tm_fk": "$_id", "p_lg_id": "$lg_id"},
+		"let":  m.M{"tm_fk": "$fk", "p_lg_id": "$lg_id"},
 		"pipeline": []m.M{
 			m.M{"$match": m.M{"$expr": m.M{"$and": []m.M{
 				m.M{"$eq": []interface{}{"$lg_id", "$$p_lg_id"}},
