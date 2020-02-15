@@ -80,7 +80,10 @@ func CreateBet(proposer *t.User, newBet *t.NewBet) (bet *t.Bet, note *t.Notifica
 			return bet, nil, err
 		}
 	}
-	note, _ = db.SyncBetWithUsers("Create", bet)
+	note, err = db.SyncBetWithUsers("Create", bet)
+	if err != nil {
+		fmt.Println(err)
+	}
 	return bet, note, nil
 }
 

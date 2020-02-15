@@ -37,7 +37,7 @@ func (b Bet) ProposerName() string {
 
 func (b Bet) RecipientName() string {
 	if b.Recipient == nil {
-		return "*Public"
+		return "*Anyone"
 	} else if len(b.Recipient.UserName) > 0 {
 		return b.Recipient.UserName
 	} else if b.Recipient.TwitterUser != nil {

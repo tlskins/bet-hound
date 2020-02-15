@@ -182,7 +182,7 @@ func SeedBetMaps() {
 	nOne := -1.0
 	teamBets[0] = &t.BetMap{
 		Id:                   24,
-		LeagueId:             "nfl",
+		LeagueId:             "*",
 		Type:                 "TeamMetric",
 		Name:                 "Win",
 		Field:                "Win",
@@ -192,7 +192,7 @@ func SeedBetMaps() {
 	}
 	teamBets[1] = &t.BetMap{
 		Id:                   25,
-		LeagueId:             "nfl",
+		LeagueId:             "*",
 		Type:                 "TeamMetric",
 		Name:                 "Win By",
 		Field:                "WinBy",
@@ -202,7 +202,7 @@ func SeedBetMaps() {
 	}
 	teamBets[2] = &t.BetMap{
 		Id:                   26,
-		LeagueId:             "nfl",
+		LeagueId:             "*",
 		Type:                 "TeamMetric",
 		Name:                 "Lose",
 		Field:                "Win",
@@ -212,7 +212,7 @@ func SeedBetMaps() {
 	}
 	teamBets[3] = &t.BetMap{
 		Id:                   27,
-		LeagueId:             "nfl",
+		LeagueId:             "*",
 		Type:                 "TeamMetric",
 		Name:                 "Lose By",
 		Field:                "LoseBy",
@@ -222,7 +222,7 @@ func SeedBetMaps() {
 	}
 	teamBets[4] = &t.BetMap{
 		Id:                   28,
-		LeagueId:             "nfl",
+		LeagueId:             "*",
 		Type:                 "TeamMetric",
 		Name:                 "Points Scored",
 		Field:                "Score",

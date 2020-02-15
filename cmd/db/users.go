@@ -209,11 +209,11 @@ func buildBetCreatedNote(bet *t.Bet) (note *t.Notification, pUpdate, rUpdate m.M
 	}
 	pUpdate = m.M{"$push": m.M{
 		"pnd_t_bts": bet.Id,
-		"notes":     m.M{"$each": []t.Notification{*note}, "$slice": -10, "$sort": m.M{"snt_at": -1}},
+		"notes":     m.M{"$each": []t.Notification{*note}, "$slice": 10, "$sort": m.M{"snt_at": -1}},
 	}}
 	rUpdate = m.M{"$push": m.M{
 		"pnd_u_bts": bet.Id,
-		"notes":     m.M{"$each": []t.Notification{*note}, "$slice": -10, "$sort": m.M{"snt_at": -1}},
+		"notes":     m.M{"$each": []t.Notification{*note}, "$slice": 10, "$sort": m.M{"snt_at": -1}},
 	}}
 	return
 }
@@ -233,14 +233,14 @@ func buildBetUpdatedNote(bet *t.Bet) (note *t.Notification, pUpdate, rUpdate m.M
 	}
 	pUpdate = m.M{
 		"$push": m.M{
-			"notes":   m.M{"$each": []t.Notification{*note}, "$slice": -10, "$sort": m.M{"snt_at": -1}},
+			"notes":   m.M{"$each": []t.Notification{*note}, "$slice": 10, "$sort": m.M{"snt_at": -1}},
 			"prg_bts": prgBetId,
 		},
 		"$pull": m.M{"pnd_u_bts": bet.Id, "pnd_t_bts": bet.Id},
 	}
 	rUpdate = m.M{
 		"$push": m.M{
-			"notes":   m.M{"$each": []t.Notification{*note}, "$slice": -10, "$sort": m.M{"snt_at": -1}},
+			"notes":   m.M{"$each": []t.Notification{*note}, "$slice": 10, "$sort": m.M{"snt_at": -1}},
 			"prg_bts": prgBetId,
 		},
 		"$pull": m.M{"pnd_u_bts": bet.Id, "pnd_t_bts": bet.Id},
@@ -258,11 +258,11 @@ func buildBetFinalNote(bet *t.Bet) (note *t.Notification, pUpdate, rUpdate m.M) 
 	}
 
 	pUpdate = m.M{
-		"$push": m.M{"notes": m.M{"$each": []t.Notification{*note}, "$slice": -10, "$sort": m.M{"snt_at": -1}}},
+		"$push": m.M{"notes": m.M{"$each": []t.Notification{*note}, "$slice": 10, "$sort": m.M{"snt_at": -1}}},
 		"$pull": m.M{"prg_bts": bet.Id},
 	}
 	rUpdate = m.M{
-		"$push": m.M{"notes": m.M{"$each": []t.Notification{*note}, "$slice": -10, "$sort": m.M{"snt_at": -1}}},
+		"$push": m.M{"notes": m.M{"$each": []t.Notification{*note}, "$slice": 10, "$sort": m.M{"snt_at": -1}}},
 		"$pull": m.M{"prg_bts": bet.Id},
 	}
 
