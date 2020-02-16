@@ -20,7 +20,7 @@ func Init(logger *log.Logger, gqlConfig *gql.Config) *crn.Cron {
 	fmt.Println("Initializing cron server...")
 	cronSrv := crn.New(crn.WithLocation(env.TimeZone()))
 
-	if _, err := cronSrv.AddFunc(fmt.Sprintf("CRON_TZ=%s */30 * * * *", env.ServerTz()), ScrapeAndPushRoto(gqlConfig)); err != nil {
+	if _, err := cronSrv.AddFunc(fmt.Sprintf("CRON_TZ=%s */5 * * * *", env.ServerTz()), ScrapeAndPushRoto(gqlConfig)); err != nil {
 		fmt.Println(err)
 	}
 	if _, err := cronSrv.AddFunc(fmt.Sprintf("CRON_TZ=%s 0 9 * * *", env.ServerTz()), func() {

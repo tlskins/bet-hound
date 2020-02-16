@@ -16,7 +16,7 @@ import (
 )
 
 func RotoNflArticles(numResults int) (articles []*t.RotoArticle, err error) {
-	fmt.Println("scraping rotoworld nfl...")
+	fmt.Println("scraper.RotoNflArticles scraping rotoworld nfl...")
 	html, err := getRotoNflHtml()
 	if err != nil {
 		return
@@ -25,6 +25,7 @@ func RotoNflArticles(numResults int) (articles []*t.RotoArticle, err error) {
 	if err != nil {
 		return
 	}
+	fmt.Println("scraper.RotoNflArticles gq document read...")
 
 	articles = make([]*t.RotoArticle, numResults)
 
@@ -54,7 +55,7 @@ func RotoNflArticles(numResults int) (articles []*t.RotoArticle, err error) {
 		}
 	})
 
-	fmt.Println("finished scraping rotoworld nfl...")
+	fmt.Println("scraper.RotoNflArticles finished scraping rotoworld nfl...")
 	return articles, nil
 }
 
@@ -75,7 +76,7 @@ func getRotoNflHtml() (html string, err error) {
 			return err
 		}),
 	)
-	fmt.Println("Chromedp finished scraping...")
+	fmt.Println("scraper.getRotoNflHtml Chromedp finished scraping...")
 
 	return html, err
 }

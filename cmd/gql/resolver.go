@@ -115,7 +115,7 @@ func (r *mutationResolver) AcceptBet(ctx context.Context, id string, accept bool
 	return true, err
 }
 func (r *mutationResolver) PostRotoArticle(ctx context.Context) (bool, error) {
-	fmt.Println("mutationResolver.PostRotoArticle... userObservers:", r.UserObservers)
+	fmt.Println("mutationResolver.PostRotoArticle userObservers:", r.UserObservers)
 	if len(r.UserObservers) == 0 {
 		return false, nil
 	}
@@ -123,6 +123,7 @@ func (r *mutationResolver) PostRotoArticle(ctx context.Context) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	fmt.Println("mutationResolver.PostRotoArticle roto articles scraped...")
 	last := articles[0] // last article is first in array
 	if last == nil || last.Title == r.LastRotoTitle {
 		return false, nil
@@ -141,6 +142,8 @@ func (r *mutationResolver) PostRotoArticle(ctx context.Context) (bool, error) {
 		userObserver.Profile <- &types.User{Notifications: []*types.Notification{note}}
 	}
 	r.mu.Unlock()
+
+	fmt.Println("mutationResolver.PostRotoArticle finished pushing to observers...")
 
 	return true, nil
 }
