@@ -19,8 +19,10 @@ func RotoNflArticles(numResults int) (articles []*t.RotoArticle, err error) {
 	fmt.Println("scraper.RotoNflArticles scraping rotoworld nfl...")
 	html, err := getRotoNflHtml()
 	if err != nil {
+		fmt.Println("scraper.RotoNflArticles err = ", err)
 		return
 	}
+
 	doc, err := gq.NewDocumentFromReader(strings.NewReader(html))
 	if err != nil {
 		return
@@ -60,7 +62,8 @@ func RotoNflArticles(numResults int) (articles []*t.RotoArticle, err error) {
 }
 
 func getRotoNflHtml() (html string, err error) {
-	tctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	tctx, cancel := chromedp.NewContext(ctx)
 	defer cancel()
 
 	// run task list
