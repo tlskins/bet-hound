@@ -46,6 +46,8 @@ type environment struct {
 	botHandle              string
 	allowedOrigins         string
 	serverTz               string
+	awsSesAccessKeyId      string
+	awsSesSecretAccessKey  string
 }
 
 var e = &environment{}
@@ -155,6 +157,12 @@ func DisableTwitter() {
 func ServerTz() string {
 	return e.serverTz
 }
+func AwsSesAccessKeyId() string {
+	return e.awsSesAccessKeyId
+}
+func AwsSesSecretAccessKey() string {
+	return e.awsSesSecretAccessKey
+}
 
 func Init(configFile, configPath string) error {
 	viper.SetConfigName(configFile)
@@ -210,10 +218,11 @@ func Init(configFile, configPath string) error {
 	e.logPath = viper.GetString("log_path")
 	e.allowedOrigins = viper.GetString("allowed_origins")
 	e.serverTz = viper.GetString("server_tz")
-	e.timeZone, err = time.LoadLocation(e.serverTz)
-	if err != nil {
+	if e.timeZone, err = time.LoadLocation(e.serverTz); err != nil {
 		return err
 	}
+	e.awsSesAccessKeyId = viper.GetString("aws_ses_access_key_id")
+	e.awsSesSecretAccessKey = viper.GetString("aws_ses_secret_access_key")
 
 	return nil
 }

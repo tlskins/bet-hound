@@ -12,32 +12,11 @@ import (
 	gq "github.com/PuerkitoBio/goquery"
 	"github.com/chromedp/cdproto/dom"
 	"github.com/chromedp/chromedp"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
-func getRotoNflHtml() (html string, err error) {
-	ctx, cancel := chromedp.NewContext(context.Background())
-	defer cancel()
-
-	// run task list
-	err = chromedp.Run(ctx,
-		chromedp.Navigate(`https://www.rotoworld.com/football/nfl/player-news`),
-		// chromedp.WaitVisible(`.player-news-article`),
-		chromedp.ActionFunc(func(ctx context.Context) error {
-			node, err := dom.GetDocument().Do(ctx)
-			if err != nil {
-				return err
-			}
-			html, err = dom.GetOuterHTML().WithNodeID(node.NodeID).Do(ctx)
-			return err
-		}),
-	)
-
-	return html, err
-}
-
 func RotoNflArticles(numResults int) (articles []*t.RotoArticle, err error) {
-	fmt.Println("scraping rotoworld nfl")
+	fmt.Println("scraping rotoworld nfl...")
 	html, err := getRotoNflHtml()
 	if err != nil {
 		return
@@ -75,5 +54,36 @@ func RotoNflArticles(numResults int) (articles []*t.RotoArticle, err error) {
 		}
 	})
 
+	fmt.Println("finished scraping rotoworld nfl...")
 	return articles, nil
+}
+
+func getRotoNflHtml() (html string, err error) {
+	tctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// run task list
+	err = chromedp.Run(tctx,
+		chromedp.Navigate(`https://www.rotoworld.com/football/nfl/player-news`),
+		// chromedp.WaitVisible(`.player-news-article`),
+		chromedp.ActionFunc(func(ctx context.Context) error {
+			node, err := dom.GetDocument().Do(ctx)
+			if err != nil {
+				return err
+			}
+			html, err = dom.GetOuterHTML().WithNodeID(node.NodeID).Do(ctx)
+			return err
+		}),
+	)
+	fmt.Println("Chromedp finished scraping...")
+
+	return html, err
+}
+
+func RunWithTimeOut(ctx *context.Context, timeout time.Duration, tasks chromedp.Tasks) chromedp.ActionFunc {
+	return func(ctx context.Context) error {
+		timeoutContext, cancel := context.WithTimeout(ctx, timeout*time.Second)
+		defer cancel()
+		return tasks.Do(timeoutContext)
+	}
 }

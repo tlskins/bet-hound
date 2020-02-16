@@ -7,6 +7,7 @@ require (
 	github.com/99designs/gqlgen v0.10.3-0.20191128123652-f869f5a85385
 	github.com/PuerkitoBio/goquery v1.5.0
 	github.com/agnivade/levenshtein v1.0.3 // indirect
+	github.com/aws/aws-sdk-go v1.29.3
 	github.com/chromedp/cdproto v0.0.0-20191114225735-6626966fbae4
 	github.com/chromedp/chromedp v0.5.2
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
@@ -45,7 +46,6 @@ require (
 	github.com/vektah/dataloaden v0.3.0 // indirect
 	github.com/vektah/gqlparser v1.2.0
 	golang.org/x/crypto v0.0.0-20191227163750-53104e6ec876 // indirect
-	golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553 // indirect
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect
 	golang.org/x/sys v0.0.0-20200102141924-c96a22e43c9c // indirect
 	golang.org/x/tools v0.0.0-20200102200121-6de373a2766c // indirect
