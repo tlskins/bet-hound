@@ -104,6 +104,7 @@ func main() {
 			env.DisableTwitter()
 		} else if arg == "-pprof" {
 			// profiling
+			fmt.Println("listening for pprof...")
 			router.HandleFunc("/debug/pprof/", pprof.Index)
 			router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
 			router.HandleFunc("/debug/pprof/profile", pprof.Profile)
