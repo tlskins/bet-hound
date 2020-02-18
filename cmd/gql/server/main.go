@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"strings"
 	"time"
@@ -82,14 +83,6 @@ func main() {
 		w.Write([]byte("ok"))
 	})
 
-	// start graphql server
-	go func() {
-		log.Printf("connect to %s for GraphQL playground", env.GqlUrl())
-		if err := http.ListenAndServe(":"+env.GqlPort(), router); err != nil {
-			log.Fatal(err)
-		}
-	}()
-
 	// options
 	args := os.Args
 	fmt.Println("args=", args)
@@ -109,11 +102,20 @@ func main() {
 		} else if arg == "-disable_twitter" {
 			fmt.Println("disabling twitter...")
 			env.DisableTwitter()
+		} else if arg == "-pprof" {
+			// profiling
+			router.HandleFunc("/debug/pprof/", pprof.Index)
+			router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+			router.HandleFunc("/debug/pprof/profile", pprof.Profile)
+			router.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+			router.HandleFunc("/debug/pprof/trace", pprof.Trace)
 		} else if arg == "-register" {
 			fmt.Println("registering twitter webhook...")
-			twtClient := env.TwitterClient()
-			time.Sleep(5 * time.Second)
-			twtClient.RegisterWebhook(env.WebhookEnv(), env.WebhookUrl())
+			go func() {
+				twtClient := env.TwitterClient()
+				time.Sleep(5 * time.Second)
+				twtClient.RegisterWebhook(env.WebhookEnv(), env.WebhookUrl())
+			}()
 		} else if arg == "-check_nba_games" {
 			fmt.Println("checking nba games...")
 			cron.CheckNbaGameResults(logger)
@@ -135,7 +137,11 @@ func main() {
 	cronSrv := cron.Init(logger, &gqlConfig)
 	defer cronSrv.Stop()
 
-	select {} // block forever
+	// start graphql server
+	log.Printf("connect to %s for GraphQL playground", env.GqlUrl())
+	if err := http.ListenAndServe(":"+env.GqlPort(), router); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func SetUpLogger(logPath, defaultPath string) *log.Logger {
